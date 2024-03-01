@@ -1,7 +1,3 @@
-//
-// Created by Umato on 29.02.2024.
-//
-
 #include "NFA.h"
 
 NFA_state* NFA_state_init(int id, bool is_final, size_t letters_count)
