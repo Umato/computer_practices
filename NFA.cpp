@@ -351,3 +351,8 @@ bool NFA_accept(NFA* nfa, big_int* num)
 
 	return 0;
 }
+
+NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
+{
+
+}
