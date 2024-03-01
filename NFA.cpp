@@ -143,8 +143,7 @@ void NFA_print(NFA* automaton) {
         NFA_state* state = automaton->states[i];
         if (state == nullptr) continue;
 
-        std::cout << " State " << state->id << " ["
-                  << (state->is_final ? "final" : "non-final") << "]:" << std::endl;
+        std::cout << " State " << state->id << (state->is_final ? " [final]" : "") << std::endl;
 
         for (size_t letter = 0; letter <= (1 << automaton->alphabet_dim); letter++) {
             list* transition_list = state->transitions[letter];
@@ -163,11 +162,6 @@ void NFA_print(NFA* automaton) {
     }
 }
 
-bool NFA_accept(NFA* automaton, big_int* num)
-{
-    return 0;
-}
-
 void NFA_to_DOT(NFA* automaton)
 {
     if (automaton == nullptr) {
@@ -176,7 +170,7 @@ void NFA_to_DOT(NFA* automaton)
     }
 
     char base_filename[] = "NFA/NFA";
-    char extension[] = ".gv.txt";
+    char extension[] = ".gv";
     char filename[40];
     FILE *file;
     int counter = 0;
@@ -252,4 +246,76 @@ NFA* NFA_from_file(const char* filename) {
 
 
 
+}
+
+bool NFA_accept(NFA* nfa, big_int* num)
+{
+	stack* current_states = create_stack();
+	stack* next_states;
+	bool* next_states_added;
+	char bit;
+	size_t total_bits = num->length << 3;
+	size_t leading_zeroes = 0;
+
+	for (int i = total_bits - 8; i < total_bits && (num->number[i >> 3] & (1 << (7 - (i & 7)))) == 0; i++) leading_zeroes++;
+	total_bits -= leading_zeroes; // leading zeroes shouldn't be processed
+
+	push(current_states, nfa->initial_state->id);
+	// states that have epsilon-transition from initial_state are also initial
+	node* eps_initial = nfa->initial_state->transitions[(1 << nfa->alphabet_dim)]->head;
+	while (eps_initial)
+	{
+		push(current_states, eps_initial->val);
+		eps_initial = eps_initial->next;
+	}
+
+	for (int i = 0; i < total_bits; i++)
+	{
+		next_states_added = (bool*)calloc(nfa->states_count, sizeof(bool)); // 0: state is not in "next_states", 1: state IS in "next_states"
+		next_states = create_stack(); // stack of states we can reach from current set of states
+		bit = ((num->number[i >> 3]) & (1 << (i & 7))) ? 1 : 0; // current input
+
+		while (!is_stack_empty(current_states))
+		{
+			node* dest = nfa->states[pop(current_states)]->transitions[bit]->head;
+			while (dest) // check all states we can reach from this current_state
+			{
+				if (!next_states_added[dest->val]) // if destination_state is not in the next_states
+				{
+					push(next_states, dest->val); // push it in next_states
+					next_states_added[dest->val] = 1;
+
+					// we also check all states that have epsilon-transition from this destination_state
+					// and push them in next_states
+					node* eps_dest = nfa->states[dest->val]->transitions[(1 << nfa->alphabet_dim)]->head;
+					while (eps_dest)
+					{
+						if (!next_states_added[eps_dest->val])
+						{
+							push(next_states, eps_dest->val);
+							next_states_added[eps_dest->val] = 1;
+						}
+						eps_dest = eps_dest->next;
+					}
+				}
+
+				dest = dest->next;
+			}
+		}
+
+		free_stack(current_states);
+		free(next_states_added);
+		current_states = next_states;
+		next_states = nullptr;
+	}
+
+	// check if any final state in current_states
+	while (!is_stack_empty(current_states))
+	{
+		int state_id = pop(current_states);
+		if (nfa->states[state_id]->is_final)
+			return 1;
+	}
+
+	return 0;
 }
