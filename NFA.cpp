@@ -302,9 +302,19 @@ void NFA_to_DOT1(NFA* automaton)
     fprintf(file, "\tinit [shape=none, label=\"\"];\n");
     fprintf(file, "\tinit -> %d;\n", automaton->initial_state->id);
 
+    // Creating structure for storing labels
+    char*** labels = (char***)malloc(automaton->states_count * sizeof(char**));
+    for (int i = 0; i < automaton->states_count; i++) {
+        labels[i] = (char**)malloc(automaton->states_count * sizeof(char*));
+        for (int j = 0; j < automaton->states_count; j++) {
+            labels[i][j] = (char*)calloc(128, sizeof(char));
+        }
+    }
+
+    // Filling labels for every transition
     for (size_t i = 0; i < automaton->states_count; i++) {
         NFA_state* state = automaton->states[i];
-        for (size_t letter = 0; letter <= (1 << automaton->alphabet_dim);letter++) {
+        for (size_t letter = 0; letter <= (1 << automaton->alphabet_dim); letter++) {
             list* transition_list = state->transitions[letter];
             if (!transition_list || !transition_list->head) {
                 continue;
@@ -312,12 +322,26 @@ void NFA_to_DOT1(NFA* automaton)
 
             node* current = transition_list->head;
             while (current) {
-                if (letter == (1 << automaton->alphabet_dim)) {
-                    fprintf(file, "\t%d -> %d [label = \"e\"];\n", state->id, current->val);
-                } else {
-                    fprintf(file, "\t%d -> %d [label = \"%lu\"];\n", state->id, current->val, letter);
+                if (strlen(labels[state->id][current->val]) > 0) {
+                    strcat(labels[state->id][current->val], ",");
                 }
+                char letter_str[10];
+                if (letter == (1 << automaton->alphabet_dim))
+                    sprintf(letter_str, "%c", 'e');
+                else
+                    sprintf(letter_str, "%lu", letter);
+                strcat(labels[state->id][current->val], letter_str);
+
                 current = current->next;
+            }
+        }
+    }
+
+    // output every transition
+    for (int i = 0; i < automaton->states_count; i++) {
+        for (int j = 0; j < automaton->states_count; j++) {
+            if (strlen(labels[i][j]) > 0) {
+                fprintf(file, "\t%d -> %d [label = \"%s\"];\n", i, j, labels[i][j]);
             }
         }
     }
@@ -325,8 +349,84 @@ void NFA_to_DOT1(NFA* automaton)
     fprintf(file, "}\n");
     fclose(file);
 
+    // free memory
+    for (int i = 0; i < automaton->states_count; i++) {
+        for (int j = 0; j < automaton->states_count; j++) {
+            free(labels[i][j]);
+        }
+        free(labels[i]);
+    }
+    free(labels);
+
     printf("NFA has been written to %s\n", filename);
 }
+
+//void NFA_to_DOT(NFA* automaton)
+//{
+//    if (automaton == nullptr) {
+//        printf("Invalid NFA.\n");
+//        return;
+//    }
+//
+//    char base_filename[] = "../NFA/NFA";
+//    char extension[] = ".gv";
+//    char filename[40];
+//    FILE *file;
+//    int counter = 0;
+//
+//    do {
+//        if (counter == 0) {
+//            sprintf(filename, "%s%s", base_filename, extension);
+//        } else {
+//            fclose(file);
+//            sprintf(filename, "%s%d%s", base_filename, counter, extension);
+//        }
+//        file = fopen(filename, "r");
+//        if (file != nullptr) {
+//            counter++;
+//        }
+//    } while (file != nullptr);
+//
+//    file = fopen(filename, "w");
+//
+//    fprintf(file, "digraph finite_state_machine{\n");
+//    fprintf(file, "\trankdir=LR;\n");
+//    fprintf(file, "\tnode [shape = doublecircle];");
+//    for (size_t i = 0; i < automaton->states_count; i++) {
+//        if (automaton->states[i]->is_final) {
+//            fprintf(file, " %d", automaton->states[i]->id);
+//        }
+//    }
+//    fprintf(file, ";\n");
+//    fprintf(file, "\tnode [shape = circle];\n");
+//    fprintf(file, "\tinit [shape=none, label=\"\"];\n");
+//    fprintf(file, "\tinit -> %d;\n", automaton->initial_state->id);
+//
+//    for (size_t i = 0; i < automaton->states_count; i++) {
+//        NFA_state* state = automaton->states[i];
+//        for (size_t letter = 0; letter <= (1 << automaton->alphabet_dim);letter++) {
+//            list* transition_list = state->transitions[letter];
+//            if (!transition_list || !transition_list->head) {
+//                continue;
+//            }
+//
+//            node* current = transition_list->head;
+//            while (current) {
+//                if (letter == (1 << automaton->alphabet_dim)) {
+//                    fprintf(file, "\t%d -> %d [label = \"e\"];\n", state->id, current->val);
+//                } else {
+//                    fprintf(file, "\t%d -> %d [label = \"%lu\"];\n", state->id, current->val, letter);
+//                }
+//                current = current->next;
+//            }
+//        }
+//    }
+//
+//    fprintf(file, "}\n");
+//    fclose(file);
+//
+//    printf("NFA has been written to %s\n", filename);
+//}
 
 NFA* NFA_from_file(const char* filename) {
     FILE* file = fopen(filename, "r");
