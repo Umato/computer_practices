@@ -1,7 +1,3 @@
-//
-// Created by Umato on 29.02.2024.
-//
-
 #include "NFA.h"
 
 NFA_state* NFA_state_init(int id, bool is_final, size_t letters_count)
@@ -173,7 +169,7 @@ void NFA_to_DOT(NFA* automaton)
     FILE *file;
     int counter = 0;
 
-    // Попытка найти уникальное имя файла
+    // forming filename
     do {
         if (counter == 0) {
             sprintf(filename, "%s%s", base_filename, extension);
@@ -202,7 +198,7 @@ void NFA_to_DOT(NFA* automaton)
     fprintf(file, "\tinit [shape=none, label=\"\"];\n");
     fprintf(file, "\tinit -> %d;\n", automaton->initial_state->id);
 
-    // Создание структуры для хранения меток переходов
+    // structure for storing labels of transitions
     char*** labels = (char***)malloc(automaton->states_count * sizeof(char**));
     for (int i = 0; i < automaton->states_count; i++) {
         labels[i] = (char**)malloc(automaton->states_count * sizeof(char*));
@@ -211,7 +207,7 @@ void NFA_to_DOT(NFA* automaton)
         }
     }
 
-    // Заполнение меток для каждого перехода
+    // filling label for every transition
     for (size_t i = 0; i < automaton->states_count; i++) {
         NFA_state* state = automaton->states[i];
         for (size_t letter = 0; letter <= (1 << automaton->alphabet_dim); letter++) {
@@ -237,7 +233,7 @@ void NFA_to_DOT(NFA* automaton)
         }
     }
 
-    // Вывод всех переходов
+    // output transitions
     for (int i = 0; i < automaton->states_count; i++) {
         for (int j = 0; j < automaton->states_count; j++) {
             if (strlen(labels[i][j]) > 0) {
@@ -249,7 +245,7 @@ void NFA_to_DOT(NFA* automaton)
     fprintf(file, "}\n");
     fclose(file);
 
-    // Освобождение выделенной памяти
+    // free memory
     for (int i = 0; i < automaton->states_count; i++) {
         for (int j = 0; j < automaton->states_count; j++) {
             free(labels[i][j]);
@@ -260,6 +256,7 @@ void NFA_to_DOT(NFA* automaton)
 
     printf("NFA has been written to %s\n", filename);
 }
+
 
 NFA* NFA_from_file(const char* filename) {
     FILE* file = fopen(filename, "r");
