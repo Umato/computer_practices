@@ -169,7 +169,7 @@ void NFA_to_DOT(NFA* automaton)
         return;
     }
 
-    char base_filename[] = "NFA/NFA";
+    char base_filename[] = "../NFA/NFA";
     char extension[] = ".gv";
     char filename[40];
     FILE *file;
