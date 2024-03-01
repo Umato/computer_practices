@@ -24,7 +24,6 @@ typedef struct NFA {
     size_t alphabet_dim;
     NFA_state** states;
     NFA_state* initial_state;
-    NFA_state* current_state;
 } NFA;
 
 NFA_state* NFA_state_init(int id, bool is_final, size_t alphabet_dim);
