@@ -258,7 +258,6 @@ void NFA_to_DOT(NFA* automaton)
 }
 
 
-
 NFA* NFA_from_file(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -348,4 +347,9 @@ bool NFA_accept(NFA* nfa, big_int* num)
 	}
 
 	return 0;
+}
+
+NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
+{
+
 }
