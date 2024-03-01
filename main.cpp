@@ -26,9 +26,7 @@ int main() {
     NFA_transition_add(nfa2, 2, 3, 0);
     NFA_print(nfa2);
     NFA_to_DOT(nfa2);
-    // accepts nums which start with 01 or 10,
-    // although actually it will never accept num which start with 0
-    // and one thing I don't understand: why we need to check num from end to start and not vice versa?
+    // accepts nums which start with 10
 
     big_int* num;
     num = big_int_get("11000100001001010111"); //not ok
