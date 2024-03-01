@@ -24,6 +24,7 @@ int main() {
     NFA_transition_add(nfa2, 0, 2, 1);
     NFA_transition_add(nfa2, 1, 3, 1);
     NFA_transition_add(nfa2, 2, 3, 0);
+    NFA_transition_add(nfa2, 2, 3, 2);
     NFA_print(nfa2);
     NFA_to_DOT(nfa2);
     // accepts nums which start with 01 or 10,
