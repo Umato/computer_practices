@@ -4,7 +4,7 @@
 
 #include "NFA.h"
 
-NFA_state* NFA_state_init(int id, bool is_final, size_t letters_count)
+NFA_state* NFA_state_init(int id, bool is_final, int letters_count)
 {
     NFA_state* state = (NFA_state*)malloc(sizeof(NFA_state));
     if (!state) return nullptr;
@@ -31,7 +31,7 @@ NFA_state* NFA_state_init(int id, bool is_final, size_t letters_count)
     return state;
 }
 
-NFA* NFA_init(size_t states_count, size_t alphabet_dim, int initial_state, int final_states_count, int* final_states)
+NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_states_count, int* final_states)
 {
     if ((initial_state >= states_count) || (final_states_count > states_count))
 		return nullptr;
@@ -261,7 +261,6 @@ void NFA_to_DOT(NFA* automaton)
     printf("NFA has been written to %s\n", filename);
 }
 
-
 NFA* NFA_from_file(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -355,5 +354,154 @@ bool NFA_accept(NFA* nfa, big_int* num)
 
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
 {
+    if (!nfa1 || !nfa2) return nullptr;
 
+    int combined_states_count = nfa1->states_count * nfa2->states_count;
+    int alphabet_dim = max(nfa1->alphabet_dim, nfa2->alphabet_dim);
+
+    NFA* intersected_nfa = NFA_init(combined_states_count, alphabet_dim, 0, 0, nullptr);
+
+    for (size_t i = 0; i < nfa1->states_count; i++) {
+        for (size_t j = 0; j <nfa2->states_count; j++) {
+            int combined_state_id = i * nfa2->states_count + j;
+            NFA_state* combined_state = intersected_nfa->states[combined_state_id];
+
+            combined_state->is_final = nfa1->states[i]->is_final && nfa2->states[j]->is_final;
+
+            for (size_t letter = 0; letter <= (1 << alphabet_dim); letter++) {
+                list* list1 = nfa1->states[i]->transitions[letter];
+                list* list2 = nfa2->states[j]->transitions[letter];
+
+                for (node* node1 = list1->head; node1 != nullptr; node1 = node1->next) {
+                    for (node* node2 = list2->head; node2 != nullptr; node2 = node2->next) {
+                        int new_end_state = node1->val * nfa2->states_count + node2->val;
+                        NFA_transition_add(intersected_nfa, combined_state_id, new_end_state, letter);
+                    }
+                }
+
+            }
+        }
+    }
+
+    intersected_nfa->initial_state = intersected_nfa->states[nfa1->initial_state->id * nfa2->states_count + nfa2->initial_state->id];
+
+    return intersected_nfa;
+
+}
+
+NFA* union_NFA(NFA* nfa1, NFA* nfa2)
+{
+    if (!nfa1 || !nfa2) return nullptr;
+
+    // + 1, потому что это новое состояние - новое начальное состояние.
+    int combined_states_count = nfa1->states_count * nfa2->states_count + 1;
+    int alphabet_dim = max(nfa1->alphabet_dim, nfa2->alphabet_dim);
+
+    NFA* unioned_NFA = NFA_init(combined_states_count, alphabet_dim, 0, 0, nullptr);
+
+    // Добавление эпсилон-переходов из нового начального состояния к начальным состояниям обоих NFA
+    NFA_transition_add(unioned_NFA, 0, nfa1->initial_state->id + 1, (1 << alphabet_dim));
+    NFA_transition_add(unioned_NFA, 0, nfa2->initial_state->id + 1 + nfa1->states_count, (1 << alphabet_dim));
+
+    for (size_t i = 0; i < nfa1->states_count; i++) {
+        for (size_t letter = 0; letter <= (1 << alphabet_dim); letter++) {
+            for (node* trans = nfa1->states[i]->transitions[letter]->head; trans != nullptr; trans = trans->next) {
+                NFA_transition_add(unioned_NFA, i + 1, trans->val + 1, letter);
+            }
+            if (nfa1->states[i]->is_final) {
+                unioned_NFA->states[i + 1]->is_final = true;
+            }
+        }
+    }
+
+    for (int i = 0; i < nfa2->states_count; i++) {
+        for (int letter = 0; letter <= (1 << alphabet_dim); letter++) {
+            for (node* trans = nfa2->states[i]->transitions[letter]->head; trans != nullptr; trans = trans->next) {
+                NFA_transition_add(unioned_NFA, i + 1 + nfa1->states_count, trans->val + 1 + nfa1->states_count, letter);
+            }
+            if (nfa2->states[i]->is_final) {
+                unioned_NFA->states[i + 1 + nfa1->states_count]->is_final = true;
+            }
+        }
+    }
+
+    return unioned_NFA;
+}
+
+bool NFA_is_DFA(NFA* automaton)
+{
+    if (!automaton) return false;
+
+    for (size_t i = 0; i < automaton->states_count; i++) {
+        NFA_state *state = automaton->states[i];
+
+        for (size_t letter = 0; letter < (1 << automaton->alphabet_dim); letter++) {
+            list *transition_list = state->transitions[letter];
+
+            if (!transition_list || !transition_list->head) continue;
+
+            size_t transitions_count = 0;
+           for (node* trans_node = transition_list->head; trans_node != nullptr; trans_node = trans_node->next) {
+                transitions_count++;
+                if (transitions_count > 1) return false;
+            }
+
+        }
+
+        if (state->transitions[1 << automaton->alphabet_dim]->head != nullptr) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void find_epsilon_closure(NFA* automaton, int state_id, bool* epsilon_closure) {
+    epsilon_closure[state_id] = true;
+
+    node* current = automaton->states[state_id]->transitions[1 << automaton->alphabet_dim]->head;
+    while (current) {
+        if (!epsilon_closure[current->val]) {
+            find_epsilon_closure(automaton, current->val, epsilon_closure);
+        }
+        current = current->next;
+    }
+}
+
+void copy_transitions(NFA* automaton, int from_state, int to_state) {
+    for (int letter = 0; letter < (1 << automaton->alphabet_dim); letter++) {
+        node* current = automaton->states[to_state]->transitions[letter]->head;
+        while (current) {
+            NFA_transition_add(automaton, from_state, current->val, letter);
+            current = current->next;
+        }
+    }
+}
+
+void NFA_remove_epsilon_transitions(NFA* automaton) {
+    if (automaton == nullptr) return;
+
+    int epsilon = 1 << automaton->alphabet_dim;
+
+    for (size_t i = 0; i < automaton->states_count; i++) {
+        NFA_state* state = automaton->states[i];
+
+        bool* epsilon_closure = (bool*)calloc(automaton->states_count, sizeof(bool));
+        find_epsilon_closure(automaton, i, epsilon_closure);
+
+        for (size_t j = 0; j < automaton->states_count; j++) {
+            if (epsilon_closure[j]) {
+                copy_transitions(automaton, i, j);
+
+                if (automaton->states[j]->is_final) {
+                    automaton->states[i]->is_final = true;
+                }
+            }
+        }
+
+        list_free(state->transitions[epsilon]);
+        state->transitions[epsilon] = nullptr;
+
+        free(epsilon_closure);
+    }
 }

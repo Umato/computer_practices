@@ -20,14 +20,14 @@ typedef struct NFA_state {
 } NFA_state;
 
 typedef struct NFA {
-    size_t states_count;
-    size_t alphabet_dim;
+    int states_count;
+    int alphabet_dim;
     NFA_state** states;
     NFA_state* initial_state;
 } NFA;
 
-NFA_state* NFA_state_init(int id, bool is_final, size_t alphabet_dim);
-NFA* NFA_init(size_t states_count, size_t alphabet_dim, int initial_state, int final_states_count, int* final_states);
+NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
+NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_states_count, int* final_states);
 void list_free(list* tr_list);
 void NFA_free(NFA* automaton);
 void NFA_transition_add(NFA* automaton, int start_state, int end_state, int letter);
@@ -37,5 +37,13 @@ bool NFA_accept(NFA* automaton, big_int* num);
 
 void NFA_to_DOT(NFA* automaton);
 NFA* NFA_from_file(const char* filename);
+NFA* intersect_NFA(NFA* nfa1, NFA* nfa2);
+NFA* union_NFA(NFA* nfa1, NFA* nfa2);
+bool NFA_is_DFA(NFA* automaton);
+
+void find_epsilon_closure(NFA* automaton, int state_id, bool* epsilon_closure);
+void copy_transitions(NFA* automaton, int from_state, int to_state);
+void NFA_remove_epsilon_transitions(NFA* automaton);
+
 
 #endif //COMPUTER_PRACTICES_NFA_H
