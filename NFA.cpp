@@ -354,10 +354,10 @@ bool NFA_accept(NFA* nfa, big_int* num)
 
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
 {
-    if (!nfa1 || !nfa2) return nullptr;
+    if (!nfa1 || !nfa2 || nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
 
     int combined_states_count = nfa1->states_count * nfa2->states_count;
-    int alphabet_dim = max(nfa1->alphabet_dim, nfa2->alphabet_dim);
+    int alphabet_dim = nfa1->alphabet_dim;
 
     NFA* intersected_nfa = NFA_init(combined_states_count, alphabet_dim, 0, 0, nullptr);
 
@@ -391,11 +391,11 @@ NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
 
 NFA* union_NFA(NFA* nfa1, NFA* nfa2)
 {
-    if (!nfa1 || !nfa2) return nullptr;
+    if (!nfa1 || !nfa2 || nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
 
     // + 1, потому что это новое состояние - новое начальное состояние.
     int combined_states_count = nfa1->states_count * nfa2->states_count + 1;
-    int alphabet_dim = max(nfa1->alphabet_dim, nfa2->alphabet_dim);
+    int alphabet_dim = nfa1->alphabet_dim;
 
     NFA* unioned_NFA = NFA_init(combined_states_count, alphabet_dim, 0, 0, nullptr);
 
@@ -427,6 +427,20 @@ NFA* union_NFA(NFA* nfa1, NFA* nfa2)
 
     return unioned_NFA;
 }
+
+void DFA_complement(NFA* automaton) {
+    if (!automaton) return;
+
+    if (!NFA_is_DFA(automaton)) {
+        printf("The automaton is not a DFA.");
+        return;
+    }
+
+    for (int i = 0; i < automaton->states_count; i++) {
+        automaton->states[i]->is_final = !automaton->states[i]->is_final;
+    }
+}
+
 
 bool NFA_is_DFA(NFA* automaton)
 {
