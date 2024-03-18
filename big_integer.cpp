@@ -7,6 +7,29 @@
 
 #pragma region Memory Management
 
+big_int_list* big_int_list_init(size_t count, const int* nums)
+{
+    big_int_list* bigint_list = (big_int_list*)malloc(sizeof(big_int_list));
+    bigint_list->count = count;
+    bigint_list->big_ints = (big_int**)malloc(sizeof(big_int*) * count);
+    for (int i = 0; i < count; i++)
+    {
+        bigint_list->big_ints[i] = big_int_get(nums[i]);
+    }
+    return bigint_list;
+}
+
+void big_int_list_free(big_int_list* bigint_list)
+{
+    for (int i = 0; i < bigint_list->count; i++)
+    {
+        big_int_free(bigint_list->big_ints[i]);
+    }
+    free(bigint_list);
+}
+
+
+
 big_int *big_int_get(const int x) {
     big_int *num = (big_int *) malloc(sizeof(big_int));
 

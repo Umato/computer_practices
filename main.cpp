@@ -10,28 +10,24 @@ int main() {
     std::random_device rd;
     srand(rd());
 
-    int states_count = 4;
+    /*int states_count = 4;
     int alphabet_dim = 1;
     int initial_state = 0;
     int final_states_count = 1;
+    int final_states_nums[] = {0};
     int* final_states = (int*)malloc(sizeof(int) * final_states_count);
-    final_states[0] = 2;
+    final_states = &final_states_nums[0];*/
+    
 
-    NFA* nfa1 = NFA_init(states_count, alphabet_dim, initial_state, final_states_count, final_states);
-    NFA_transition_add(nfa1, 0, 1, 0);
-    NFA_transition_add(nfa1, 0, 0, 2);
-    NFA_transition_add(nfa1, 0, 1, 2);
-    NFA_transition_add(nfa1, 1, 1, 1);
-    NFA_transition_add(nfa1, 1, 2, 0);
-    NFA_transition_add(nfa1, 1, 3, 2);
-    NFA_transition_add(nfa1, 3, 3, 1);
-    NFA_transition_add(nfa1, 3, 2, 0);
+    int nums[] = { 42, 0, 42 };
+    int* bigint_list_nums = &nums[0];
+    big_int_list* bigint_list = big_int_list_init(3, bigint_list_nums);
 
-    NFA_print(nfa1);
+    NFA* nfa_sum = NFA_get_sum3();
+    printf("result: %d", NFA_accept(nfa_sum, bigint_list));
 
-    NFA_remove_epsilon_transitions(nfa1);
-    NFA_print(nfa1);
-
+    
+    
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;

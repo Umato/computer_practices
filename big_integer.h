@@ -42,6 +42,18 @@ using big_int = struct big_int {
 };
 
 /**
+ * @brief Defines a structure for list of big integers.
+ *
+ * This structure represents a list of big_int pointers, consisted of a double pointer to an array of 
+ * big integers and their total amount.
+ */
+typedef struct big_int_list
+{
+    big_int** big_ints;
+    size_t count;
+} bigint_text;
+
+/**
  * @brief Represents an RSA key structure.
  *
  * This structure holds the modulus and exponent used in RSA encryption.
@@ -52,6 +64,21 @@ using rsa_key = struct {
 };
 
 #pragma region Memory Management
+/**
+ * @brief Creates new list of big_int pointers and fill it with given numbers
+ *
+ * @param count Amount of given numbers.
+ * @param nums Given numbers.
+ * @return Pointer to the newly created big_int_list object.
+ */
+big_int_list *big_int_list_init(size_t count, const int* nums);
+
+/**
+ * @brief Frees memory allocated for list of big_int pointers.
+ *
+ * @param bigint_list List of big_int pointers to be freed.
+ */
+void big_int_list_free(big_int_list* bigint_list);
 
 /**
  * @brief Reads an integer in binary format and creates a big_int object from it.
