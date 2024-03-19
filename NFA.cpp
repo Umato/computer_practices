@@ -3,6 +3,10 @@
 //
 
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
+// and change NFA_to_DOT for multi-dimensional NFA (e.g., instead of "3,5" we should write "011,101" above the transition)
+
+// We need NFA for: 
+//  1) x = y
 
 #include "NFA.h"
 
