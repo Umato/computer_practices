@@ -2,6 +2,8 @@
 // Coded by Zelendzu & Umato on 29.02.2024.
 //
 
+// maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
+
 #include "NFA.h"
 
 #pragma region Others
@@ -109,6 +111,17 @@ void NFA_transition_remove(NFA* automaton, int start_state, int end_state, int l
         node* temp = *current;
         *current = (*current)->next;
         free(temp);
+    }
+}
+
+void NFA_transitions_list_add(NFA* automaton, int start_state, list* end_states, int letter)
+{
+    if (!automaton || start_state >= automaton->states_count || letter > (1 << automaton->alphabet_dim)) return;
+    node* end_state = end_states->head;
+    while (end_state)
+    {
+        NFA_transition_add(automaton, start_state, end_state->val, letter);
+        end_state = end_state->next;
     }
 }
 
@@ -502,13 +515,13 @@ NFA* union_NFA(NFA* nfa1, NFA* nfa2)
 {
     if (!nfa1 || !nfa2 || nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
 
-    // + 1, потому что это новое состояние - новое начальное состояние.
+    // + 1, because the added state is the new initial one
     int combined_states_count = nfa1->states_count * nfa2->states_count + 1;
     int alphabet_dim = nfa1->alphabet_dim;
 
     NFA* unioned_NFA = NFA_init(combined_states_count, alphabet_dim, 0, 0, nullptr);
 
-    // Добавление эпсилон-переходов из нового начального состояния к начальным состояниям обоих NFA
+    // adding epsilon-transitions from new initial state to old initial states of both NFA
     NFA_transition_add(unioned_NFA, 0, nfa1->initial_state->id + 1, (1 << alphabet_dim));
     NFA_transition_add(unioned_NFA, 0, nfa2->initial_state->id + 1 + nfa1->states_count, (1 << alphabet_dim));
 
@@ -554,6 +567,48 @@ void DFA_complement(NFA* automaton) {
 
 
 #pragma region NFA Support Functions
+int* NFA_get_final_states(NFA* nfa, int* states_count)
+{
+    int count = 0;
+    int* final_states = nullptr;
+
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        if (nfa->states[i]->is_final)
+        {
+            count++;
+            final_states = (int*)realloc(final_states, sizeof(int) * count);
+            final_states[count - 1] = nfa->states[i]->id;
+        }
+    }
+
+    *states_count = count;
+    return final_states;
+}
+
+NFA* NFA_project(NFA* nfa, unsigned char n)
+{
+    if (!nfa || n > nfa->alphabet_dim || n == 0) return nullptr;
+    n = nfa->alphabet_dim - n + 1; // old n = coordinate number (start from left); new n = digit number (start from right)
+    int final_states_count = 0;
+    int* final_states = NFA_get_final_states(nfa, &final_states_count);
+    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim - 1, nfa->initial_state->id, final_states_count, final_states);
+
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+        {
+            int new_letter = ((letter >> n) << (n - 1)) | (letter & ((1 << (n - 1)) - 1));
+            NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[letter], new_letter);
+        }
+        NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[1 << nfa->alphabet_dim], 1 << new_nfa->alphabet_dim);
+    }
+
+    
+
+    return new_nfa;
+}
+
 bool NFA_is_DFA(NFA* automaton)
 {
     if (!automaton) return false;
@@ -678,6 +733,8 @@ NFA* NFA_get_sum3()
     NFA_transition_add(nfa, 1, 1, 4);
     NFA_transition_add(nfa, 1, 1, 7);
     NFA_transition_add(nfa, 1, 0, 1);
+
+
 
     return nfa;
 }
