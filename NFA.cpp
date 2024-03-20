@@ -5,8 +5,6 @@
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
 // and change NFA_to_DOT for multi-dimensional NFA (e.g., instead of "3,5" we should write "011,101" above the transition)
 
-// We need NFA for: 
-//  1) x = y
 
 #include "NFA.h"
 
@@ -20,6 +18,11 @@ void list_free(list* l) {
     free(l);
 }
 
+void print_bin(unsigned number, unsigned int bits) {
+    for (int i = (bits - 1); i >= 0; i--) {
+        printf("%d", (number >> i) & 1);
+    }
+}
 #pragma endregion
 
 
@@ -347,7 +350,12 @@ void NFA_print(NFA* automaton) {
                 continue;
             }
 
-            std::cout << "  On '" << letter << "': ";
+            std::cout << "  On '";
+            if (letter < (1 << automaton->alphabet_dim))
+                print_bin(letter, automaton->alphabet_dim);
+            else
+                printf("E");
+            std::cout << "': ";
             node* current = transition_list->head;
             while (current != nullptr) {
                 std::cout << current->val << " ";
@@ -567,6 +575,50 @@ void DFA_complement(NFA* automaton) {
     }
 }
 
+NFA* NFA_project(NFA* nfa, unsigned char n)
+{
+    if (!nfa || n >= nfa->alphabet_dim) return nullptr;
+    n = nfa->alphabet_dim - n; // old n = coordinate number (start from left = 0); new n = digit (разряд) number (start from right = 0)
+    int final_states_count = 0;
+    int* final_states = NFA_get_final_states(nfa, &final_states_count);
+    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim - 1, nfa->initial_state->id, final_states_count, final_states);
+
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+        {
+            int new_letter = ((letter >> n) << (n - 1)) | (letter & ((1 << (n - 1)) - 1));
+            NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[letter], new_letter);
+        }
+        NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[1 << nfa->alphabet_dim], 1 << new_nfa->alphabet_dim);
+    }
+
+    return new_nfa;
+}
+
+NFA* NFA_extend(NFA* nfa, unsigned char n)
+{
+    if (!nfa || n >= nfa->alphabet_dim) return nullptr;
+    n = nfa->alphabet_dim - n;
+    int final_states_count = 0;
+    int* final_states = NFA_get_final_states(nfa, &final_states_count);
+    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim + 1, nfa->initial_state->id, final_states_count, final_states);
+
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+        {
+            int new_letter0 = ((((letter >> n) << 1) | 0) << n) | (letter & ((1 << n) - 1));
+            int new_letter1 = ((((letter >> n) << 1) | 1) << n) | (letter & ((1 << n) - 1));
+            NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[letter], new_letter0);
+            NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[letter], new_letter1);
+        }
+        NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[1 << nfa->alphabet_dim], 1 << new_nfa->alphabet_dim);
+    }
+
+    return new_nfa;
+}
+
 #pragma endregion
 
 
@@ -588,29 +640,6 @@ int* NFA_get_final_states(NFA* nfa, int* states_count)
 
     *states_count = count;
     return final_states;
-}
-
-NFA* NFA_project(NFA* nfa, unsigned char n)
-{
-    if (!nfa || n > nfa->alphabet_dim || n == 0) return nullptr;
-    n = nfa->alphabet_dim - n + 1; // old n = coordinate number (start from left); new n = digit number (start from right)
-    int final_states_count = 0;
-    int* final_states = NFA_get_final_states(nfa, &final_states_count);
-    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim - 1, nfa->initial_state->id, final_states_count, final_states);
-
-    for (int i = 0; i < nfa->states_count; i++)
-    {
-        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
-        {
-            int new_letter = ((letter >> n) << (n - 1)) | (letter & ((1 << (n - 1)) - 1));
-            NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[letter], new_letter);
-        }
-        NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[1 << nfa->alphabet_dim], 1 << new_nfa->alphabet_dim);
-    }
-
-    
-
-    return new_nfa;
 }
 
 bool NFA_is_DFA(NFA* automaton)
@@ -690,7 +719,9 @@ void NFA_remove_epsilon_transitions(NFA* automaton) {
         free(epsilon_closure);
     }
 }
+#pragma endregion
 
+#pragma region NFA Examples
 NFA* NFA_get_div_2()
 {
     int* final_states = (int*)malloc(sizeof(int));
@@ -728,7 +759,7 @@ NFA* NFA_get_sum3()
     int* final_states = (int*)malloc(sizeof(int));
     final_states[0] = 0;
     NFA* nfa = NFA_init(2, 3, 0, 1, final_states);
-    
+
     NFA_transition_add(nfa, 0, 0, 0);
     NFA_transition_add(nfa, 0, 0, 3);
     NFA_transition_add(nfa, 0, 0, 5);
@@ -738,7 +769,19 @@ NFA* NFA_get_sum3()
     NFA_transition_add(nfa, 1, 1, 7);
     NFA_transition_add(nfa, 1, 0, 1);
 
+    return nfa;
+}
 
+NFA* NFA_get_equal()
+{
+    int* final_states = (int*)malloc(sizeof(int));
+    final_states[0] = 0;
+    NFA* nfa = NFA_init(2, 2, 0, 1, final_states);
+
+    NFA_transition_add(nfa, 0, 0, 0);
+    NFA_transition_add(nfa, 0, 0, 3);
+    NFA_transition_add(nfa, 0, 1, 1);
+    NFA_transition_add(nfa, 0, 1, 2);
 
     return nfa;
 }

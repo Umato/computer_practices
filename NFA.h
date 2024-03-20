@@ -12,6 +12,7 @@
 #include "Algorithm.h"
 #include "big_integer.h"
 #include "graph.h"
+#include <bitset>
 
 typedef struct NFA_state {
     int id;
@@ -27,6 +28,7 @@ typedef struct NFA {
 } NFA;
 
 void list_free(list* tr_list);
+void print_bin(unsigned number, unsigned int bits);
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
 NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_states_count, int* final_states);
@@ -45,15 +47,21 @@ NFA* intersect_NFA(NFA* nfa1, NFA* nfa2);
 NFA* union_NFA(NFA* nfa1, NFA* nfa2);
 void DFA_complement(NFA* automaton);
 
-int* NFA_get_final_states(NFA* nfa, int* states_count);
 /**
  * @brief Delete n-th coordinate in transition letters
  *
- * @param nfa: NFA.
- * @param n: Number of a coordinate, starting from left (e.g. 2 = "0010" minus 3-rd coordinate = "000" = 0)
- * @return Pointer to the newly created NFA.
+ * @param n: Number of a coordinate, starting from left (e.g. "0010" minus 2-nd coordinate = "000")
  */
 NFA* NFA_project(NFA* nfa, unsigned char n);
+
+/**
+ * @brief Add n-th coordinate in transition letters
+ *
+ * @param n: Number of a coordinate, starting from left (e.g. "0010" plus 2-nd coordinate = "00010"/"00110")
+ */
+NFA* NFA_extend(NFA* nfa, unsigned char n);
+
+int* NFA_get_final_states(NFA* nfa, int* states_count);
 bool NFA_is_DFA(NFA* automaton);
 void copy_transitions(NFA* automaton, int from_state, int to_state);
 void find_epsilon_closure(NFA* automaton, int state_id, bool* epsilon_closure);
@@ -73,5 +81,10 @@ NFA* NFA_get_div_3();
  * @brief Creates new NFA that checks: x+y=z
  */
 NFA* NFA_get_sum3();
+
+/**
+ * @brief Creates new NFA that checks: x=y
+ */
+NFA* NFA_get_equal();
 
 #endif //COMPUTER_PRACTICES_NFA_H
