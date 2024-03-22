@@ -12,6 +12,7 @@ int main() {
 
     #pragma region Start Parametres
     /*int states_count = 4;
+    int states_count = 3;
     int alphabet_dim = 1;
     int initial_state = 0;
     int final_states_count = 1;
@@ -51,8 +52,6 @@ int main() {
 
     printf("result: %d", NFA_accept(nfa_eq, bigint_list));*/
     #pragma endregion
-
-    
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;

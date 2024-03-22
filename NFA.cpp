@@ -9,6 +9,7 @@
 #include "NFA.h"
 
 #pragma region Others
+
 void list_free(list* l) {
     while (l && l->head) {
         node* tmp = l->head;
@@ -25,8 +26,8 @@ void print_bin(unsigned number, unsigned int bits) {
 }
 #pragma endregion
 
-
 #pragma region NFA Main
+
 NFA_state* NFA_state_init(int id, bool is_final, int letters_count)
 {
     NFA_state* state = (NFA_state*)malloc(sizeof(NFA_state));
@@ -325,8 +326,8 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
 
 #pragma endregion
 
-
 #pragma region NFA Input/Output
+
 void NFA_print(NFA* automaton) {
     if (automaton == nullptr) {
         std::cout << "Automaton is NULL." << std::endl;
@@ -467,25 +468,11 @@ void NFA_to_DOT(NFA* automaton)
     printf("NFA has been written to %s\n", filename);
 }
 
-NFA* NFA_from_file(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        printf("Cannot open file\n");
-        return nullptr;
-    }
 
-    size_t states_count = 0, alphabet_dim = 0;
-    int initial_state = 0;
-    bool* is_final = nullptr;
-
-    char line[256];
-    int state, next_state;
-    char symbol;
-}
 #pragma endregion
 
-
 #pragma region NFA Operations
+
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
 {
     if (!nfa1 || !nfa2 || nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
@@ -578,6 +565,7 @@ void DFA_complement(NFA* automaton) {
 NFA* NFA_project(NFA* nfa, unsigned char n)
 {
     if (!nfa || n >= nfa->alphabet_dim) return nullptr;
+
     n = nfa->alphabet_dim - n; // old n = coordinate number (start from left = 0); new n = digit (разряд) number (start from right = 0)
     int final_states_count = 0;
     int* final_states = NFA_get_final_states(nfa, &final_states_count);
@@ -621,8 +609,8 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
 
 #pragma endregion
 
-
 #pragma region NFA Support Functions
+
 int* NFA_get_final_states(NFA* nfa, int* states_count)
 {
     int count = 0;
@@ -641,6 +629,7 @@ int* NFA_get_final_states(NFA* nfa, int* states_count)
     *states_count = count;
     return final_states;
 }
+
 
 bool NFA_is_DFA(NFA* automaton)
 {
@@ -722,6 +711,7 @@ void NFA_remove_epsilon_transitions(NFA* automaton) {
 #pragma endregion
 
 #pragma region NFA Examples
+
 NFA* NFA_get_div_2()
 {
     int* final_states = (int*)malloc(sizeof(int));
