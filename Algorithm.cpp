@@ -424,4 +424,66 @@ void infixToPostfix(const char* infix, char* postfix) {
 
 #pragma endregion
 
+#pragma region Qeueu
+
+queue* create_queue()
+{
+    queue* q = (queue*)malloc(sizeof(queue));
+    q->front = q->rear = nullptr;
+    return q;
+}
+
+void enqueue(queue* q, int value)
+{
+    node* newNode = new node;
+    newNode->val = value;
+    newNode->next = nullptr;
+
+    if (q->rear == nullptr) {
+        q->front = q->rear = newNode;
+        return;
+    }
+
+    q->rear->next = newNode;
+    q->rear = newNode;
+}
+
+int dequeue(queue* q)
+{
+    if (q->front == nullptr) {
+        return INT_MIN;
+    }
+
+    node* temp = q->front;
+    int value = temp->val;
+    q->front = q->front->next;
+
+    if (q->front == nullptr) {
+        q->rear = nullptr;
+    }
+
+    free(temp);
+    return value;
+}
+
+int peek(queue* q) {
+    if (q->front == nullptr) {
+        return INT_MIN;
+    }
+    return q->front->val;
+}
+
+bool is_queue_empty(queue* q) {
+    return q->front == nullptr;
+}
+
+void free_queue(queue* q) {
+    while (!is_queue_empty(q)) {
+        dequeue(q);
+    }
+    free(q);
+}
+
+#pragma endregion
+
 

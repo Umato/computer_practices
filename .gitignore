@@ -4,3 +4,4 @@ build/
 .idea/
 CMakeLists.txt
 .gitignore
+NFA/
