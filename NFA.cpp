@@ -4,6 +4,8 @@
 
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
 // and change NFA_to_DOT for multi-dimensional NFA (e.g., instead of "3,5" we should write "011,101" above the transition)
+// 0*x1, 0*x2 -> x1, x2
+// что делать с нулями в начале и строки состоящей полностью из нулей?
 
 
 #include "NFA.h"
@@ -78,6 +80,23 @@ NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_s
     }
 
     return automaton;
+}
+
+NFA* NFA_clone(NFA* nfa)
+{
+    int final_states_count = 0;
+    int* final_states = NFA_get_final_states(nfa, &final_states_count);
+    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim, nfa->initial_state->id, final_states_count, final_states);
+
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        for (int letter = 0; letter <= (1 << nfa->alphabet_dim); letter++)
+        {
+            NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[letter], letter);
+        }
+    }
+
+    return new_nfa;
 }
 
 void NFA_transition_add(NFA* automaton, int start_state, int end_state, int letter)
@@ -321,6 +340,50 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
     }
 
     return 0;
+}
+
+NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
+{
+    // The returned automaton will have the same states and transition function as this automaton, but
+    // the final states will be different.
+    
+    // check L2 is subset of L1
+    if (!nfa1 || !nfa2 || nfa2->alphabet_dim > nfa1->alphabet_dim) return nullptr;
+
+    NFA* new_nfa = NFA_clone(nfa1);
+    NFA* nfa2_clone = NFA_clone(nfa2);
+    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
+    {
+        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim);
+        NFA_free(nfa2_clone);
+        nfa2_clone = nfa_temp;
+        nfa_temp = nullptr;
+    }
+
+    for (int i = 0; i < new_nfa->states_count; i++)
+    {
+        new_nfa->initial_state = new_nfa->states[i];
+        NFA* inter_nfa = intersect_NFA(new_nfa, nfa2_clone);
+        // remove unreachable states
+        if (!NFA_is_empty(inter_nfa))
+        {
+            int final_states_count = 0;
+            int* final_states = NFA_get_final_states(inter_nfa, &final_states_count);
+
+            for (int j = 0; j < final_states_count; j++)
+            {
+                int old_id = final_states[j];
+            }
+        }
+    }
+
+
+
+
+
+
+
+    return new_nfa;
 }
 
 #pragma endregion
@@ -598,7 +661,7 @@ NFA* NFA_project(NFA* nfa, unsigned char n)
 
 NFA* NFA_extend(NFA* nfa, unsigned char n)
 {
-    if (!nfa || n >= nfa->alphabet_dim) return nullptr;
+    if (!nfa || n > nfa->alphabet_dim) return nullptr; // убрали =
     n = nfa->alphabet_dim - n;
     int final_states_count = 0;
     int* final_states = NFA_get_final_states(nfa, &final_states_count);
@@ -623,6 +686,32 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
 
 
 #pragma region NFA Support Functions
+void NFA_remove_unreachable_states(NFA* nfa)
+{
+    int* reachable_states = (int*)calloc(nfa->states_count, sizeof(int));
+    stack* states_stack = create_stack();
+    //push(states_stack, nfa->initial_state->id);
+    //reachable_states[nfa->initial_state->id] = 1;
+
+    
+
+}
+
+bool NFA_is_empty(NFA* nfa)
+{
+    if (!nfa) return true;
+
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        for (int j = 0; j <= (1 << nfa->alphabet_dim); j++)
+        {
+            if (nfa->states[i]->transitions[j]->head) return false;
+        }
+    }
+
+    return true;
+}
+
 int* NFA_get_final_states(NFA* nfa, int* states_count)
 {
     int count = 0;

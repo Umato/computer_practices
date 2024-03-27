@@ -32,6 +32,7 @@ void print_bin(unsigned number, unsigned int bits);
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
 NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_states_count, int* final_states);
+NFA* NFA_clone(NFA* nfa);
 void NFA_free(NFA* automaton);
 void NFA_transition_add(NFA* automaton, int start_state, int end_state, int letter);
 void NFA_transition_remove(NFA* automaton, int start_state, int end_state, int letter);
@@ -61,6 +62,7 @@ NFA* NFA_project(NFA* nfa, unsigned char n);
  */
 NFA* NFA_extend(NFA* nfa, unsigned char n);
 
+bool NFA_is_empty(NFA* nfa);
 int* NFA_get_final_states(NFA* nfa, int* states_count);
 bool NFA_is_DFA(NFA* automaton);
 void copy_transitions(NFA* automaton, int from_state, int to_state);
