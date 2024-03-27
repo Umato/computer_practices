@@ -11,6 +11,7 @@
 #include "NFA.h"
 
 #pragma region Others
+
 void list_free(list* l) {
     while (l && l->head) {
         node* tmp = l->head;
@@ -25,10 +26,11 @@ void print_bin(unsigned number, unsigned int bits) {
         printf("%d", (number >> i) & 1);
     }
 }
+
 #pragma endregion
 
-
 #pragma region NFA Main
+
 NFA_state* NFA_state_init(int id, bool is_final, int letters_count)
 {
     NFA_state* state = (NFA_state*)malloc(sizeof(NFA_state));
@@ -138,6 +140,20 @@ void NFA_transition_remove(NFA* automaton, int start_state, int end_state, int l
         *current = (*current)->next;
         free(temp);
     }
+}
+
+bool NFA_add_state(NFA* automaton, int id, bool is_final)
+{
+    if (!automaton || id < 0) return false;
+
+    automaton->states = (NFA_state**)realloc(automaton->states, (automaton->states_count + 1) * sizeof(NFA_state*));
+
+    NFA_state* newState = NFA_state_init(id, is_final, (1 << automaton->alphabet_dim) + 1);
+
+    automaton->states[automaton->states_count] = newState;
+    automaton->states_count++;
+
+    return true;
 }
 
 void NFA_transitions_list_add(NFA* automaton, int start_state, list* end_states, int letter)
@@ -388,8 +404,8 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 
 #pragma endregion
 
-
 #pragma region NFA Input/Output
+
 void NFA_print(NFA* automaton) {
     if (automaton == nullptr) {
         std::cout << "Automaton is NULL." << std::endl;
@@ -496,9 +512,15 @@ void NFA_to_DOT(NFA* automaton)
                 }
                 char letter_str[10];
                 if (letter == (1 << automaton->alphabet_dim))
-                    sprintf(letter_str, "%c", 'e');
-                else 
-                    sprintf(letter_str, "%lu", letter);
+                    sprintf(letter_str, "%c", 'E');
+                else{
+                    char binary_representation[32];
+                    sprintf(binary_representation, "");
+                    for (int bit = automaton->alphabet_dim - 1; bit >= 0; --bit) {
+                        strcat(binary_representation, (letter & (1 << bit)) ? "1" : "0");
+                    }
+                    strcpy(letter_str, binary_representation);
+                }
                 strcat(labels[state->id][current->val], letter_str);
 
                 current = current->next;
@@ -528,27 +550,23 @@ void NFA_to_DOT(NFA* automaton)
     free(labels);
 
     printf("NFA has been written to %s\n", filename);
+    sprintf(filename, "%s%d", base_filename, counter);
+    generate_png_from_dot(filename);
 }
 
-NFA* NFA_from_file(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        printf("Cannot open file\n");
-        return nullptr;
-    }
+void generate_png_from_dot(char* dot_filename) {    char command[256];
 
-    size_t states_count = 0, alphabet_dim = 0;
-    int initial_state = 0;
-    bool* is_final = nullptr;
+    sprintf(command, "dot -Tpng %s.gv -o %s.png", dot_filename, dot_filename);
+    system(command);
 
-    char line[256];
-    int state, next_state;
-    char symbol;
+    sprintf(command, "start %s.png", dot_filename);
+    system(command);
 }
+
 #pragma endregion
 
-
 #pragma region NFA Operations
+
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
 {
     if (!nfa1 || !nfa2 || nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
@@ -641,6 +659,7 @@ void DFA_complement(NFA* automaton) {
 NFA* NFA_project(NFA* nfa, unsigned char n)
 {
     if (!nfa || n >= nfa->alphabet_dim) return nullptr;
+
     n = nfa->alphabet_dim - n; // old n = coordinate number (start from left = 0); new n = digit (разряд) number (start from right = 0)
     int final_states_count = 0;
     int* final_states = NFA_get_final_states(nfa, &final_states_count);
@@ -661,7 +680,7 @@ NFA* NFA_project(NFA* nfa, unsigned char n)
 
 NFA* NFA_extend(NFA* nfa, unsigned char n)
 {
-    if (!nfa || n > nfa->alphabet_dim) return nullptr; // убрали =
+    if (!nfa || n > nfa->alphabet_dim) return nullptr;
     n = nfa->alphabet_dim - n;
     int final_states_count = 0;
     int* final_states = NFA_get_final_states(nfa, &final_states_count);
@@ -682,8 +701,10 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
     return new_nfa;
 }
 
+// eval Ex(2|x)
+// def (x=y+z /\ ~2|x) \/ 3|x
+// def pair(x,y) "E x (x=y+z)"
 #pragma endregion
-
 
 #pragma region NFA Support Functions
 void NFA_remove_unreachable_states(NFA* nfa)
@@ -808,9 +829,11 @@ void NFA_remove_epsilon_transitions(NFA* automaton) {
         free(epsilon_closure);
     }
 }
+
 #pragma endregion
 
 #pragma region NFA Examples
+
 NFA* NFA_get_div_2()
 {
     int* final_states = (int*)malloc(sizeof(int));
@@ -839,6 +862,32 @@ NFA* NFA_get_div_3()
     NFA_transition_add(nfa, 1, 2, 0);
     NFA_transition_add(nfa, 2, 1, 0);
     NFA_transition_add(nfa, 2, 2, 1);
+
+    return nfa;
+}
+
+NFA* NFA_get_div_power_of_2(int power)
+{
+    if (power < 1) return nullptr;
+
+    int states_count = power + 1;
+
+    int* final_states = (int*)malloc(sizeof(int));
+    final_states[0] = power;
+
+    NFA* nfa = NFA_init(states_count, 1, 0, 1, final_states);
+
+    free(final_states);
+
+    for (int i = 0; i < states_count; i++) {
+        if (i < power) {
+            NFA_transition_add(nfa, i, i + 1, 0);
+        } else {
+            NFA_transition_add(nfa, i, i, 0);
+            NFA_transition_add(nfa, i, i, 1);
+        }
+
+    }
 
     return nfa;
 }
@@ -874,4 +923,6 @@ NFA* NFA_get_equal()
 
     return nfa;
 }
+
 #pragma endregion
+

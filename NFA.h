@@ -27,6 +27,10 @@ typedef struct NFA {
     NFA_state* initial_state;
 } NFA;
 
+
+
+
+
 void list_free(list* tr_list);
 void print_bin(unsigned number, unsigned int bits);
 
@@ -36,12 +40,14 @@ NFA* NFA_clone(NFA* nfa);
 void NFA_free(NFA* automaton);
 void NFA_transition_add(NFA* automaton, int start_state, int end_state, int letter);
 void NFA_transition_remove(NFA* automaton, int start_state, int end_state, int letter);
+bool NFA_add_state(NFA* automaton, int id, bool is_final);
 void NFA_transitions_list_add(NFA* automaton, int start_state, list* end_states, int letter);
 bool NFA_accept(NFA* automaton, big_int* num);
 bool NFA_accept(NFA* automaton, big_int_list* bigint_list);
 
 void NFA_print(NFA* automaton);
 void NFA_to_DOT(NFA* automaton);
+void generate_png_from_dot(char* dot_filename);
 NFA* NFA_from_file(const char* filename);
 
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2);
@@ -73,6 +79,13 @@ void NFA_remove_epsilon_transitions(NFA* automaton);
  * @brief Creates new NFA that checks: 2|n
  */
 NFA* NFA_get_div_2();
+
+/**
+ * @brief Creates new NFA that checks: 2^power|n
+ *
+ * @param power: power of two
+ */
+NFA* NFA_get_div_power_of_2(int power);
 
 /**
  * @brief Creates new NFA that checks: 3|n
