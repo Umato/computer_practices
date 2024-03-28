@@ -42,6 +42,7 @@ int get_random_num(int start, int end)
 
     return rand() % (end - start + 1) + start;   
 }
+
 #pragma endregion
 
 #pragma region NFA Main
