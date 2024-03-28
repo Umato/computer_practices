@@ -78,13 +78,14 @@ int main() {
 //    cout << "Result: " << NFA_accept(intersect, bigint_list);
 
 //    NFA* nfa = NFA_init(3, 1, 0, 0, nullptr);
-    NFA* nfa = NFA_get_div_power_of_2(5);
-//    NFA_transition_add(nfa, 0, 0, 1);
-//    NFA_transition_add(nfa, 0, 0, 0);
-//    NFA_transition_add(nfa, 1, 0, 0);
-//    NFA_transition_add(nfa, 2, 0, 0);
-    NFA_to_DOT(nfa);
+//    NFA* nfa = NFA_get_div_power_of_2(5);
+////    NFA_transition_add(nfa, 0, 0, 1);
+////    NFA_transition_add(nfa, 0, 0, 0);
+////    NFA_transition_add(nfa, 1, 0, 0);
+////    NFA_transition_add(nfa, 2, 0, 0);
+//    NFA_to_DOT(nfa);
 
+    NFA_console_app();
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
 }

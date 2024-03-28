@@ -14,6 +14,9 @@
 #include "graph.h"
 #include <bitset>
 
+#include "direct.h"
+#include "windows.h"
+
 typedef struct NFA_state {
     int id;
     bool is_final;
@@ -26,8 +29,6 @@ typedef struct NFA {
     NFA_state** states;
     NFA_state* initial_state;
 } NFA;
-
-
 
 
 
@@ -124,5 +125,14 @@ NFA* NFA_get_random();
  * @brief Creates custom NFA
  */
 NFA* NFA_get_automaton_1();
+
+void NFA_console_app();
+
+#pragma region Handful Functions For Console App
+
+void print_help();
+void NFA_list();
+
+#pragma endregion
 
 #endif //COMPUTER_PRACTICES_NFA_H

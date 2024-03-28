@@ -886,6 +886,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 #pragma endregion
 
 #pragma region NFA Support Functions
+
 // NEED TO BE TESTED
 void NFA_remove_unreachable_states(NFA* nfa)
 {
@@ -1343,5 +1344,64 @@ NFA* NFA_from_file(const char* filename)
     return automaton;
 }
 
+void NFA_console_app() {
+    char input[256];
+    cout << "Enter command (type '>exit' to quit):\n";
+    while (true) {
+        fflush(stdout);
 
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            break;
+        }
 
+        input[strcspn(input, "\n")] = 0;
+
+        if (strcmp(input, ">exit") == 0) {
+            cout << "Exiting NFA Console Application.\n";
+            break;
+        } else if (strcmp(input, ">help") == 0) {
+            print_help();
+        } else if (strcmp(input, ">nfa_list") == 0) {
+            NFA_list();
+        } else {
+                printf("You entered: %s\n", input);
+            }
+        }
+
+}
+
+#pragma region Handful Functions For Console App
+
+void print_help() {
+    cout << "Available commands:\n";
+    cout << ">exit - Exit the NFA Console Application.\n";
+    cout << ">help - Display this help message.\n";
+    cout << ">nfa_list - List available automata.\n";
+}
+
+void NFA_list() {
+    const char* directory = "../NFA/NFAs/*"; // Путь к директории с маской для поиска всех файлов
+    WIN32_FIND_DATA ffd;
+    HANDLE hFind = FindFirstFile(directory, &ffd);
+    int count = 0;
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        printf("Failed to open directory\n");
+        return;
+    }
+
+    do {
+        if (strcmp(ffd.cFileName, ".") != 0 && strcmp(ffd.cFileName, "..") != 0) {
+            char* dot = strrchr(ffd.cFileName, '.');
+            if (dot != nullptr) {
+                *dot = '\0';
+            }
+
+            printf("%d) %s\n", ++count, ffd.cFileName);
+        }
+    } while (FindNextFile(hFind, &ffd) != 0);
+
+    FindClose(hFind);
+}
+
+#pragma endregion
