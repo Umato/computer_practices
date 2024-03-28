@@ -33,25 +33,35 @@ typedef struct NFA {
 
 void list_free(list* tr_list);
 void print_bin(unsigned number, unsigned int bits);
+int get_random_num(int start, int end);
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
 NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_states_count, int* final_states);
-void NFA_free(NFA* automaton);
-void NFA_transition_add(NFA* automaton, int start_state, int end_state, int letter);
-void NFA_transition_remove(NFA* automaton, int start_state, int end_state, int letter);
-bool NFA_add_state(NFA* automaton, int id, bool is_final);
-void NFA_transitions_list_add(NFA* automaton, int start_state, list* end_states, int letter);
-bool NFA_accept(NFA* automaton, big_int* num);
-bool NFA_accept(NFA* automaton, big_int_list* bigint_list);
+NFA* NFA_clone(NFA* nfa);
+void NFA_free(NFA* nfa);
+void NFA_transition_add(NFA* nfa, int start_state, int end_state, int letter);
+void NFA_transition_remove(NFA* nfa, int start_state, int end_state, int letter);
+bool NFA_state_add(NFA* nfa, bool is_final);
+bool NFA_state_remove(NFA* nfa, int id);
 
-void NFA_print(NFA* automaton);
-void NFA_to_DOT(NFA* automaton);
+/**
+ * @brief Remove states from NFA
+ *
+ * @param removed_states: has to be in format [0, 0, 1, 0, 1, ...] where 1 stands for state to be removed
+ */
+bool NFA_state_list_remove(NFA* nfa, int* removed_states, int list_size);
+void NFA_transitions_list_add(NFA* nfa, int start_state, list* end_states, int letter);
+bool NFA_accept(NFA* nfa, big_int* num);
+bool NFA_accept(NFA* nfa, big_int_list* bigint_list);
+
+void NFA_print(NFA* nfa);
+void NFA_to_DOT(NFA* nfa);
 void generate_png_from_dot(char* dot_filename);
-NFA* NFA_from_file(const char* filename);
 
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2);
 NFA* union_NFA(NFA* nfa1, NFA* nfa2);
-void DFA_complement(NFA* automaton);
+void DFA_complement(NFA* nfa);
+NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2);
 
 /**
  * @brief Delete n-th coordinate in transition letters
@@ -67,11 +77,13 @@ NFA* NFA_project(NFA* nfa, unsigned char n);
  */
 NFA* NFA_extend(NFA* nfa, unsigned char n);
 
+void NFA_remove_unreachable_states(NFA* nfa);
+bool NFA_is_empty(NFA* nfa);
 int* NFA_get_final_states(NFA* nfa, int* states_count);
-bool NFA_is_DFA(NFA* automaton);
-void copy_transitions(NFA* automaton, int from_state, int to_state);
-void find_epsilon_closure(NFA* automaton, int state_id, bool* epsilon_closure);
-void NFA_remove_epsilon_transitions(NFA* automaton);
+bool NFA_is_DFA(NFA* nfa);
+void copy_transitions(NFA* nfa, int from_state, int to_state);
+void find_epsilon_closure(NFA* nfa, int state_id, bool* epsilon_closure);
+void NFA_remove_epsilon_transitions(NFA* nfa);
 
 /**
  * @brief Creates new NFA that checks: 2|n
@@ -103,5 +115,14 @@ NFA* NFA_get_equal();
 void NFA_to_file(NFA* automaton, const char* filename);
 
 NFA* NFA_from_file(const char* filename);
+/**
+ * @brief Creates random NFA with alphabet_dim = 1 and max_states_count = 6
+ */
+NFA* NFA_get_random();
+
+/**
+ * @brief Creates custom NFA
+ */
+NFA* NFA_get_automaton_1();
 
 #endif //COMPUTER_PRACTICES_NFA_H
