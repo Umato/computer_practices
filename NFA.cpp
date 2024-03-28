@@ -105,6 +105,7 @@ NFA* NFA_clone(NFA* nfa)
     int final_states_count = 0;
     int* final_states = NFA_get_final_states(nfa, &final_states_count);
     NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim, nfa->initial_state->id, final_states_count, final_states);
+    free(final_states);
 
     for (int i = 0; i < nfa->states_count; i++)
     {
@@ -441,9 +442,13 @@ bool NFA_accept(NFA* nfa, big_int* num)
     {
         int state_id = pop(current_states);
         if (nfa->states[state_id]->is_final)
+        {
+            free_stack(current_states);
             return 1;
+        }
     }
 
+    free_stack(current_states);
     return 0;
 }
 
@@ -530,9 +535,13 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
     {
         int state_id = pop(current_states);
         if (nfa->states[state_id]->is_final)
+        {
+            free_stack(current_states);
             return 1;
+        }
     }
 
+    free_stack(current_states);
     return 0;
 }
 
@@ -802,6 +811,7 @@ NFA* NFA_project(NFA* nfa, unsigned char n)
     int final_states_count = 0;
     int* final_states = NFA_get_final_states(nfa, &final_states_count);
     NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim - 1, nfa->initial_state->id, final_states_count, final_states);
+    free(final_states);
 
     for (int i = 0; i < nfa->states_count; i++)
     {
@@ -823,6 +833,7 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
     int final_states_count = 0;
     int* final_states = NFA_get_final_states(nfa, &final_states_count);
     NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim + 1, nfa->initial_state->id, final_states_count, final_states);
+    free(final_states);
 
     for (int i = 0; i < nfa->states_count; i++)
     {
@@ -913,12 +924,16 @@ void NFA_remove_unreachable_states(NFA* nfa)
         }
     }
 
+
     for (int i = 0; i < nfa->states_count; i++)
     {
         state_is_reachable[i] = (state_is_reachable[i] + 1) & 1; // changes 0 -> 1 and 1 -> 0
     }
 
     NFA_state_list_remove(nfa, state_is_reachable, nfa->states_count);
+
+    free_queue(states_queue);
+    free(state_is_reachable);
 }
 
 bool NFA_is_empty(NFA* nfa)
