@@ -3,13 +3,14 @@
 //
 
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
-// and change NFA_to_DOT for multi-dimensional NFA (e.g., instead of "3,5" we should write "011,101" above the transition)
 // 0*x1, 0*x2 -> x1, x2
 // что делать с нулями в начале и строки состоящей полностью из нулей?
 
 // eval Ex(2|x)
 // def (x=y+z /\ ~2|x) \/ 3|x
 // def pair(x,y) "E x (x=y+z)"
+
+// проследить везде за free
 
 
 #include "NFA.h"
@@ -841,40 +842,45 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
 // TODO
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 {
+    // new nfa is the same as nfa1 except for final states
+
     if (!nfa1 || !nfa2 || nfa2->alphabet_dim > nfa1->alphabet_dim) return nullptr;
 
     NFA* new_nfa = NFA_clone(nfa1);
     NFA* nfa2_clone = NFA_clone(nfa2);
+    // edit nfa2 so that it can be intersected with nfa1
     for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
     {
-        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim);
+        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim); 
         NFA_free(nfa2_clone);
         nfa2_clone = nfa_temp;
         nfa_temp = nullptr;
     }
 
+    // if there exist a path from current state to a final state that accepts a word from nfa2 language
+    // then current state will be one of the new final states
+    int* state_is_new_final = (int*)calloc(new_nfa->states_count, sizeof(int));
     for (int i = 0; i < new_nfa->states_count; i++)
     {
         new_nfa->initial_state = new_nfa->states[i];
         NFA* inter_nfa = intersect_NFA(new_nfa, nfa2_clone);
-        // remove unreachable states
-        if (!NFA_is_empty(inter_nfa))
+        NFA_remove_unreachable_states(inter_nfa);
+        
+        if (NFA_get_final_states_count(inter_nfa) != 0)
         {
-            int final_states_count = 0;
-            int* final_states = NFA_get_final_states(inter_nfa, &final_states_count);
-
-            for (int j = 0; j < final_states_count; j++)
-            {
-                int old_id = final_states[j];
-            }
+            state_is_new_final[i] = 1;
         }
+
+        NFA_free(inter_nfa);
     }
 
+    new_nfa->initial_state = new_nfa->states[nfa1->initial_state->id];
+    for (int i = 0; i < new_nfa->states_count; i++)
+    {
+        new_nfa->states[i]->is_final = state_is_new_final[i];
+    }
 
-
-
-
-
+    NFA_free(nfa2_clone);
 
     return new_nfa;
 }
@@ -928,6 +934,16 @@ bool NFA_is_empty(NFA* nfa)
     }
 
     return true;
+}
+
+int NFA_get_final_states_count(NFA* nfa)
+{
+    int count = 0;
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        if (nfa->states[i]->is_final) count++;
+    }
+    return count;
 }
 
 int* NFA_get_final_states(NFA* nfa, int* states_count)
