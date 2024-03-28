@@ -78,8 +78,20 @@ int main() {
 
 
 
-    NFA* nfa = NFA_get_div_power_of_2(4);
+    NFA* nfa = NFA_init(4, 1, 0, 0, nullptr);
+    NFA_transition_add(nfa, 0, 2, 0);
+    NFA_transition_add(nfa, 0, 1, 1);
+    NFA_transition_add(nfa, 1, 0, 0);
+    NFA_transition_add(nfa, 1, 1, 0);
+    NFA_transition_add(nfa, 1, 1, 1);
+    NFA_transition_add(nfa, 1, 3, 1);
+    NFA_transition_add(nfa, 2, 3, 0);
+    NFA_transition_add(nfa, 2, 3, 1);
+    NFA_transition_add(nfa, 3, 2, 1);
+
+    NFA_print(nfa);
     NFA_state_remove(nfa, 2);
+    NFA_print(nfa);
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
