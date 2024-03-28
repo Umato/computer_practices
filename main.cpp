@@ -29,6 +29,8 @@ int main() {
     //big_int_list* bigint_list = big_int_list_init(3, bigint_list_nums);
     //big_int_list* bigint_list2 = big_int_list_init(2, bigint_list_nums2);
 
+
+
     //NFA* nfa_sum = NFA_get_sum3();
     //NFA_transition_add(nfa_sum, 0, 1, 1 << nfa_sum->alphabet_dim); // just to check E-tr. 
     //NFA* nfa_sum2 = NFA_project(nfa_sum, 0);
@@ -74,24 +76,7 @@ int main() {
 //
 //    cout << "Result: " << NFA_accept(intersect, bigint_list);
 
-//    NFA* nfa = NFA_get_div_power_of_2(1);
-
-
-
-    NFA* nfa = NFA_init(4, 1, 0, 0, nullptr);
-    NFA_transition_add(nfa, 0, 2, 0);
-    NFA_transition_add(nfa, 0, 1, 1);
-    NFA_transition_add(nfa, 1, 0, 0);
-    NFA_transition_add(nfa, 1, 1, 0);
-    NFA_transition_add(nfa, 1, 1, 1);
-    NFA_transition_add(nfa, 1, 3, 1);
-    NFA_transition_add(nfa, 2, 3, 0);
-    NFA_transition_add(nfa, 2, 3, 1);
-    NFA_transition_add(nfa, 3, 2, 1);
-
-    NFA_print(nfa);
-    NFA_state_remove(nfa, 2);
-    NFA_print(nfa);
+    
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
