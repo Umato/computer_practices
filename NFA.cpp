@@ -157,9 +157,6 @@ void NFA_transition_remove(NFA* nfa, int start_state, int end_state, int letter)
     }
 }
 
-// зачем id был на вход? Состояния нумеруются от 0 до states_count-1, если нумеровать их по другому, то все сломается, 
-// так как функции завязаны на их id и работают с ними, как с индексами
-// Если нужно ввести значение для состояния, нужно определить новое поле в NFA_state
 bool NFA_state_add(NFA* nfa, bool is_final)
 {
     int id = nfa->states_count;
@@ -578,8 +575,6 @@ void NFA_print(NFA* nfa) {
     }
 }
 
-// MUST BE FIXED! File doesn't work if NFA has no final states 
-// (because of the incorrect syntax the line "node [shape = doublecircle];;" appears)
 void NFA_to_DOT(NFA* nfa)
 {
     if (nfa == nullptr) {
@@ -612,13 +607,23 @@ void NFA_to_DOT(NFA* nfa)
 
     fprintf(file, "digraph finite_state_machine{\n");
     fprintf(file, "\trankdir=LR;\n");
-    fprintf(file, "\tnode [shape = doublecircle];");
+
+    char final_states_str[256] = "";
+    bool has_final_states = false;
+
     for (size_t i = 0; i < nfa->states_count; i++) {
         if (nfa->states[i]->is_final) {
-            fprintf(file, " %d", nfa->states[i]->id);
+            char state_id_str[32];
+            sprintf(state_id_str, " %d", nfa->states[i]->id);
+            strcat(final_states_str, state_id_str);
+            has_final_states = true;
         }
     }
-    fprintf(file, ";\n");
+
+    if (has_final_states) {
+        fprintf(file, "\tnode [shape = doublecircle];%s;\n", final_states_str);
+    }
+
     fprintf(file, "\tnode [shape = circle];\n");
     fprintf(file, "\tinit [shape=none, label=\"\"];\n");
     fprintf(file, "\tinit -> %d;\n", nfa->initial_state->id);
