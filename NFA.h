@@ -100,4 +100,8 @@ NFA* NFA_get_sum3();
  */
 NFA* NFA_get_equal();
 
+void NFA_to_file(NFA* automaton, const char* filename);
+
+NFA* NFA_from_file(const char* filename);
+
 #endif //COMPUTER_PRACTICES_NFA_H

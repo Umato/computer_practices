@@ -7,6 +7,7 @@
 #include "NFA.h"
 
 int main() {
+
     std::random_device rd;
     srand(rd());
 
@@ -74,7 +75,7 @@ int main() {
 //
 //    cout << "Result: " << NFA_accept(intersect, bigint_list);
 
-//    NFA* nfa = NFA_get_div_power_of_2(1);
+
 
 
 
