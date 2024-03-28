@@ -1,0 +1,1 @@
+dot -Tpng ./NFA1.gv -o ./automata1.png

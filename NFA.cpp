@@ -4,8 +4,6 @@
 
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
 // and change NFA_to_DOT for multi-dimensional NFA (e.g., instead of "3,5" we should write "011,101" above the transition)
-// 0*x1, 0*x2 -> x1, x2
-// что делать с нулями в начале и строки состоящей полностью из нулей?
 
 
 #include "NFA.h"
@@ -82,23 +80,6 @@ NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_s
     }
 
     return automaton;
-}
-
-NFA* NFA_clone(NFA* nfa)
-{
-    int final_states_count = 0;
-    int* final_states = NFA_get_final_states(nfa, &final_states_count);
-    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim, nfa->initial_state->id, final_states_count, final_states);
-
-    for (int i = 0; i < nfa->states_count; i++)
-    {
-        for (int letter = 0; letter <= (1 << nfa->alphabet_dim); letter++)
-        {
-            NFA_transitions_list_add(new_nfa, i, nfa->states[i]->transitions[letter], letter);
-        }
-    }
-
-    return new_nfa;
 }
 
 void NFA_transition_add(NFA* automaton, int start_state, int end_state, int letter)
