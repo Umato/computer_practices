@@ -142,18 +142,43 @@ void NFA_transition_remove(NFA* automaton, int start_state, int end_state, int l
     }
 }
 
-bool NFA_add_state(NFA* automaton, int id, bool is_final)
+// зачем id на вход? Состояния нумеруются от 0 до states_count-1, если нумеровать их по другому, то все сломается, 
+// так как функции завязаны на их id и работают с ними, как с индексами
+// Если нужно ввести значение для состояния, нужно определить новое поле в NFA_state
+bool NFA_state_add(NFA* automaton, bool is_final)
 {
-    if (!automaton || id < 0) return false;
+    int id = automaton->states_count;
+    if (!automaton) return false;
 
     automaton->states = (NFA_state**)realloc(automaton->states, (automaton->states_count + 1) * sizeof(NFA_state*));
 
     NFA_state* newState = NFA_state_init(id, is_final, (1 << automaton->alphabet_dim) + 1);
 
-    automaton->states[automaton->states_count] = newState;
+    automaton->states[id] = newState;
     automaton->states_count++;
 
     return true;
+}
+
+bool NFA_state_remove(NFA* nfa, int id)
+{
+    if (!nfa || id < 0 || id >= nfa->states_count) return false;
+
+    for (size_t i = 0; i <= (1 << nfa->alphabet_dim); i++) {
+        list_free(nfa->states[id]->transitions[i]);
+    }
+    free(nfa->states[id]->transitions);
+    free(nfa->states[id]); // что здесь освободиться - память для структуры или ссылки?
+
+    for (int i = id; i < nfa->states_count - 1; i++)
+    {
+        nfa->states[i] = nfa->states[i + 1];
+    }
+
+    nfa->states[nfa->states_count - 1] = nullptr;
+
+    return true;
+    
 }
 
 void NFA_transitions_list_add(NFA* automaton, int start_state, list* end_states, int letter)
@@ -358,49 +383,6 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
     return 0;
 }
 
-NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
-{
-    // The returned automaton will have the same states and transition function as this automaton, but
-    // the final states will be different.
-    
-    // check L2 is subset of L1
-    if (!nfa1 || !nfa2 || nfa2->alphabet_dim > nfa1->alphabet_dim) return nullptr;
-
-    NFA* new_nfa = NFA_clone(nfa1);
-    NFA* nfa2_clone = NFA_clone(nfa2);
-    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
-    {
-        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim);
-        NFA_free(nfa2_clone);
-        nfa2_clone = nfa_temp;
-        nfa_temp = nullptr;
-    }
-
-    for (int i = 0; i < new_nfa->states_count; i++)
-    {
-        new_nfa->initial_state = new_nfa->states[i];
-        NFA* inter_nfa = intersect_NFA(new_nfa, nfa2_clone);
-        // remove unreachable states
-        if (!NFA_is_empty(inter_nfa))
-        {
-            int final_states_count = 0;
-            int* final_states = NFA_get_final_states(inter_nfa, &final_states_count);
-
-            for (int j = 0; j < final_states_count; j++)
-            {
-                int old_id = final_states[j];
-            }
-        }
-    }
-
-
-
-
-
-
-
-    return new_nfa;
-}
 
 #pragma endregion
 
@@ -701,6 +683,45 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
     return new_nfa;
 }
 
+NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
+{   
+    if (!nfa1 || !nfa2 || nfa2->alphabet_dim > nfa1->alphabet_dim) return nullptr;
+
+    NFA* new_nfa = NFA_clone(nfa1);
+    NFA* nfa2_clone = NFA_clone(nfa2);
+    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
+    {
+        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim);
+        NFA_free(nfa2_clone);
+        nfa2_clone = nfa_temp;
+        nfa_temp = nullptr;
+    }
+
+    for (int i = 0; i < new_nfa->states_count; i++)
+    {
+        new_nfa->initial_state = new_nfa->states[i];
+        NFA* inter_nfa = intersect_NFA(new_nfa, nfa2_clone);
+        // remove unreachable states
+        if (!NFA_is_empty(inter_nfa))
+        {
+            int final_states_count = 0;
+            int* final_states = NFA_get_final_states(inter_nfa, &final_states_count);
+
+            for (int j = 0; j < final_states_count; j++)
+            {
+                int old_id = final_states[j];
+            }
+        }
+    }
+
+
+
+
+
+
+
+    return new_nfa;
+}
 // eval Ex(2|x)
 // def (x=y+z /\ ~2|x) \/ 3|x
 // def pair(x,y) "E x (x=y+z)"
@@ -710,9 +731,27 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
 void NFA_remove_unreachable_states(NFA* nfa)
 {
     int* reachable_states = (int*)calloc(nfa->states_count, sizeof(int));
-    stack* states_stack = create_stack();
-    //push(states_stack, nfa->initial_state->id);
-    //reachable_states[nfa->initial_state->id] = 1;
+    queue* states_queue = create_queue();
+    enqueue(states_queue, nfa->initial_state->id);
+    reachable_states[nfa->initial_state->id] = 1;
+
+    while (!is_queue_empty(states_queue))
+    {
+        int state = dequeue(states_queue);
+        for (int letter = 0; letter <= (1 << nfa->alphabet_dim); letter++)
+        {
+            node* dest_state = nfa->states[state]->transitions[letter]->head;
+            while (dest_state)
+            {
+                if (!reachable_states[dest_state->val])
+                {
+                    reachable_states[dest_state->val] = 1;
+                    enqueue(states_queue, dest_state->val);
+                }
+                dest_state = dest_state->next;
+            }
+        }
+    }
 
     
 

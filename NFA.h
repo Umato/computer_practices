@@ -40,7 +40,8 @@ NFA* NFA_clone(NFA* nfa);
 void NFA_free(NFA* automaton);
 void NFA_transition_add(NFA* automaton, int start_state, int end_state, int letter);
 void NFA_transition_remove(NFA* automaton, int start_state, int end_state, int letter);
-bool NFA_add_state(NFA* automaton, int id, bool is_final);
+bool NFA_state_add(NFA* automaton, bool is_final);
+bool NFA_state_remove(NFA* nfa, int id);
 void NFA_transitions_list_add(NFA* automaton, int start_state, list* end_states, int letter);
 bool NFA_accept(NFA* automaton, big_int* num);
 bool NFA_accept(NFA* automaton, big_int_list* bigint_list);
@@ -53,6 +54,7 @@ NFA* NFA_from_file(const char* filename);
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2);
 NFA* union_NFA(NFA* nfa1, NFA* nfa2);
 void DFA_complement(NFA* automaton);
+NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2);
 
 /**
  * @brief Delete n-th coordinate in transition letters
@@ -68,6 +70,7 @@ NFA* NFA_project(NFA* nfa, unsigned char n);
  */
 NFA* NFA_extend(NFA* nfa, unsigned char n);
 
+void NFA_remove_unreachable_states(NFA* nfa);
 bool NFA_is_empty(NFA* nfa);
 int* NFA_get_final_states(NFA* nfa, int* states_count);
 bool NFA_is_DFA(NFA* automaton);

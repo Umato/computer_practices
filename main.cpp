@@ -78,6 +78,9 @@ int main() {
 
 
 
+    NFA* nfa = NFA_get_div_power_of_2(4);
+    NFA_state_remove(nfa, 2);
+
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
 }
