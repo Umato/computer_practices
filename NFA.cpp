@@ -10,6 +10,8 @@
 // def (x=y+z /\ ~2|x) \/ 3|x
 // def pair(x,y) "E x (x=y+z)"
 
+// проследить везде за free
+
 
 #include "NFA.h"
 
@@ -39,11 +41,9 @@ int get_random_num(int start, int end)
         end = end - start;
     }
 
-    return rand() % (end - start + 1) + start;
+    return rand() % (end - start + 1) + start;   
 }
-
 #pragma endregion
-
 
 #pragma region NFA Main
 
@@ -159,6 +159,9 @@ void NFA_transition_remove(NFA* nfa, int start_state, int end_state, int letter)
     }
 }
 
+// зачем id был на вход? Состояния нумеруются от 0 до states_count-1, если нумеровать их по другому, то все сломается, 
+// так как функции завязаны на их id и работают с ними, как с индексами
+// Если нужно ввести значение для состояния, нужно определить новое поле в NFA_state
 bool NFA_state_add(NFA* nfa, bool is_final)
 {
     int id = nfa->states_count;
@@ -186,7 +189,7 @@ bool NFA_state_remove(NFA* nfa, int id)
     free(nfa->states[id]->transitions);
     free(nfa->states[id]);
 
-    // move on 1 index left all states after the current one
+    // move on 1 index left all states after the current one 
     for (int i = id; i < nfa->states_count - 1; i++)
     {
         nfa->states[i] = nfa->states[i + 1];
@@ -328,7 +331,7 @@ bool NFA_state_list_remove(NFA* nfa, int* removed_states, int list_size)
             }
         }
     }
-
+    
     free(new_states_id);
     return true;
 }
@@ -381,7 +384,7 @@ bool NFA_accept(NFA* nfa, big_int* num)
     leading_zeroes = 8 - leading_zeroes;
 
     total_bits -= leading_zeroes; // leading zeroes shouldn't be processed
-    if (!total_bits) total_bits = 1; // if input = 0 we should read at least 1 bit
+
 
     push(current_states, nfa->initial_state->id);
     // states that have epsilon-transition from initial_state are also initial
@@ -545,7 +548,6 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
 
 #pragma endregion
 
-
 #pragma region NFA Input/Output
 
 void NFA_print(NFA* nfa) {
@@ -587,6 +589,8 @@ void NFA_print(NFA* nfa) {
     }
 }
 
+// MUST BE FIXED! File doesn't work if NFA has no final states 
+// (because of the incorrect syntax the line "node [shape = doublecircle];;" appears)
 void NFA_to_DOT(NFA* nfa)
 {
     if (nfa == nullptr) {
@@ -619,23 +623,13 @@ void NFA_to_DOT(NFA* nfa)
 
     fprintf(file, "digraph finite_state_machine{\n");
     fprintf(file, "\trankdir=LR;\n");
-
-    char final_states_str[256] = "";
-    bool has_final_states = false;
-
+    fprintf(file, "\tnode [shape = doublecircle];");
     for (size_t i = 0; i < nfa->states_count; i++) {
         if (nfa->states[i]->is_final) {
-            char state_id_str[32];
-            sprintf(state_id_str, " %d", nfa->states[i]->id);
-            strcat(final_states_str, state_id_str);
-            has_final_states = true;
+            fprintf(file, " %d", nfa->states[i]->id);
         }
     }
-
-    if (has_final_states) {
-        fprintf(file, "\tnode [shape = doublecircle];%s;\n", final_states_str);
-    }
-
+    fprintf(file, ";\n");
     fprintf(file, "\tnode [shape = circle];\n");
     fprintf(file, "\tinit [shape=none, label=\"\"];\n");
     fprintf(file, "\tinit -> %d;\n", nfa->initial_state->id);
@@ -717,171 +711,7 @@ void generate_png_from_dot(char* dot_filename) {
     system(command);
 }
 
-void NFA_to_file(NFA* automaton, const char* filename)
-{
-    if (automaton == nullptr || filename == nullptr) {
-        cout << "Invalid automaton or filename.\n";
-        return;
-    }
-
-    FILE* file = fopen(filename, "w");
-
-    fprintf(file, "lsd_%d\n\n", automaton->alphabet_dim);
-
-    int initial_state_id = automaton->initial_state->id;
-
-    for (size_t i = 0; i < automaton->states_count; i++) {
-        NFA_state* state = automaton->states[i];
-        if (state == nullptr) continue;
-
-        int state_type = -1; // Default to neither initial nor final (-1).
-        if (state->id == initial_state_id && state->is_final) {
-            state_type = 2; // Both initial and final (2)
-        }
-        else if (state->id == initial_state_id) {
-            state_type = 0; // Only initial (0)
-        }
-        else if (state->is_final) {
-            state_type = 1; // Only final (1)
-        }
-
-        fprintf(file, "%d %d\n", state->id, state_type);
-
-        for (size_t letter = 0; letter < (1 << automaton->alphabet_dim); letter++) {
-            list* transition_list = state->transitions[letter];
-            if (transition_list == nullptr || transition_list->head == nullptr) continue;
-
-            node* current = transition_list->head;
-            while (current != nullptr) {
-                for (size_t bit = 0; bit < automaton->alphabet_dim; bit++) {
-                    fprintf(file, "%d ", (letter >> (automaton->alphabet_dim - 1 - bit)) & 1);
-                }
-
-                fprintf(file, "-> %d\n", current->val);
-                current = current->next;
-            }
-        }
-        fprintf(file, "\n");
-    }
-
-    fclose(file);
-    cout << "NFA has been written to " << filename << endl;
-}
-
-NFA* NFA_from_file(const char* filename)
-{
-    if (filename == nullptr) {
-        cout << "Invalid filename.\n";
-        return nullptr;
-    }
-
-    FILE* file = fopen(filename, "r");
-    if (file == nullptr) {
-        cout << "Unable to open file.\n";
-        return nullptr;
-    }
-
-    int alphabet_dim, state_id, state_type, end_state, bit;
-
-    if (fscanf(file, "lsd_%d\n\n", &alphabet_dim) != 1) {
-        cout << "Error reading alphabet dimension.\n";
-        fclose(file);
-        return nullptr;
-    }
-
-    NFA* automaton = NFA_init(0, alphabet_dim, -1, 0, nullptr);
-
-    int initial_state = -1;
-    char line[256];
-
-    while (fgets(line, sizeof(line), file))
-    {
-        //        cout << line << endl;
-
-        int state_id, state_type;
-
-        if (sscanf(line, "%d %d\n", &state_id, &state_type) == 2)
-        {
-            if (state_id >= automaton->states_count)
-            {
-                for (int i = automaton->states_count; i <= state_id; i++)
-                {
-                    NFA_state_add(automaton, state_type == 1 || state_type == 2);
-                }
-            }
-            else {
-                automaton->states[state_id]->is_final = state_type == 1 || state_type == 2;
-            }
-
-            if (state_type == 0 || state_type == 2)
-            {
-                if (initial_state == -1)
-                {
-                    initial_state = state_id;
-                }
-                else
-                {
-                    cout << "Multiple initial states encountered, which is invalid.\n";
-                    NFA_free(automaton);
-                    fclose(file);
-                    return nullptr;
-                }
-            }
-
-            while (fgets(line, sizeof(line), file) && line[0] != '\n')
-            {
-                //                cout << line << endl;
-                int letter, end_state;
-                int bit;
-                if (sscanf(line, "%d ", &letter) == 1)
-                {
-                    char* ptr = line + 2;
-                    int offset;
-
-                    for (int i = 0; i < alphabet_dim - 1; i++)
-                    {
-                        sscanf(ptr, "%d%n", &bit, &offset);
-                        ptr += 2;
-                        letter = (letter << 1) | bit;
-                    }
-
-                    if (sscanf(ptr, "-> %d\n", &end_state) == 1)
-                    {
-                        if (end_state >= automaton->states_count)
-                        {
-                            for (int i = automaton->states_count; i <= end_state; i++)
-                            {
-                                NFA_state_add(automaton, false);
-                            }
-                        }
-                        NFA_transition_add(automaton, state_id, end_state, letter);
-
-
-                    }
-                    else break;
-
-
-                }
-            }
-
-        }
-    }
-
-    if (initial_state == -1) {
-        cout << "Error: there no initial state\n";
-        fclose(file);
-        NFA_free(automaton);
-        return nullptr;
-    }
-    else {
-        automaton->initial_state = automaton->states[initial_state];
-    }
-
-    fclose(file);
-    return automaton;
-}
 #pragma endregion
-
 
 #pragma region NFA Operations
 
@@ -1021,59 +851,22 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
     return new_nfa;
 }
 
-NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2)
-{
-    // new nfa is the same as nfa1 except for initial states
-    // nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently)
-
-    if (!nfa1 || !nfa2 || nfa2->alphabet_dim != nfa1->alphabet_dim) return nullptr;
-
-    stack* initial_states = create_stack();
-    NFA* inter_nfa = intersect_NFA(nfa1, nfa2);
-    NFA_remove_unreachable_states(inter_nfa);
-
-    // combined_state_id = i * nfa2->states_count + j;
-    // if nfa2.states[j] is final => nfa1.states[i] is new initial
-    for (int i = 0; i < inter_nfa->states_count; i++)
-    {
-        int j = i % nfa2->states_count;
-        if (nfa2->states[j]->is_final)
-        {
-            push(initial_states, i / nfa2->states_count);
-        }
-    }
-
-    NFA_free(inter_nfa);
-    NFA* new_nfa = NFA_clone(nfa1);
-    // add new initial state
-    if (!NFA_state_add(new_nfa, false))
-    {
-        NFA_free(new_nfa);
-        free_stack(initial_states);
-        return nullptr;
-    }
-
-    int new_initial = new_nfa->states_count - 1;
-    new_nfa->initial_state = new_nfa->states[new_initial];
-    // add epsilon-transitions from new initial state to states from stack
-    while (!is_stack_empty(initial_states))
-    {
-        NFA_transition_add(new_nfa, new_initial, pop(initial_states), (1 << new_nfa->alphabet_dim));
-    }
-
-    free_stack(initial_states);
-    return new_nfa;
-}
-
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 {
     // new nfa is the same as nfa1 except for final states
-    // nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently)
 
-    if (!nfa1 || !nfa2 || nfa2->alphabet_dim != nfa1->alphabet_dim) return nullptr;
+    if (!nfa1 || !nfa2 || nfa2->alphabet_dim > nfa1->alphabet_dim) return nullptr;
 
     NFA* new_nfa = NFA_clone(nfa1);
     NFA* nfa2_clone = NFA_clone(nfa2);
+    // edit nfa2 so that it can be intersected with nfa1
+    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
+    {
+        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim); 
+        NFA_free(nfa2_clone);
+        nfa2_clone = nfa_temp;
+        nfa_temp = nullptr;
+    }
 
     // if there exist a path from current state to a final state that accepts a word from nfa2 language
     // then current state will be one of the new final states
@@ -1083,7 +876,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
         new_nfa->initial_state = new_nfa->states[i];
         NFA* inter_nfa = intersect_NFA(new_nfa, nfa2_clone);
         NFA_remove_unreachable_states(inter_nfa);
-
+        
         if (NFA_get_final_states_count(inter_nfa) != 0)
         {
             state_is_new_final[i] = 1;
@@ -1102,56 +895,9 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 
     return new_nfa;
 }
-
-NFA* NFA_swap(NFA* nfa, int n1, int n2)
-{
-    n1 = nfa->alphabet_dim - n1;
-    n2 = nfa->alphabet_dim - n2;
-
-    int  final_states_count = 0;
-    int* final_states = NFA_get_final_states(nfa, &final_states_count);
-    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim, nfa->initial_state->id, final_states_count, final_states);
-    free(final_states);
-
-    for (size_t state_id = 0; state_id < nfa->states_count; state_id++)
-    {
-        for (int letter = 0; letter <= (1 << nfa->alphabet_dim); letter++)
-        {
-            if (letter == (1 << nfa->alphabet_dim)){
-                node* current = nfa->states[state_id]->transitions[1 << nfa->alphabet_dim]->head;
-                while (current != nullptr) {
-                    NFA_transition_add(new_nfa, state_id, current->val, 1 << nfa->alphabet_dim);
-                    current = current->next;
-                }
-                continue;
-            }
-
-            int swapped_letter = letter;
-            bool bit_n1 = (letter >> n1) & 1;
-            bool bit_n2 = (letter >> n2) & 1;
-
-            if (bit_n1 != bit_n2) {
-                swapped_letter ^= (1 << n1) | (1 << n2);
-            }
-
-            node* current = nfa->states[state_id]->transitions[letter]->head;
-            while (current != nullptr) {
-                NFA_transition_add(new_nfa, state_id, current->val, swapped_letter);
-                current = current->next;
-            }
-        }
-    }
-
-
-    return new_nfa;
-
-}
-
 #pragma endregion
 
-
 #pragma region NFA Support Functions
-
 // NEED TO BE TESTED
 void NFA_remove_unreachable_states(NFA* nfa)
 {
@@ -1314,7 +1060,6 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 #pragma endregion
 
-
 #pragma region NFA Examples
 
 NFA* NFA_get_div_2()
@@ -1464,152 +1209,5 @@ NFA* NFA_get_automaton_1()
     return nfa;
 }
 
-NFA* NFA_get_only_zeroes()
-{
-    int states_count = 2;
-    int alphabet_dim = 1;
-    int initial_state = 0;
-    int final_states_count = 1;
-    int final_states[] = {0};
-
-    NFA* nfa = NFA_init(states_count, alphabet_dim, initial_state, final_states_count, final_states);
-
-    NFA_transition_add(nfa, 0, 0, 0);
-    return nfa;
-}
-
 #pragma endregion
 
-
-#pragma region Handful Functions For Console App
-
-void NFA_console_app() {
-    char input[256];
-    cout << "Enter command (type '>exit' to quit):\n";
-    while (true) {
-        fflush(stdout);
-
-        if (fgets(input, sizeof(input), stdin) == NULL) {
-            break;
-        }
-
-        input[strcspn(input, "\n")] = 0;
-
-        if (strcmp(input, ">exit") == 0) {
-            cout << "Exiting NFA Console Application.\n";
-            break;
-        } else if (strcmp(input, ">help") == 0) {
-            print_help();
-        } else if (strcmp(input, ">nfa_list") == 0) {
-            NFA_list();
-        } else {
-                printf("You entered: %s\n", input);
-            }
-        }
-
-}
-
-void print_help() {
-    cout << "Available commands:\n";
-    cout << ">exit - Exit the NFA Console Application.\n";
-    cout << ">help - Display this help message.\n";
-    cout << ">nfa_list - List available automata.\n";
-}
-
-void NFA_list() {
-    const char* directory = "../NFA/NFAs/*"; // Путь к директории с маской для поиска всех файлов
-    WIN32_FIND_DATA ffd;
-    HANDLE hFind = FindFirstFile(directory, &ffd);
-    int count = 0;
-
-    if (hFind == INVALID_HANDLE_VALUE) {
-        printf("Failed to open directory\n");
-        return;
-    }
-
-    do {
-        if (strcmp(ffd.cFileName, ".") != 0 && strcmp(ffd.cFileName, "..") != 0) {
-            char* dot = strrchr(ffd.cFileName, '.');
-            if (dot != nullptr) {
-                *dot = '\0';
-            }
-
-            printf("%d) %s\n", ++count, ffd.cFileName);
-        }
-    } while (FindNextFile(hFind, &ffd) != 0);
-
-    FindClose(hFind);
-}
-
-int nfa_get_priority(char op) {
-    switch (op) {
-        case '(': return -1;
-        case '~': return 4;
-        case 'E':
-        case 'A':
-            return 3;
-        case '&':
-            return 2;
-        case '|':
-            return 1;
-        case '$':
-            return 0;
-        defaul:
-            return -1;
-    }
-}
-
-char* NFA_RPN (const char* formula) {
-    stack* operators = create_stack();
-    char* rpn = (char*)malloc(2* strlen(formula) + 1);
-    int j = 0;
-
-    for (int i = 0; formula[i] != '\0'; i++) {
-        char c = formula[i];
-
-        if (c == '&' || c == '|' || c == '~' || c == 'E' || c == 'A') {
-            while (!is_stack_empty(operators) && nfa_get_priority(c) <= nfa_get_priority(stack_top(operators))){
-                cout << (char)stack_top(operators) << " " << nfa_get_priority(stack_top(operators)) << " " << nfa_get_priority(c) << endl;
-                rpn[j++] = pop(operators);
-
-            }
-            push(operators, (int)c);
-        } else if (c == '(') {
-            push (operators, (int)c);
-        } else if (c == ')') {
-            while (!is_stack_empty(operators) && stack_top(operators) != '(') {
-                rpn[j++] = ' ';
-                rpn[j++] = pop(operators);
-            }
-            pop(operators);
-        } else if (c == '$') {
-           rpn[j++] = c;
-           i++;
-           while (formula[i] != ' ' && formula[i] != '\0' && !strchr("&|~E", formula[i])) {
-               if (rpn[j - 1] == ')') break;
-               rpn[j++] = formula[i++];
-           }
-           i--;
-        } else {
-            if (c == ' ' && rpn[j-1] != ' ')
-                rpn[j++] = c;
-            else if (c != ' ')
-                rpn[j++] = c;
-        }
-    }
-
-    while (!is_stack_empty(operators)) {
-        rpn[j++] = ' ';
-        rpn[j++] = pop(operators);
-    }
-
-    if (j > 0 && rpn[j-1] == ' ') {
-        j--;
-    }
-
-    rpn[j] = '\0';
-    free_stack(operators);
-    return rpn;
-}
-
-#pragma endregion
