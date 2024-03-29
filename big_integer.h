@@ -51,7 +51,7 @@ typedef struct big_int_list
 {
     big_int** big_ints;
     size_t count;
-} bigint_text;
+} big_int_list;
 
 /**
  * @brief Represents an RSA key structure.

@@ -10,7 +10,6 @@
 // def (x=y+z /\ ~2|x) \/ 3|x
 // def pair(x,y) "E x (x=y+z)"
 
-// проследить везде за free
 
 
 #include "NFA.h"
@@ -382,7 +381,7 @@ bool NFA_accept(NFA* nfa, big_int* num)
     leading_zeroes = 8 - leading_zeroes;
 
     total_bits -= leading_zeroes; // leading zeroes shouldn't be processed
-
+    if (!total_bits) total_bits = 1; // if input = 0 we should read at least 1 bit
 
     push(current_states, nfa->initial_state->id);
     // states that have epsilon-transition from initial_state are also initial
@@ -717,6 +716,169 @@ void generate_png_from_dot(char* dot_filename) {
     system(command);
 }
 
+void NFA_to_file(NFA* automaton, const char* filename)
+{
+    if (automaton == nullptr || filename == nullptr) {
+        cout << "Invalid automaton or filename.\n";
+        return;
+    }
+
+    FILE* file = fopen(filename, "w");
+
+    fprintf(file, "lsd_%d\n\n", automaton->alphabet_dim);
+
+    int initial_state_id = automaton->initial_state->id;
+
+    for (size_t i = 0; i < automaton->states_count; i++) {
+        NFA_state* state = automaton->states[i];
+        if (state == nullptr) continue;
+
+        int state_type = -1; // Default to neither initial nor final (-1).
+        if (state->id == initial_state_id && state->is_final) {
+            state_type = 2; // Both initial and final (2)
+        }
+        else if (state->id == initial_state_id) {
+            state_type = 0; // Only initial (0)
+        }
+        else if (state->is_final) {
+            state_type = 1; // Only final (1)
+        }
+
+        fprintf(file, "%d %d\n", state->id, state_type);
+
+        for (size_t letter = 0; letter < (1 << automaton->alphabet_dim); letter++) {
+            list* transition_list = state->transitions[letter];
+            if (transition_list == nullptr || transition_list->head == nullptr) continue;
+
+            node* current = transition_list->head;
+            while (current != nullptr) {
+                for (size_t bit = 0; bit < automaton->alphabet_dim; bit++) {
+                    fprintf(file, "%d ", (letter >> (automaton->alphabet_dim - 1 - bit)) & 1);
+                }
+
+                fprintf(file, "-> %d\n", current->val);
+                current = current->next;
+            }
+        }
+        fprintf(file, "\n");
+    }
+
+    fclose(file);
+    cout << "NFA has been written to " << filename << endl;
+}
+
+NFA* NFA_from_file(const char* filename)
+{
+    if (filename == nullptr) {
+        cout << "Invalid filename.\n";
+        return nullptr;
+    }
+
+    FILE* file = fopen(filename, "r");
+    if (file == nullptr) {
+        cout << "Unable to open file.\n";
+        return nullptr;
+    }
+
+    int alphabet_dim, state_id, state_type, end_state, bit;
+
+    if (fscanf(file, "lsd_%d\n\n", &alphabet_dim) != 1) {
+        cout << "Error reading alphabet dimension.\n";
+        fclose(file);
+        return nullptr;
+    }
+
+    NFA* automaton = NFA_init(0, alphabet_dim, -1, 0, nullptr);
+
+    int initial_state = -1;
+    char line[256];
+
+    while (fgets(line, sizeof(line), file))
+    {
+        //        cout << line << endl;
+
+        int state_id, state_type;
+
+        if (sscanf(line, "%d %d\n", &state_id, &state_type) == 2)
+        {
+            if (state_id >= automaton->states_count)
+            {
+                for (int i = automaton->states_count; i <= state_id; i++)
+                {
+                    NFA_state_add(automaton, state_type == 1 || state_type == 2);
+                }
+            }
+            else {
+                automaton->states[state_id]->is_final = state_type == 1 || state_type == 2;
+            }
+
+            if (state_type == 0 || state_type == 2)
+            {
+                if (initial_state == -1)
+                {
+                    initial_state = state_id;
+                }
+                else
+                {
+                    cout << "Multiple initial states encountered, which is invalid.\n";
+                    NFA_free(automaton);
+                    fclose(file);
+                    return nullptr;
+                }
+            }
+
+            while (fgets(line, sizeof(line), file) && line[0] != '\n')
+            {
+                //                cout << line << endl;
+                int letter, end_state;
+                int bit;
+                if (sscanf(line, "%d ", &letter) == 1)
+                {
+                    char* ptr = line + 2;
+                    int offset;
+
+                    for (int i = 0; i < alphabet_dim - 1; i++)
+                    {
+                        sscanf(ptr, "%d%n", &bit, &offset);
+                        ptr += 2;
+                        letter = (letter << 1) | bit;
+                    }
+
+                    if (sscanf(ptr, "-> %d\n", &end_state) == 1)
+                    {
+                        if (end_state >= automaton->states_count)
+                        {
+                            for (int i = automaton->states_count; i <= end_state; i++)
+                            {
+                                NFA_state_add(automaton, false);
+                            }
+                        }
+                        NFA_transition_add(automaton, state_id, end_state, letter);
+
+
+                    }
+                    else break;
+
+
+                }
+            }
+
+        }
+    }
+
+    if (initial_state == -1) {
+        cout << "Error: there no initial state\n";
+        fclose(file);
+        NFA_free(automaton);
+        return nullptr;
+    }
+    else {
+        automaton->initial_state = automaton->states[initial_state];
+    }
+
+    fclose(file);
+    return automaton;
+}
 #pragma endregion
 
 #pragma region NFA Operations
@@ -860,19 +1022,24 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 {
     // new nfa is the same as nfa1 except for final states
+    // nfa2 should be extended to have the same alphabet_dim as nfa1 (each time differently)
 
-    if (!nfa1 || !nfa2 || nfa2->alphabet_dim > nfa1->alphabet_dim) return nullptr;
+    if (!nfa1 || !nfa2 || nfa2->alphabet_dim != nfa1->alphabet_dim) return nullptr;
 
     NFA* new_nfa = NFA_clone(nfa1);
     NFA* nfa2_clone = NFA_clone(nfa2);
+
+
+
     // edit nfa2 so that it can be intersected with nfa1
-    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
-    {
-        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim); 
-        NFA_free(nfa2_clone);
-        nfa2_clone = nfa_temp;
-        nfa_temp = nullptr;
-    }
+
+    //for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
+    //{
+    //    NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim);  // наверное другой extend
+    //    NFA_free(nfa2_clone);
+    //    nfa2_clone = nfa_temp;
+    //    nfa_temp = nullptr;
+    //}
 
     // if there exist a path from current state to a final state that accepts a word from nfa2 language
     // then current state will be one of the new final states
@@ -1218,163 +1385,6 @@ NFA* NFA_get_automaton_1()
 
 #pragma endregion
 
-void NFA_to_file(NFA* automaton, const char* filename)
-{
-    if (automaton == nullptr || filename == nullptr) {
-        cout << "Invalid automaton or filename.\n";
-        return;
-    }
-
-    FILE* file = fopen(filename, "w");
-
-    fprintf(file, "lsd_%d\n\n", automaton->alphabet_dim);
-
-    int initial_state_id = automaton->initial_state->id;
-
-    for (size_t i = 0; i < automaton->states_count; i++) {
-        NFA_state* state = automaton->states[i];
-        if (state == nullptr) continue;
-
-        int state_type = -1; // Default to neither initial nor final (-1).
-        if (state->id == initial_state_id && state->is_final) {
-            state_type = 2; // Both initial and final (2)
-        } else if (state->id == initial_state_id) {
-            state_type = 0; // Only initial (0)
-        } else if (state->is_final){
-            state_type = 1; // Only final (1)
-        }
-
-        fprintf(file, "%d %d\n", state->id, state_type);
-
-        for (size_t letter = 0; letter < (1 << automaton->alphabet_dim); letter++) {
-            list* transition_list = state->transitions[letter];
-            if (transition_list == nullptr || transition_list->head == nullptr) continue;
-
-            node* current = transition_list->head;
-            while (current != nullptr) {
-                for (size_t bit = 0; bit < automaton->alphabet_dim; bit++) {
-                    fprintf(file, "%d ", (letter >> (automaton->alphabet_dim - 1 - bit)) & 1);
-                }
-
-                fprintf(file, "-> %d\n", current->val);
-                current = current->next;
-            }
-        }
-        fprintf(file, "\n");
-    }
-
-    fclose(file);
-    cout << "NFA has been written to " << filename << endl;
-}
-
-NFA* NFA_from_file(const char* filename)
-{
-    if (filename == nullptr){
-        cout << "Invalid filename.\n";
-        return nullptr;
-    }
-
-    FILE* file = fopen(filename, "r");
-    if (file == nullptr) {
-        cout << "Unable to open file.\n";
-        return nullptr;
-    }
-
-    int alphabet_dim, state_id, state_type, end_state, bit;
-
-    if (fscanf(file, "lsd_%d\n\n", &alphabet_dim) != 1) {
-        cout << "Error reading alphabet dimension.\n";
-        fclose(file);
-        return nullptr;
-    }
-
-    NFA* automaton = NFA_init(0, alphabet_dim, -1, 0, nullptr);
-
-    int initial_state = -1;
-    char line[256];
-
-    while (fgets(line, sizeof(line), file))
-    {
-//        cout << line << endl;
-
-        int state_id, state_type;
-
-        if (sscanf(line, "%d %d\n", &state_id, &state_type) == 2)
-        {
-            if (state_id >= automaton->states_count)
-            {
-                for (int i = automaton->states_count; i <= state_id; i++)
-                {
-                    NFA_state_add(automaton, state_type == 1 || state_type == 2);
-                }
-            } else {
-                automaton->states[state_id]->is_final = state_type == 1 || state_type == 2;
-            }
-
-            if (state_type == 0 || state_type == 2)
-            {
-                if (initial_state == -1)
-                {
-                    initial_state = state_id;
-                } else
-                {
-                    cout << "Multiple initial states encountered, which is invalid.\n";
-                    NFA_free(automaton);
-                    fclose(file);
-                    return nullptr;
-                }
-            }
-
-            while (fgets(line, sizeof(line), file) && line[0] != '\n')
-            {
-//                cout << line << endl;
-                int letter, end_state;
-                int bit;
-                if (sscanf(line, "%d ", &letter) == 1)
-                {
-                    char* ptr = line + 2;
-                    int offset;
-
-                    for (int i = 0; i < alphabet_dim - 1; i++)
-                    {
-                        sscanf(ptr, "%d%n", &bit, &offset);
-                        ptr += 2;
-                        letter = (letter << 1) | bit;
-                    }
-
-                    if (sscanf(ptr, "-> %d\n", &end_state) == 1)
-                    {
-                        if (end_state >= automaton->states_count)
-                        {
-                            for (int i = automaton->states_count; i <= end_state; i++)
-                            {
-                                NFA_state_add(automaton, false);
-                            }
-                        }
-                        NFA_transition_add(automaton, state_id, end_state, letter);
-
-
-                    } else break;
-
-
-                }
-            }
-
-        }
-    }
-
-    if (initial_state == -1) {
-        cout << "Error: there no initial state\n";
-        fclose(file);
-        NFA_free(automaton);
-        return nullptr;
-    } else {
-        automaton->initial_state = automaton->states[initial_state];
-    }
-
-    fclose(file);
-    return automaton;
-}
 
 void NFA_console_app() {
     char input[256];
