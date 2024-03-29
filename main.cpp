@@ -7,6 +7,7 @@
 #include "NFA.h"
 
 int main() {
+
     std::random_device rd;
     srand(rd());
 
@@ -95,6 +96,7 @@ int main() {
     NFA_to_DOT(zero4);
 
 
+    NFA_console_app();
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
 }

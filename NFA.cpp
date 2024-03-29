@@ -43,6 +43,7 @@ int get_random_num(int start, int end)
 
     return rand() % (end - start + 1) + start;   
 }
+
 #pragma endregion
 
 #pragma region NFA Main
@@ -159,9 +160,6 @@ void NFA_transition_remove(NFA* nfa, int start_state, int end_state, int letter)
     }
 }
 
-// зачем id был на вход? Состояния нумеруются от 0 до states_count-1, если нумеровать их по другому, то все сломается, 
-// так как функции завязаны на их id и работают с ними, как с индексами
-// Если нужно ввести значение для состояния, нужно определить новое поле в NFA_state
 bool NFA_state_add(NFA* nfa, bool is_final)
 {
     int id = nfa->states_count;
@@ -589,8 +587,6 @@ void NFA_print(NFA* nfa) {
     }
 }
 
-// MUST BE FIXED! File doesn't work if NFA has no final states 
-// (because of the incorrect syntax the line "node [shape = doublecircle];;" appears)
 void NFA_to_DOT(NFA* nfa)
 {
     if (nfa == nullptr) {
@@ -623,13 +619,23 @@ void NFA_to_DOT(NFA* nfa)
 
     fprintf(file, "digraph finite_state_machine{\n");
     fprintf(file, "\trankdir=LR;\n");
-    fprintf(file, "\tnode [shape = doublecircle];");
+
+    char final_states_str[256] = "";
+    bool has_final_states = false;
+
     for (size_t i = 0; i < nfa->states_count; i++) {
         if (nfa->states[i]->is_final) {
-            fprintf(file, " %d", nfa->states[i]->id);
+            char state_id_str[32];
+            sprintf(state_id_str, " %d", nfa->states[i]->id);
+            strcat(final_states_str, state_id_str);
+            has_final_states = true;
         }
     }
-    fprintf(file, ";\n");
+
+    if (has_final_states) {
+        fprintf(file, "\tnode [shape = doublecircle];%s;\n", final_states_str);
+    }
+
     fprintf(file, "\tnode [shape = circle];\n");
     fprintf(file, "\tinit [shape=none, label=\"\"];\n");
     fprintf(file, "\tinit -> %d;\n", nfa->initial_state->id);
@@ -898,6 +904,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 #pragma endregion
 
 #pragma region NFA Support Functions
+
 // NEED TO BE TESTED
 void NFA_remove_unreachable_states(NFA* nfa)
 {
@@ -1211,3 +1218,222 @@ NFA* NFA_get_automaton_1()
 
 #pragma endregion
 
+void NFA_to_file(NFA* automaton, const char* filename)
+{
+    if (automaton == nullptr || filename == nullptr) {
+        cout << "Invalid automaton or filename.\n";
+        return;
+    }
+
+    FILE* file = fopen(filename, "w");
+
+    fprintf(file, "lsd_%d\n\n", automaton->alphabet_dim);
+
+    int initial_state_id = automaton->initial_state->id;
+
+    for (size_t i = 0; i < automaton->states_count; i++) {
+        NFA_state* state = automaton->states[i];
+        if (state == nullptr) continue;
+
+        int state_type = -1; // Default to neither initial nor final (-1).
+        if (state->id == initial_state_id && state->is_final) {
+            state_type = 2; // Both initial and final (2)
+        } else if (state->id == initial_state_id) {
+            state_type = 0; // Only initial (0)
+        } else if (state->is_final){
+            state_type = 1; // Only final (1)
+        }
+
+        fprintf(file, "%d %d\n", state->id, state_type);
+
+        for (size_t letter = 0; letter < (1 << automaton->alphabet_dim); letter++) {
+            list* transition_list = state->transitions[letter];
+            if (transition_list == nullptr || transition_list->head == nullptr) continue;
+
+            node* current = transition_list->head;
+            while (current != nullptr) {
+                for (size_t bit = 0; bit < automaton->alphabet_dim; bit++) {
+                    fprintf(file, "%d ", (letter >> (automaton->alphabet_dim - 1 - bit)) & 1);
+                }
+
+                fprintf(file, "-> %d\n", current->val);
+                current = current->next;
+            }
+        }
+        fprintf(file, "\n");
+    }
+
+    fclose(file);
+    cout << "NFA has been written to " << filename << endl;
+}
+
+NFA* NFA_from_file(const char* filename)
+{
+    if (filename == nullptr){
+        cout << "Invalid filename.\n";
+        return nullptr;
+    }
+
+    FILE* file = fopen(filename, "r");
+    if (file == nullptr) {
+        cout << "Unable to open file.\n";
+        return nullptr;
+    }
+
+    int alphabet_dim, state_id, state_type, end_state, bit;
+
+    if (fscanf(file, "lsd_%d\n\n", &alphabet_dim) != 1) {
+        cout << "Error reading alphabet dimension.\n";
+        fclose(file);
+        return nullptr;
+    }
+
+    NFA* automaton = NFA_init(0, alphabet_dim, -1, 0, nullptr);
+
+    int initial_state = -1;
+    char line[256];
+
+    while (fgets(line, sizeof(line), file))
+    {
+//        cout << line << endl;
+
+        int state_id, state_type;
+
+        if (sscanf(line, "%d %d\n", &state_id, &state_type) == 2)
+        {
+            if (state_id >= automaton->states_count)
+            {
+                for (int i = automaton->states_count; i <= state_id; i++)
+                {
+                    NFA_state_add(automaton, state_type == 1 || state_type == 2);
+                }
+            } else {
+                automaton->states[state_id]->is_final = state_type == 1 || state_type == 2;
+            }
+
+            if (state_type == 0 || state_type == 2)
+            {
+                if (initial_state == -1)
+                {
+                    initial_state = state_id;
+                } else
+                {
+                    cout << "Multiple initial states encountered, which is invalid.\n";
+                    NFA_free(automaton);
+                    fclose(file);
+                    return nullptr;
+                }
+            }
+
+            while (fgets(line, sizeof(line), file) && line[0] != '\n')
+            {
+//                cout << line << endl;
+                int letter, end_state;
+                int bit;
+                if (sscanf(line, "%d ", &letter) == 1)
+                {
+                    char* ptr = line + 2;
+                    int offset;
+
+                    for (int i = 0; i < alphabet_dim - 1; i++)
+                    {
+                        sscanf(ptr, "%d%n", &bit, &offset);
+                        ptr += 2;
+                        letter = (letter << 1) | bit;
+                    }
+
+                    if (sscanf(ptr, "-> %d\n", &end_state) == 1)
+                    {
+                        if (end_state >= automaton->states_count)
+                        {
+                            for (int i = automaton->states_count; i <= end_state; i++)
+                            {
+                                NFA_state_add(automaton, false);
+                            }
+                        }
+                        NFA_transition_add(automaton, state_id, end_state, letter);
+
+
+                    } else break;
+
+
+                }
+            }
+
+        }
+    }
+
+    if (initial_state == -1) {
+        cout << "Error: there no initial state\n";
+        fclose(file);
+        NFA_free(automaton);
+        return nullptr;
+    } else {
+        automaton->initial_state = automaton->states[initial_state];
+    }
+
+    fclose(file);
+    return automaton;
+}
+
+void NFA_console_app() {
+    char input[256];
+    cout << "Enter command (type '>exit' to quit):\n";
+    while (true) {
+        fflush(stdout);
+
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            break;
+        }
+
+        input[strcspn(input, "\n")] = 0;
+
+        if (strcmp(input, ">exit") == 0) {
+            cout << "Exiting NFA Console Application.\n";
+            break;
+        } else if (strcmp(input, ">help") == 0) {
+            print_help();
+        } else if (strcmp(input, ">nfa_list") == 0) {
+            NFA_list();
+        } else {
+                printf("You entered: %s\n", input);
+            }
+        }
+
+}
+
+#pragma region Handful Functions For Console App
+
+void print_help() {
+    cout << "Available commands:\n";
+    cout << ">exit - Exit the NFA Console Application.\n";
+    cout << ">help - Display this help message.\n";
+    cout << ">nfa_list - List available automata.\n";
+}
+
+void NFA_list() {
+    const char* directory = "../NFA/NFAs/*"; // Путь к директории с маской для поиска всех файлов
+    WIN32_FIND_DATA ffd;
+    HANDLE hFind = FindFirstFile(directory, &ffd);
+    int count = 0;
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        printf("Failed to open directory\n");
+        return;
+    }
+
+    do {
+        if (strcmp(ffd.cFileName, ".") != 0 && strcmp(ffd.cFileName, "..") != 0) {
+            char* dot = strrchr(ffd.cFileName, '.');
+            if (dot != nullptr) {
+                *dot = '\0';
+            }
+
+            printf("%d) %s\n", ++count, ffd.cFileName);
+        }
+    } while (FindNextFile(hFind, &ffd) != 0);
+
+    FindClose(hFind);
+}
+
+#pragma endregion
