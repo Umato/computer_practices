@@ -883,6 +883,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 
     return new_nfa;
 }
+
 #pragma endregion
 
 #pragma region NFA Support Functions
