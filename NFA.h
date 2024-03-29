@@ -80,6 +80,7 @@ NFA* NFA_extend(NFA* nfa, unsigned char n);
 
 void NFA_remove_unreachable_states(NFA* nfa);
 bool NFA_is_empty(NFA* nfa);
+int NFA_get_final_states_count(NFA* nfa);
 int* NFA_get_final_states(NFA* nfa, int* states_count);
 bool NFA_is_DFA(NFA* nfa);
 void copy_transitions(NFA* nfa, int from_state, int to_state);
