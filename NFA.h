@@ -61,7 +61,7 @@ void generate_png_from_dot(char* dot_filename);
 
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2);
 NFA* union_NFA(NFA* nfa1, NFA* nfa2);
-void DFA_complement(NFA* nfa);
+NFA* DFA_complement(NFA* nfa);
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2);
 
 /**

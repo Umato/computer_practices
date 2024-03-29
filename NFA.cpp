@@ -797,17 +797,20 @@ NFA* union_NFA(NFA* nfa1, NFA* nfa2)
     return unioned_NFA;
 }
 
-void DFA_complement(NFA* nfa) {
-    if (!nfa) return;
+NFA* DFA_complement(NFA* nfa) {
+    if (!nfa) return nullptr;
 
     if (!NFA_is_DFA(nfa)) {
         printf("The automaton is not a DFA.");
-        return;
+        return nullptr;
     }
 
+    NFA* res = NFA_clone(nfa);
     for (int i = 0; i < nfa->states_count; i++) {
-        nfa->states[i]->is_final = !nfa->states[i]->is_final;
+        res->states[i]->is_final = !res->states[i]->is_final;
     }
+
+    return res;
 }
 
 NFA* NFA_project(NFA* nfa, unsigned char n)
@@ -1436,5 +1439,63 @@ void NFA_list() {
 
     FindClose(hFind);
 }
+
+NFA* NFA_perform_operation(NFA* operand1, NFA* operand2, char operation)
+{
+    switch (operation)
+    {
+        case '&':
+            return intersect_NFA(operand1, operand2);
+        case '\\/':
+            return union_NFA(operand1, operand2);
+        case '=>':
+        {
+            NFA *complement = DFA_complement(operand1);
+            NFA *res = union_NFA(complement, operand2);
+            NFA_free(complement);
+            return res;
+        }
+        default:
+        {
+            cout << "Error: unknown operation\n";
+            return nullptr;
+        }
+    }
+}
+
+short NFA_get_priority(char op)
+{
+    switch (op)
+    {
+        case '(':
+            return -1;
+        case '~':
+            return 4;
+        case '&':
+            return 3;
+        case '\\/':
+            return 2;
+        case '=>':
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+//NFA* NFA_parser(const char* str)
+//{
+//    stack* operator_stack = create_stack();
+//    int outputIdx = 0;
+//    size_t infix_len = strlen(str);
+//    char* postfix;
+//
+//    for (size_t i = 0; i < infix_len; i++)
+//    {
+//        char current_char = str[i];
+//
+//
+//    }
+//}
+
 
 #pragma endregion
