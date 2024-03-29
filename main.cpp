@@ -77,7 +77,15 @@ int main() {
 //
 //    cout << "Result: " << NFA_accept(intersect, bigint_list);
 
+    NFA* nfa = NFA_get_sum3();
 
+    NFA_to_DOT(nfa);
+
+    NFA_to_file(nfa, "../NFA/12312.txt");
+
+    NFA* nfa1 = NFA_from_file("../NFA/12312.txt");
+
+    NFA_to_DOT(nfa1);
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;

@@ -2,17 +2,6 @@
 // Coded by Zelendzu & Umato on 29.02.2024.
 //
 
-// maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
-// 0*x1, 0*x2 -> x1, x2
-// что делать с нулями в начале и строки состоящей полностью из нулей?
-
-// eval Ex(2|x)
-// def (x=y+z /\ ~2|x) \/ 3|x
-// def pair(x,y) "E x (x=y+z)"
-
-// проследить везде за free
-
-
 #include "NFA.h"
 
 #pragma region Others
