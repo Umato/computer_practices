@@ -331,7 +331,8 @@ bool NFA_state_list_remove(NFA* nfa, int* removed_states, int list_size)
             }
         }
     }
-
+    
+    free(new_states_id);
     return true;
 }
 
@@ -850,7 +851,6 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
     return new_nfa;
 }
 
-// TODO
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 {
     // new nfa is the same as nfa1 except for final states
