@@ -45,6 +45,7 @@ int get_random_num(int start, int end)
 
 #pragma endregion
 
+
 #pragma region NFA Main
 
 NFA_state* NFA_state_init(int id, bool is_final, int letters_count)
@@ -545,6 +546,7 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
 
 #pragma endregion
 
+
 #pragma region NFA Input/Output
 
 void NFA_print(NFA* nfa) {
@@ -881,6 +883,7 @@ NFA* NFA_from_file(const char* filename)
 }
 #pragma endregion
 
+
 #pragma region NFA Operations
 
 NFA* intersect_NFA(NFA* nfa1, NFA* nfa2)
@@ -1019,27 +1022,59 @@ NFA* NFA_extend(NFA* nfa, unsigned char n)
     return new_nfa;
 }
 
+NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2)
+{
+    // new nfa is the same as nfa1 except for initial states
+    // nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently)
+
+    if (!nfa1 || !nfa2 || nfa2->alphabet_dim != nfa1->alphabet_dim) return nullptr;
+
+    stack* initial_states = create_stack();
+    NFA* inter_nfa = intersect_NFA(nfa1, nfa2);
+    NFA_remove_unreachable_states(inter_nfa);
+    
+    // combined_state_id = i * nfa2->states_count + j;
+    // if nfa2.states[j] is final => nfa1.states[i] is new initial
+    for (int i = 0; i < inter_nfa->states_count; i++)
+    {
+        int j = i % nfa2->states_count;
+        if (nfa2->states[j]->is_final)
+        {
+            push(initial_states, i / nfa2->states_count);
+        }
+    }
+
+    NFA_free(inter_nfa);
+    NFA* new_nfa = NFA_clone(nfa1);
+    // add new initial state
+    if (!NFA_state_add(new_nfa, false))
+    {
+        NFA_free(new_nfa);
+        free_stack(initial_states);
+        return nullptr;
+    }
+    
+    int new_initial = new_nfa->states_count - 1;
+    new_nfa->initial_state = new_nfa->states[new_initial];
+    // add epsilon-transitions from new initial state to states from stack
+    while (!is_stack_empty(initial_states))
+    {
+        NFA_transition_add(new_nfa, new_initial, pop(initial_states), (1 << new_nfa->alphabet_dim));
+    }
+
+    free_stack(initial_states);
+    return new_nfa;
+}
+
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 {
     // new nfa is the same as nfa1 except for final states
-    // nfa2 should be extended to have the same alphabet_dim as nfa1 (each time differently)
+    // nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently)
 
     if (!nfa1 || !nfa2 || nfa2->alphabet_dim != nfa1->alphabet_dim) return nullptr;
 
     NFA* new_nfa = NFA_clone(nfa1);
     NFA* nfa2_clone = NFA_clone(nfa2);
-
-
-
-    // edit nfa2 so that it can be intersected with nfa1
-
-    //for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
-    //{
-    //    NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim);  // наверное другой extend
-    //    NFA_free(nfa2_clone);
-    //    nfa2_clone = nfa_temp;
-    //    nfa_temp = nullptr;
-    //}
 
     // if there exist a path from current state to a final state that accepts a word from nfa2 language
     // then current state will be one of the new final states
@@ -1068,7 +1103,9 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 
     return new_nfa;
 }
+
 #pragma endregion
+
 
 #pragma region NFA Support Functions
 
@@ -1234,6 +1271,7 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 #pragma endregion
 
+
 #pragma region NFA Examples
 
 NFA* NFA_get_div_2()
@@ -1386,6 +1424,7 @@ NFA* NFA_get_automaton_1()
 #pragma endregion
 
 
+#pragma region Handful Functions For Console App
 void NFA_console_app() {
     char input[256];
     cout << "Enter command (type '>exit' to quit):\n";
@@ -1411,8 +1450,6 @@ void NFA_console_app() {
         }
 
 }
-
-#pragma region Handful Functions For Console App
 
 void print_help() {
     cout << "Available commands:\n";
@@ -1445,5 +1482,4 @@ void NFA_list() {
 
     FindClose(hFind);
 }
-
 #pragma endregion

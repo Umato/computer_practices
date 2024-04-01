@@ -53,32 +53,14 @@ int main() {
 //    big_int_list* bigint_list = big_int_list_init(3, bigint_list_nums);
 //
 //    NFA* nfa_eq = NFA_get_sum3();
-//
 //    NFA* nfa = NFA_project(nfa_eq, 2);
-//
 //    NFA_to_DOT(nfa);
 //
 //    printf("result: %d", NFA_accept(nfa, bigint_list));
 #pragma endregion
 
-//    NFA* nfa = NFA_get_div_2();
-//    NFA* nfa1 = NFA_get_div_3();
-//    NFA* nfa2 = NFA_extend(nfa, 1);
-//    NFA* nfa_2 = NFA_extend(nfa2, 2);
-//
-//    NFA* nfau = NFA_extend(nfa1, 0);
-//    NFA* nfa_3 = NFA_extend(nfau, 2);
-//
-//
-//
-//    NFA* int1 = intersect_NFA(nfa_2, nfa_3);
-//    NFA* intersect = intersect_NFA(int1, NFA_get_sum3());
-//
-//
-//    cout << "Result: " << NFA_accept(intersect, bigint_list);
-
-
-    NFA* nfa_sum = NFA_get_sum3();
+#pragma region NFA_rightquo Check
+    /*NFA* nfa_sum = NFA_get_sum3();
     int fs[] = { 0 };
     int* fsl = &(fs[0]);
     NFA* nfa_zeroes = NFA_init(1, 2, 0, 1, fsl);
@@ -89,11 +71,32 @@ int main() {
     NFA* nfa2 = NFA_rightquo(nfa_sum, nfa_zeroes1);
     NFA_to_DOT(nfa2);
     NFA* new_nfa = union_NFA(nfa_sum, nfa2);
+    NFA_to_DOT(new_nfa);*/
+#pragma endregion
+
+#pragma region NFA_leftquo Check
+
+    // автомат принимающий строки {0}+{1}* (например 000111, 00001, 11111, 1) (нулей от 0 до +\\inf, потом единиц от 1 до +\\inf)
+    int fs[] = { 1 };
+    int* fsl = &(fs[0]);
+    NFA* nfa01 = NFA_init(2, 1, 0, 1, fsl);
+    NFA_transition_add(nfa01, 0, 0, 0);
+    NFA_transition_add(nfa01, 0, 1, 1);
+    NFA_transition_add(nfa01, 1, 1, 1);
+
+    // автомат принимающий строки {0}+1 (например 0000001, 01, 1) (нулей от 0 до +\\inf, потом всегда одна 1)
+    int fs2[] = { 1 };
+    int* fsl2 = &(fs[0]);
+    NFA* nfa_zeroes1 = NFA_init(2, 1, 0, 1, fsl2);
+    NFA_transition_add(nfa_zeroes1, 0, 0, 0);
+    NFA_transition_add(nfa_zeroes1, 0, 1, 1);
+
+    // нужен автомат принимающий {1}* (то есть единиц от 1 до +\\inf)
+    NFA* new_nfa = NFA_leftquo(nfa01, nfa_zeroes1);
     NFA_to_DOT(new_nfa);
+    // он работает как то неправильно - просто копирует nfa01, а нужно чтоб он не принимал строки начинающиеся с {0}*, а он принимает :(
 
-    
-
-
+#pragma endregion
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
