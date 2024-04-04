@@ -77,26 +77,34 @@ int main() {
 //
 //    cout << "Result: " << NFA_accept(intersect, bigint_list);
 
-    NFA* nfa_div2 = NFA_get_div_power_of_2(4);
+//    NFA* nfa_div2 = NFA_get_div_power_of_2(4);
+//
+//    int fs[] = { 1 };
+//    int* fsl = &(fs[0]);
+//    NFA* odd_nfa = NFA_init(3, 1, 0, 1, fsl);
+//
+//    NFA_transition_add(odd_nfa, 0, 1, 1);
+//    NFA_transition_add(odd_nfa, 0, 2, 0);
+//    NFA_transition_add(odd_nfa, 1, 1, 0);
+//    NFA_transition_add(odd_nfa, 1, 1, 1);
+//    NFA_transition_add(odd_nfa, 2, 2, 0);
+//    NFA_transition_add(odd_nfa, 2, 2, 1);
+//
+//    NFA_to_DOT(odd_nfa);
+//    NFA_to_DOT(nfa_div2);
+//    NFA* zero4 = NFA_rightquo(nfa_div2, odd_nfa);
+//    NFA_to_DOT(zero4);
+//
+//
+//    NFA_console_app();
+//
 
-    int fs[] = { 1 };
-    int* fsl = &(fs[0]);
-    NFA* odd_nfa = NFA_init(3, 1, 0, 1, fsl);
-
-    NFA_transition_add(odd_nfa, 0, 1, 1);
-    NFA_transition_add(odd_nfa, 0, 2, 0);
-    NFA_transition_add(odd_nfa, 1, 1, 0);
-    NFA_transition_add(odd_nfa, 1, 1, 1);
-    NFA_transition_add(odd_nfa, 2, 2, 0);
-    NFA_transition_add(odd_nfa, 2, 2, 1);
-
-    NFA_to_DOT(odd_nfa);
-    NFA_to_DOT(nfa_div2);
-    NFA* zero4 = NFA_rightquo(nfa_div2, odd_nfa);
-    NFA_to_DOT(zero4);
-
-
-    NFA_console_app();
+//    NFA* nfa = NFA_get_sum3();
+//    NFA_to_DOT(nfa);
+//
+//    NFA* nfa1 = NFA_project(nfa, 2);
+//
+//    NFA_to_DOT(nfa1);
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
 }
