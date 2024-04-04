@@ -7,7 +7,6 @@
 #include "NFA.h"
 
 int main() {
-
     std::random_device rd;
     srand(rd());
 
@@ -60,52 +59,6 @@ int main() {
 //
 //    printf("result: %d", NFA_accept(nfa, bigint_list));
     #pragma endregion
-
-//    NFA* nfa = NFA_get_div_2();
-//    NFA* nfa1 = NFA_get_div_3();
-//    NFA* nfa2 = NFA_extend(nfa, 1);
-//    NFA* nfa_2 = NFA_extend(nfa2, 2);
-//
-//    NFA* nfau = NFA_extend(nfa1, 0);
-//    NFA* nfa_3 = NFA_extend(nfau, 2);
-//
-//
-//
-//    NFA* int1 = intersect_NFA(nfa_2, nfa_3);
-//    NFA* intersect = intersect_NFA(int1, NFA_get_sum3());
-//
-//
-//    cout << "Result: " << NFA_accept(intersect, bigint_list);
-
-
-//    NFA* nfa_div2 = NFA_get_div_power_of_2(4);
-//
-//    int fs[] = { 1 };
-//    int* fsl = &(fs[0]);
-//    NFA* odd_nfa = NFA_init(3, 1, 0, 1, fsl);
-//
-//    NFA_transition_add(odd_nfa, 0, 1, 1);
-//    NFA_transition_add(odd_nfa, 0, 2, 0);
-//    NFA_transition_add(odd_nfa, 1, 1, 0);
-//    NFA_transition_add(odd_nfa, 1, 1, 1);
-//    NFA_transition_add(odd_nfa, 2, 2, 0);
-//    NFA_transition_add(odd_nfa, 2, 2, 1);
-//
-//    NFA_to_DOT(odd_nfa);
-//    NFA_to_DOT(nfa_div2);
-//    NFA* zero4 = NFA_rightquo(nfa_div2, odd_nfa);
-//    NFA_to_DOT(zero4);
-//
-//
-//    NFA_console_app();
-//
-
-//    NFA* nfa = NFA_get_sum3();
-//    NFA_to_DOT(nfa);
-//
-//    NFA* nfa1 = NFA_project(nfa, 2);
-//
-//    NFA_to_DOT(nfa1);
 
 
     big_int_free(4, zero, one, two, e, mod, ex);

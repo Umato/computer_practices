@@ -131,9 +131,14 @@ NFA* NFA_get_random();
  */
 NFA* NFA_get_automaton_1();
 
+NFA* NFA_get_only_zeroes();
+NFA* NFA_swap(NFA* nfa, int n1, int n2);
 
 void NFA_console_app();
 void print_help();
 void NFA_list();
+
+int nfa_get_priority(char op);
+char* NFA_RPN (const char* formula);
 
 #endif //COMPUTER_PRACTICES_NFA_H
