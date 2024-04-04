@@ -77,6 +77,7 @@ int main() {
 //
 //    cout << "Result: " << NFA_accept(intersect, bigint_list);
 
+
 //    NFA* nfa_div2 = NFA_get_div_power_of_2(4);
 //
 //    int fs[] = { 1 };
@@ -105,6 +106,7 @@ int main() {
 //    NFA* nfa1 = NFA_project(nfa, 2);
 //
 //    NFA_to_DOT(nfa1);
+
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
