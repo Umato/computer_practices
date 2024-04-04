@@ -62,6 +62,13 @@ int main() {
     #pragma endregion
 
 
+
+//    NFA* nfa = NFA_get_sum3();
+//    NFA_to_DOT(nfa);
+//
+//    NFA* nfa1 = NFA_project(nfa, 2);
+//
+//    NFA_to_DOT(nfa1);
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
 }

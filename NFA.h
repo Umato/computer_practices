@@ -144,6 +144,9 @@ void NFA_console_app();
 void print_help();
 void NFA_list();
 
+int nfa_get_priority(char op);
+char* NFA_RPN (const char* formula);
+
 #pragma endregion
 
 #endif //COMPUTER_PRACTICES_NFA_H
