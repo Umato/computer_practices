@@ -858,13 +858,13 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
     NFA* new_nfa = NFA_clone(nfa1);
     NFA* nfa2_clone = NFA_clone(nfa2);
     // edit nfa2 so that it can be intersected with nfa1
-    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
-    {
-        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim); 
-        NFA_free(nfa2_clone);
-        nfa2_clone = nfa_temp;
-        nfa_temp = nullptr;
-    }
+//    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
+//    {
+//        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim);
+//        NFA_free(nfa2_clone);
+//        nfa2_clone = nfa_temp;
+//        nfa_temp = nullptr;
+//    }
 
     // if there exist a path from current state to a final state that accepts a word from nfa2 language
     // then current state will be one of the new final states
@@ -902,7 +902,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 void NFA_remove_unreachable_states(NFA* nfa)
 {
     int* state_is_reachable = (int*)calloc(nfa->states_count, sizeof(int));
-    queue* states_queue = create_queue(); // quueueueu of states which were reached from the initial
+    queue* states_queue = create_queue(); // queue of states which were reached from the initial
     enqueue(states_queue, nfa->initial_state->id);
     state_is_reachable[nfa->initial_state->id] = 1;
 
