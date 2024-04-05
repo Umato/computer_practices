@@ -7,7 +7,6 @@
 #include "NFA.h"
 
 int main() {
-
     std::random_device rd;
     srand(rd());
 
@@ -60,7 +59,6 @@ int main() {
 //
 //    printf("result: %d", NFA_accept(nfa, bigint_list));
     #pragma endregion
-
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
