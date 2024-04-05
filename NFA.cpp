@@ -2,7 +2,6 @@
 // Coded by Zelendzu & Umato on 29.02.2024.
 //
 
-<<<<<<< HEAD
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
 // 0*x1, 0*x2 -> x1, x2
 // что делать с нулями в начале и строки состоящей полностью из нулей?
@@ -12,8 +11,6 @@
 // def pair(x,y) "E x (x=y+z)"
 
 
-=======
->>>>>>> 4fa9edb (Revert "1")
 #include "NFA.h"
 
 #pragma region Others
@@ -963,27 +960,18 @@ NFA* union_NFA(NFA* nfa1, NFA* nfa2)
 
     return unioned_NFA;
 }
-<<<<<<< HEAD
 // !!! СДЕЛАТЬ ВОЗВРАЩЕНИЕ NFA
 void DFA_complement(NFA* nfa) {
     if (!nfa) return;
-=======
-
-NFA* DFA_complement(NFA* nfa) {
-    if (!nfa) return nullptr;
->>>>>>> 4fa9edb (Revert "1")
 
     if (!NFA_is_DFA(nfa)) {
         printf("The automaton is not a DFA.");
-        return nullptr;
+        return;
     }
 
-    NFA* res = NFA_clone(nfa);
     for (int i = 0; i < nfa->states_count; i++) {
-        res->states[i]->is_final = !res->states[i]->is_final;
+        nfa->states[i]->is_final = !nfa->states[i]->is_final;
     }
-
-    return res;
 }
 
 NFA* NFA_project(NFA* nfa, unsigned char n)
@@ -1086,17 +1074,6 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
 
     NFA* new_nfa = NFA_clone(nfa1);
     NFA* nfa2_clone = NFA_clone(nfa2);
-<<<<<<< HEAD
-=======
-    // edit nfa2 so that it can be intersected with nfa1
-    for (int i = 0; i < nfa1->alphabet_dim - nfa2->alphabet_dim; i++)
-    {
-        NFA* nfa_temp = NFA_extend(nfa2_clone, nfa2_clone->alphabet_dim); 
-        NFA_free(nfa2_clone);
-        nfa2_clone = nfa_temp;
-        nfa_temp = nullptr;
-    }
->>>>>>> 4fa9edb (Revert "1")
 
     // if there exist a path from current state to a final state that accepts a word from nfa2 language
     // then current state will be one of the new final states
@@ -1126,8 +1103,6 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
     return new_nfa;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 NFA* NFA_swap(NFA* nfa, int n1, int n2)
 {
     n1 = nfa->alphabet_dim - n1;
@@ -1171,41 +1146,7 @@ NFA* NFA_swap(NFA* nfa, int n1, int n2)
     return new_nfa;
 
 }
-=======
-//NFA* NFA_swap(NFA* nfa, int n1, int n2)
-//{
-//    n1 = nfa->alphabet_dim - n1;
-//    n2 = nfa->alphabet_dim - n2;
-////    if (n1 >= nfa->alphabet_dim || n2 >= nfa->alphabet_dim) {
-////        cout << "Error: out of dimension.\n";
-////        return nullptr;
-////    }
-//
-//    for (size_t state_id = 0; state_id < nfa->states_count; state_id++)
-//    {
-//        NFA_state* state = nfa->states[state_id];
-//        list** new_transitions = (list**)malloc(sizeof(list*) * (1 << nfa->alphabet_dim));
-//
-//        for (int k = 0; k < (1 << nfa->alphabet_dim); ++k) {
-//            new_transitions[k] = (list*)calloc(1, sizeof(list));
-//        }
-//
-//        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
-//        {
-//            int swapped_letter = letter;
-//            bool bit_n1 = (letter >> n1) & 1;
-//            bool bit_n2 = (letter >> n2) & 1;
-//
-//            if (bit_n1 != bit_n2) {
-//                swapped_letter = swapped_letter ^ ((1 << n1) | (1 << n2))
-//            }
-//        }
-//    }
-//}
->>>>>>> 496b07b (Revert "1")
 
-=======
->>>>>>> 4fa9edb (Revert "1")
 #pragma endregion
 
 
@@ -1600,7 +1541,6 @@ void NFA_list() {
     FindClose(hFind);
 }
 
-<<<<<<< HEAD
 int nfa_get_priority(char op) {
     switch (op) {
         case '(': return -1;
@@ -1672,64 +1612,4 @@ char* NFA_RPN (const char* formula) {
     return rpn;
 }
 
-=======
-NFA* NFA_perform_operation(NFA* operand1, NFA* operand2, char operation)
-{
-    switch (operation)
-    {
-        case '&':
-            return intersect_NFA(operand1, operand2);
-        case '\\/':
-            return union_NFA(operand1, operand2);
-        case '=>':
-        {
-            NFA *complement = DFA_complement(operand1);
-            NFA *res = union_NFA(complement, operand2);
-            NFA_free(complement);
-            return res;
-        }
-        default:
-        {
-            cout << "Error: unknown operation\n";
-            return nullptr;
-        }
-    }
-}
-
-short NFA_get_priority(char op)
-{
-    switch (op)
-    {
-        case '(':
-            return -1;
-        case '~':
-            return 4;
-        case '&':
-            return 3;
-        case '\\/':
-            return 2;
-        case '=>':
-            return 1;
-        default:
-            return 0;
-    }
-}
-
-//NFA* NFA_parser(const char* str)
-//{
-//    stack* operator_stack = create_stack();
-//    int outputIdx = 0;
-//    size_t infix_len = strlen(str);
-//    char* postfix;
-//
-//    for (size_t i = 0; i < infix_len; i++)
-//    {
-//        char current_char = str[i];
-//
-//
-//    }
-//}
-
-
->>>>>>> 4fa9edb (Revert "1")
 #pragma endregion
