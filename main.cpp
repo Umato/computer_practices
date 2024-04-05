@@ -62,13 +62,19 @@ int main() {
     #pragma endregion
 
 
+<<<<<<< HEAD
+=======
+    NFA* nfa = NFA_get_sum3();
 
-//    NFA* nfa = NFA_get_sum3();
-//    NFA_to_DOT(nfa);
-//
-//    NFA* nfa1 = NFA_project(nfa, 2);
-//
-//    NFA_to_DOT(nfa1);
+    NFA_to_DOT(nfa);
+
+    NFA_to_file(nfa, "../NFA/12312.txt");
+
+    NFA* nfa1 = NFA_from_file("../NFA/12312.txt");
+
+    NFA_to_DOT(nfa1);
+>>>>>>> 4fa9edb (Revert "1")
+
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
 }
