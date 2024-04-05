@@ -1103,6 +1103,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
     return new_nfa;
 }
 
+<<<<<<< HEAD
 NFA* NFA_swap(NFA* nfa, int n1, int n2)
 {
     n1 = nfa->alphabet_dim - n1;
@@ -1146,6 +1147,38 @@ NFA* NFA_swap(NFA* nfa, int n1, int n2)
     return new_nfa;
 
 }
+=======
+//NFA* NFA_swap(NFA* nfa, int n1, int n2)
+//{
+//    n1 = nfa->alphabet_dim - n1;
+//    n2 = nfa->alphabet_dim - n2;
+////    if (n1 >= nfa->alphabet_dim || n2 >= nfa->alphabet_dim) {
+////        cout << "Error: out of dimension.\n";
+////        return nullptr;
+////    }
+//
+//    for (size_t state_id = 0; state_id < nfa->states_count; state_id++)
+//    {
+//        NFA_state* state = nfa->states[state_id];
+//        list** new_transitions = (list**)malloc(sizeof(list*) * (1 << nfa->alphabet_dim));
+//
+//        for (int k = 0; k < (1 << nfa->alphabet_dim); ++k) {
+//            new_transitions[k] = (list*)calloc(1, sizeof(list));
+//        }
+//
+//        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+//        {
+//            int swapped_letter = letter;
+//            bool bit_n1 = (letter >> n1) & 1;
+//            bool bit_n2 = (letter >> n2) & 1;
+//
+//            if (bit_n1 != bit_n2) {
+//                swapped_letter = swapped_letter ^ ((1 << n1) | (1 << n2))
+//            }
+//        }
+//    }
+//}
+>>>>>>> 496b07b (Revert "1")
 
 #pragma endregion
 
