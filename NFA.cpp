@@ -1615,4 +1615,3 @@ char* NFA_RPN (const char* formula) {
 #pragma endregion
 
 
-// 11111111
