@@ -4,7 +4,8 @@
 
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
 // 0*x1, 0*x2 -> x1, x2
-// что делать с нулями в начале и строки состоящей полностью из нулей?
+// что делать с нулями в начале и строки состоящей полностью из нулей? 1) строка 2) количество незначащих нулей
+// СДЕЛАТЬ VOID МЕТОДЫ!!! у project, extend, intersect и так далее
 
 // eval Ex(2|x)
 // def (x=y+z /\ ~2|x) \/ 3|x
@@ -1104,6 +1105,49 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
     return new_nfa;
 }
 
+NFA* NFA_swap(NFA* nfa, int n1, int n2)
+{
+    n1 = nfa->alphabet_dim - n1 - 1;
+    n2 = nfa->alphabet_dim - n2 - 1;
+
+    int  final_states_count = 0;
+    int* final_states = NFA_get_final_states(nfa, &final_states_count);
+    NFA* new_nfa = NFA_init(nfa->states_count, nfa->alphabet_dim, nfa->initial_state->id, final_states_count, final_states);
+    free(final_states);
+
+    for (size_t state_id = 0; state_id < nfa->states_count; state_id++)
+    {
+        for (int letter = 0; letter <= (1 << nfa->alphabet_dim); letter++)
+        {
+            if (letter == (1 << nfa->alphabet_dim)) {
+                node* current = nfa->states[state_id]->transitions[1 << nfa->alphabet_dim]->head;
+                while (current != nullptr) {
+                    NFA_transition_add(new_nfa, state_id, current->val, 1 << nfa->alphabet_dim);
+                    current = current->next;
+                }
+                continue;
+            }
+
+            int swapped_letter = letter;
+            bool bit_n1 = (letter >> n1) & 1;
+            bool bit_n2 = (letter >> n2) & 1;
+
+            if (bit_n1 != bit_n2) {
+                swapped_letter ^= (1 << n1) | (1 << n2);
+            }
+
+            node* current = nfa->states[state_id]->transitions[letter]->head;
+            while (current != nullptr) {
+                NFA_transition_add(new_nfa, state_id, current->val, swapped_letter);
+                current = current->next;
+            }
+        }
+    }
+
+
+    return new_nfa;
+
+}
 #pragma endregion
 
 
@@ -1421,6 +1465,20 @@ NFA* NFA_get_automaton_1()
     return nfa;
 }
 
+NFA* NFA_get_only_zeroes()
+{
+    int states_count = 2;
+    int alphabet_dim = 1;
+    int initial_state = 0;
+    int final_states_count = 1;
+    int final_states[] = { 0 };
+
+    NFA* nfa = NFA_init(states_count, alphabet_dim, initial_state, final_states_count, final_states);
+
+    NFA_transition_add(nfa, 0, 0, 0);
+    return nfa;
+}
+
 #pragma endregion
 
 
@@ -1440,14 +1498,17 @@ void NFA_console_app() {
         if (strcmp(input, ">exit") == 0) {
             cout << "Exiting NFA Console Application.\n";
             break;
-        } else if (strcmp(input, ">help") == 0) {
-            print_help();
-        } else if (strcmp(input, ">nfa_list") == 0) {
-            NFA_list();
-        } else {
-                printf("You entered: %s\n", input);
-            }
         }
+        else if (strcmp(input, ">help") == 0) {
+            print_help();
+        }
+        else if (strcmp(input, ">nfa_list") == 0) {
+            NFA_list();
+        }
+        else {
+            printf("You entered: %s\n", input);
+        }
+    }
 
 }
 
@@ -1482,4 +1543,85 @@ void NFA_list() {
 
     FindClose(hFind);
 }
+
+int nfa_get_priority(char op) {
+    switch (op) {
+    case '(': return -1;
+    case '~': return 4;
+    case 'E':
+    case 'A':
+        return 3;
+    case '&':
+        return 2;
+    case '|':
+        return 1;
+    case '$':
+        return 0;
+    defaul:
+        return -1;
+    }
+}
+
+char* NFA_RPN(const char* formula) {
+    stack* operators = create_stack();
+    char* rpn = (char*)malloc(2 * strlen(formula) + 1);
+    int j = 0;
+
+    for (char *c = (char*)formula; *c != '\0'; c++) {
+        switch (*c)
+        {
+        case '(' :
+            push(operators, (int)c);
+            break;
+        case '&' :
+        case '|' :
+        case '~' :
+        case 'E' :
+        case 'A' :
+            while (!is_stack_empty(operators) && nfa_get_priority(*c) <= nfa_get_priority(stack_top(operators))) {
+                cout << (char)stack_top(operators) << " " << nfa_get_priority(stack_top(operators)) << " " << nfa_get_priority(*c) << endl;
+                rpn[j++] = pop(operators);
+
+            }
+            push(operators, (int)c);
+            break;
+        case ')' :
+            while (!is_stack_empty(operators) && stack_top(operators) != '(') {
+                rpn[j++] = ' ';
+                rpn[j++] = pop(operators);
+            }
+            pop(operators);
+            break;
+        case '$' :
+            rpn[j++] = *c;
+            c++;
+            while (*c != ' ' && *c != '\0' && !strchr("&|~E", *c)) {
+                if (rpn[j - 1] == ')') break;
+                rpn[j++] = *(c++);
+            }
+            c--;
+            break;
+        default:
+            if (*c == ' ' && rpn[j - 1] != ' ')
+                rpn[j++] = *c;
+            else if (*c != ' ') // ? Exception ?? with pointer to its position? 
+                rpn[j++] = *c;
+            break;
+        }
+    }
+
+    while (!is_stack_empty(operators)) {
+        rpn[j++] = ' ';
+        rpn[j++] = pop(operators);
+    }
+
+    if (j > 0 && rpn[j - 1] == ' ') {
+        j--;
+    }
+
+    rpn[j] = '\0';
+    free_stack(operators);
+    return rpn;
+}
+
 #pragma endregion

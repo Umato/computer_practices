@@ -77,15 +77,21 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2);
 /**
  * @brief Delete n-th coordinate in transition letters
  *
- * @param n: Number of a coordinate, starting from left (e.g. "0010" minus 1-st coordinate = "010")
+ * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
  */
 NFA* NFA_project(NFA* nfa, unsigned char n);
 /**
  * @brief Add n-th coordinate in transition letters
  *
- * @param n: Number of a coordinate, starting from left (e.g. "0010" plus 2-nd coordinate = "00010"/"00110")
+ * @param n: Number of a coordinate, starting from left with 0(e.g. "0010" plus 2-nd coordinate = "00010"/"00110")
  */
 NFA* NFA_extend(NFA* nfa, unsigned char n);
+/**
+ * @brief Swap n1-th and n2-th coordinates in transition letters
+ *
+ * @param n: Number of a coordinate, starting from left with 0 (e.g. swap 0,1 in letter "0111" will result in "1011")
+ */
+NFA* NFA_swap(NFA* nfa, int n1, int n2);
 
 
 void NFA_remove_unreachable_states(NFA* nfa);
@@ -129,9 +135,13 @@ NFA* NFA_get_random();
  */
 NFA* NFA_get_automaton_1();
 
+NFA* NFA_get_only_zeroes();
+
 
 void NFA_console_app();
 void print_help();
 void NFA_list();
+int nfa_get_priority(char op);
+char* NFA_RPN(const char* formula);
 
 #endif //COMPUTER_PRACTICES_NFA_H
