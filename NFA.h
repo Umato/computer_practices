@@ -33,6 +33,7 @@ typedef struct NFA {
 
 
 void list_free(list* tr_list);
+void add_to_list(list* l, int val);
 void print_bin(unsigned number, unsigned int bits);
 int get_random_num(int start, int end);
 
@@ -93,7 +94,17 @@ NFA* NFA_extend(NFA* nfa, unsigned char n);
  */
 NFA* NFA_swap(NFA* nfa, int n1, int n2);
 
-
+/**
+ * @brief IMPORTANT! Removes unreachable states from initial automaton
+ * Converts NFA to DFA
+ */
+NFA* NFA_to_DFA(NFA* nfa);
+/**
+ * @brief IMPORTANT! Removes unreachable states from initial automaton
+ * Minimize given DFA
+ */
+NFA* DFA_minimize(NFA* nfa);
+list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
 void NFA_remove_unreachable_states(NFA* nfa);
 bool NFA_is_empty(NFA* nfa);
 int NFA_get_final_states_count(NFA* nfa);

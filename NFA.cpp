@@ -26,6 +26,30 @@ void list_free(list* l) {
     free(l);
 }
 
+void add_to_list(list* l, int val)
+{
+    node* new_node = (node*)malloc(sizeof(node));
+    new_node->val = val;
+    new_node->next = NULL;
+    node* current = l->head;
+
+    if (!current)
+    {
+        l->head = new_node;
+    }
+    else
+    {
+        while (current->next)
+        {
+            current = current->next;
+        }
+
+        current->next = new_node;
+    }
+
+    return;
+}
+
 void print_bin(unsigned number, unsigned int bits) {
     for (int i = (bits - 1); i >= 0; i--) {
         printf("%d", (number >> i) & 1);
@@ -1152,6 +1176,274 @@ NFA* NFA_swap(NFA* nfa, int n1, int n2)
 
 
 #pragma region NFA Support Functions
+NFA* NFA_to_DFA(NFA* nfa)
+{
+    NFA_remove_unreachable_states(nfa);
+
+    // bigints instead of bool**
+    if (!nfa || nfa->states_count == 0) return nfa;
+
+    int** transitions = (int**)malloc(sizeof(int*));
+    bool** new_states = (bool**)malloc(sizeof(bool*));
+    bool* next_states_added;
+    int new_states_count = 1;
+    int final_states_count = 0;
+    int* final_states = (int*)malloc(sizeof(int));
+
+    new_states[0] = (bool*)calloc(nfa->states_count, sizeof(bool));
+    new_states[0][nfa->initial_state->id] = 1;
+
+    node* eps_initial = nfa->initial_state->transitions[(1 << nfa->alphabet_dim)]->head;
+    while (eps_initial)
+    {
+        new_states[0][eps_initial->val] = 1;
+        eps_initial = eps_initial->next;
+    }
+
+    for (int new_state_id = 0; new_state_id < new_states_count; new_state_id++)
+    {
+        bool is_final = 0;
+        transitions = (int**)realloc(transitions, new_states_count * sizeof(int*));
+        transitions[new_state_id] = (int*)malloc(((1 << nfa->alphabet_dim) + 1) * sizeof(int));
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+        {
+            transitions[new_state_id][letter] = -1;
+            next_states_added = (bool*)calloc(nfa->states_count, sizeof(bool));
+
+            for (int s = 0; s < nfa->states_count; s++)
+            {
+                if (nfa->states[s]->is_final) is_final = 1;
+                if (new_states[new_state_id][s])
+                {
+                    node* dest = nfa->states[s]->transitions[letter]->head;
+                    while (dest)
+                    {
+                        if (!next_states_added[dest->val])
+                        {
+                            next_states_added[dest->val] = 1;
+                            node* eps_dest = nfa->states[dest->val]->transitions[(1 << nfa->alphabet_dim)]->head;
+                            while (eps_dest)
+                            {
+                                next_states_added[eps_dest->val] = 1;
+                                eps_dest = eps_dest->next;
+                            }
+                        }
+                        dest = dest->next;
+                    }
+                }
+            }
+
+            // compare next_states_added and all old states list
+            // if its new - add record to transitions and new_states, and counters
+            int state_id = -1;
+            bool is_old_state = 1;
+            for (int id = 0; id < new_states_count; id++)
+            {
+                is_old_state = 1;
+                for (int s = 0; s < nfa->states_count; s++)
+                {
+                    if (new_states[id][s] != next_states_added[s])
+                    {
+                        is_old_state = 0;
+                        break;
+                    }
+                }
+
+                if (is_old_state)
+                {
+                    transitions[new_state_id][letter] = id;
+                    break;
+                }
+            }
+
+            if (!is_old_state)
+            {
+                new_states_count++;
+                new_states = (bool**)realloc(new_states, new_states_count * sizeof(bool*));
+                new_states[new_states_count - 1] = next_states_added;
+                next_states_added = nullptr;
+                transitions[new_state_id][letter] = new_states_count - 1;
+            }
+
+            free(next_states_added);
+        }
+    
+        if (is_final)
+        {
+            final_states_count++;
+            final_states = (int*)realloc(final_states, final_states_count * sizeof(int));
+            final_states[final_states_count - 1] = new_state_id;
+        }
+    }
+
+    NFA* dfa = NFA_init(new_states_count, nfa->alphabet_dim, 0, final_states_count, final_states);
+
+    for (int state_id = 0; state_id < new_states_count; state_id++)
+    {
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+        {
+            if (transitions[state_id][letter] != -1) 
+                NFA_transition_add(dfa, state_id, transitions[state_id][letter], letter);
+        }
+        free(transitions[state_id]);
+        free(new_states[state_id]);
+    }
+
+    free(transitions);
+    free(final_states);
+   
+    return dfa;
+}
+
+
+// NEED TO BE TESTED
+NFA* DFA_minimize(NFA* nfa)
+{
+    if (!nfa || !NFA_is_DFA(nfa)) return nullptr;
+
+    NFA_remove_unreachable_states(nfa);
+
+    int groups_count = 2;
+    int* state_group = (int*)calloc(nfa->states_count, sizeof(int));
+    list** groups = (list**)malloc(2 * sizeof(list*));
+    for (int i = 0; i < 2; i++)
+    {
+        groups[i] = (list*)malloc(sizeof(list));
+        groups[i]->head = NULL;
+    }
+
+    for (int i = 0; i < nfa->states_count; i++)
+    {
+        //if final = 1 -> add to groups[0], if final = 0 => groups[1]
+        add_to_list(groups[nfa->states[i]->is_final == 0], i); 
+        state_group[i] = nfa->states[i]->is_final == 0;
+    }
+
+    bool need_check = 1;
+    while (need_check)
+    {
+        need_check = 0;
+        for (int i = 0; i < groups_count; i++)
+        {
+            int old_groups_count = groups_count;
+
+            list** new_groups = divide_into_groups(nfa, groups[i], &state_group, &groups_count);
+            if (new_groups)
+            {
+                list_free(groups[i]);
+                groups[i] = new_groups[0];
+                if (old_groups_count != groups_count)
+                {
+                    need_check = 1;
+                    groups = (list**)realloc(groups, groups_count * sizeof(list*));
+                    for (int j = 1; j < (groups_count - old_groups_count + 1); j++)
+                    {
+                        groups[old_groups_count + j - 1] = new_groups[j];
+                    }
+                }
+
+                free(new_groups);
+            }
+        }
+    }
+
+    int final_states_count = 0;
+    int* final_states = NULL;
+    for (int i = 0; i < groups_count; i++)
+    {
+        node* current = groups[i]->head;
+        while (current)
+        {
+            if (nfa->states[current->val]->is_final)
+            {
+                final_states_count++;
+                final_states = (int*)realloc(final_states, final_states_count * sizeof(int));
+                final_states[final_states_count - 1] = i;
+                break;
+            }
+            
+            current = current->next;
+        }
+    }
+
+
+    NFA* new_nfa = NFA_init(groups_count, nfa->alphabet_dim, state_group[nfa->initial_state->id], final_states_count, final_states);
+    for (int i = 0; i < groups_count; i++)
+    {
+        node* current = groups[i]->head;
+        while (current)
+        {
+            for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+            {
+                node* destination = nfa->states[current->val]->transitions[letter]->head;
+                if (destination) NFA_transition_add(new_nfa, i, state_group[destination->val], letter);
+            }
+            current = current->next;
+        }
+        list_free(groups[i]);
+    }
+    free(groups);
+
+    return new_nfa;
+}
+
+// NEED TO BE TESTED
+list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count)
+{
+    if (!nfa || !group || !group->head || !state_group) return nullptr;
+
+    list** groups;
+    list* current_group = (list*)malloc(sizeof(list));
+    list* new_group = (list*)malloc(sizeof(list));
+    node* current = group->head->next;
+    current_group->head = NULL;
+    new_group->head = NULL;
+
+    add_to_list(current_group, group->head->val);
+
+    while (current)
+    {
+        bool group_was_changed = 0;
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
+        {
+            // as we have dfa, then we need to compare only heads of the transition lists 
+            int dest_state1 = nfa->states[group->head->val]->transitions[letter]->head->val;
+            int dest_state2 = nfa->states[current->val]->transitions[letter]->head->val;
+            if ((*state_group)[dest_state1] != (*state_group)[dest_state2])
+            {
+                add_to_list(new_group, current->val);
+                (*state_group)[current->val] = *groups_count;
+                group_was_changed = 1;
+                break;
+            }
+        }
+
+        if (!group_was_changed) add_to_list(current_group, current->val);
+
+        current = current->next;
+    }
+
+    groups = (list**)malloc(1 * sizeof(list*));
+    groups[0] = current_group;
+
+    if (new_group->head)
+    {
+        int old_groups_count = *groups_count;
+        (*groups_count)++;
+        list** new_groups = divide_into_groups(nfa, new_group, state_group, groups_count);
+        groups = (list**)realloc(groups, sizeof(list*) * ((*groups_count) - old_groups_count + 1));
+        for (int i = 1; i < (*groups_count) - old_groups_count + 1; i++)
+        {
+            groups[i] = (list*)malloc(sizeof(list));
+            groups[i] = new_groups[i - 1];
+        }
+        free(new_groups);
+    }
+        
+    current_group = nullptr;
+    list_free(new_group);
+    return groups;
+}
 
 // NEED TO BE TESTED
 void NFA_remove_unreachable_states(NFA* nfa)
