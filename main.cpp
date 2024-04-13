@@ -173,7 +173,7 @@ int main() {
 
 #pragma endregion
     
-#pragma region DFA_minimize
+#pragma region DFA_minimize Check
     //int fs[] = { 6, 7 };
     //int* fsl = &(fs[0]);
     //NFA* nfa_test = NFA_init(8, 1, 0, 2, fsl);
@@ -199,19 +199,24 @@ int main() {
     //NFA_to_DOT(new_nfa);
 #pragma endregion
 
-    int fs[] = { 1 };
+#pragma region NFA_to_DFA and DFA_minimize Check
+    /*int fs[] = { 2,3 };
     int* fsl = &(fs[0]);
-    NFA* nfa_test = NFA_init(2, 1, 0, 1, fsl);
-    NFA_transition_add(nfa_test, 0,1,0);
-    NFA_transition_add(nfa_test, 0,0,0);
-    NFA_transition_add(nfa_test, 0,0,1);
-    NFA_transition_add(nfa_test, 1,0,1);
+    NFA* nfa_test = NFA_init(4, 1, 0, 2, fsl);
+    NFA_transition_add(nfa_test, 0,1,1);
+    NFA_transition_add(nfa_test, 0,2,2);
+    NFA_transition_add(nfa_test, 0,3,0);
+    NFA_transition_add(nfa_test, 1,0,2);
     NFA_transition_add(nfa_test, 1,1,1);
+    NFA_transition_add(nfa_test, 1,2,0);
+    NFA_transition_add(nfa_test, 1,2,1);
 
-    NFA* new_nfa = NFA_to_DFA(nfa_test);
     NFA_to_DOT(nfa_test);
+    NFA* new_nfa = NFA_to_DFA(nfa_test);
     NFA_to_DOT(new_nfa);
-
+    NFA* newnfa = DFA_minimize(new_nfa);
+    NFA_to_DOT(newnfa);*/
+#pragma endregion
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;

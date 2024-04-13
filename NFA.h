@@ -31,7 +31,6 @@ typedef struct NFA {
 } NFA;
 
 
-
 void list_free(list* tr_list);
 void add_to_list(list* l, int val);
 void print_bin(unsigned number, unsigned int bits);
@@ -93,7 +92,6 @@ NFA* NFA_extend(NFA* nfa, unsigned char n);
  * @param n: Number of a coordinate, starting from left with 0 (e.g. swap 0,1 in letter "0111" will result in "1011")
  */
 NFA* NFA_swap(NFA* nfa, int n1, int n2);
-
 /**
  * @brief IMPORTANT! Removes unreachable states from initial automaton
  * Converts NFA to DFA
@@ -104,6 +102,8 @@ NFA* NFA_to_DFA(NFA* nfa);
  * Minimize given DFA
  */
 NFA* DFA_minimize(NFA* nfa);
+
+
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
 void NFA_remove_unreachable_states(NFA* nfa);
 bool NFA_is_empty(NFA* nfa);
@@ -145,7 +145,9 @@ NFA* NFA_get_random();
  * @brief Creates custom NFA
  */
 NFA* NFA_get_automaton_1();
-
+/**
+ * @brief Creates NFA that accepts only zero-strings 
+ */
 NFA* NFA_get_only_zeroes();
 
 
