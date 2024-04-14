@@ -38,6 +38,7 @@ int get_random_num(int start, int end);
 
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
+void NFA_states_free(NFA* nfa);
 NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_states_count, int* final_states);
 NFA* NFA_clone(NFA* nfa);
 void NFA_free(NFA* nfa);
@@ -75,11 +76,17 @@ NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2);
  */
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2);
 /**
- * @brief Delete n-th coordinate in transition letters
+ * @brief Return a pointer to new NFA with deleted n-th coordinate in transition letters
  *
  * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
  */
 NFA* NFA_project(NFA* nfa, unsigned char n);
+/**
+ * @brief Delete n-th coordinate in transition letters
+ *
+ * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
+ */
+void NFA_project_rec(NFA* nfa, unsigned char n);
 /**
  * @brief Add n-th coordinate in transition letters
  *

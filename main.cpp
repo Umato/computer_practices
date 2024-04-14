@@ -139,7 +139,6 @@ int main() {
 #pragma endregion
 
 #pragma region Div3
-// DIV3
     //NFA* nfa_equal_xz = NFA_get_equal(); // x = z
     //NFA* nfa_equal_xz_1 = NFA_extend(nfa_equal_xz, nfa_equal_xz->alphabet_dim); //extend by y
     //NFA* nfa_equal_xz_2 = NFA_extend(nfa_equal_xz_1, nfa_equal_xz_1->alphabet_dim); //extend by M
@@ -218,7 +217,23 @@ int main() {
     NFA_to_DOT(newnfa);*/
 #pragma endregion
 
-    big_int_free(4, zero, one, two, e, mod, ex);
+#pragma region Tests
+    big_int_free(6, zero, one, two, e, mod, ex);
+    NFA* nfa = NFA_get_random();
+    NFA_to_DOT(nfa);
+    NFA* dfa = NFA_to_DFA(nfa);
+    NFA_to_DOT(dfa);
+    NFA* nfa2 = DFA_minimize(dfa);
+    NFA_to_DFA(nfa2);
+
+
+
+    
+    
+
+#pragma endregion
+
+    //big_int_free(6, zero, one, two, e, mod, ex);
     return 0;
 }
 

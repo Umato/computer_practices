@@ -5,7 +5,6 @@
 // maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
 // 0*x1, 0*x2 -> x1, x2
 // что делать с нулями в начале и строки состоящей полностью из нулей? 1) строка 2) количество незначащих нулей
-// СДЕЛАТЬ VOID МЕТОДЫ!!! у project, extend, intersect и так далее
 
 // eval Ex(2|x)
 // def (x=y+z /\ ~2|x) \/ 3|x
@@ -13,11 +12,21 @@
 
 // add epsilon-reached to accept methods and nfa_to_dfa where we search for epsilon-initial states
 // TEST ALL FUNCTIONS!!!!!!!
+// СДЕЛАТЬ VOID МЕТОДЫ!!! у project, extend, intersect и так далее
+// сделать прием строки char* аксептом
+// ОШИБКА В NFA_to_DOT если нет NFA0
+
 
 
 #include "NFA.h"
 
 #pragma region Others
+list* list_init()
+{
+    list* new_list = (list*)malloc(sizeof(list));
+    new_list->head = NULL;
+    return new_list;
+}
 
 void list_free(list* l) {
     while (l && l->head) {
@@ -90,7 +99,7 @@ NFA_state* NFA_state_init(int id, bool is_final, int letters_count)
     }
 
     for (size_t i = 0; i < letters_count; i++) {
-        state->transitions[i] = (list*)calloc(1, sizeof(list));
+        state->transitions[i] = list_init();
         if (!state->transitions[i]) {
             while (i--) free(state->transitions[i]);
             free(state->transitions);
@@ -152,7 +161,7 @@ void NFA_transition_add(NFA* nfa, int start_state, int end_state, int letter)
         return;
 
     node* new_state = (node*)malloc(sizeof(node));
-    new_state->next = nullptr;
+    new_state->next = NULL;
     new_state->val = end_state;
 
     if (!nfa->states[start_state]->transitions[letter]->head)
@@ -168,6 +177,7 @@ void NFA_transition_add(NFA* nfa, int start_state, int end_state, int letter)
         }
 
         if (cur_state->val != end_state) cur_state->next = new_state;
+        else free(new_state);
     }
 }
 
@@ -372,10 +382,9 @@ void NFA_transitions_list_add(NFA* nfa, int start_state, list* end_states, int l
     }
 }
 
-void NFA_free(NFA* nfa)
+void NFA_states_free(NFA* nfa)
 {
-    if (nfa == nullptr) return;
-
+    nfa->initial_state = nullptr;
     for (int i = 0; i < nfa->states_count; i++) {
         NFA_state* state = nfa->states[i];
         if (state) {
@@ -386,8 +395,13 @@ void NFA_free(NFA* nfa)
             free(state);
         }
     }
-
     free(nfa->states);
+}
+
+void NFA_free(NFA* nfa)
+{
+    if (nfa == nullptr) return;
+    NFA_states_free(nfa);
     free(nfa);
 }
 
@@ -1038,6 +1052,20 @@ NFA* NFA_project(NFA* nfa, unsigned char n)
     return new_nfa;
 }
 
+// NEED TO BE TESTED
+void NFA_project_rec(NFA* nfa, unsigned char n)
+{
+    NFA* nfa_project = NFA_project(nfa, n);
+    nfa->alphabet_dim = nfa_project->alphabet_dim;
+    int initial_state_id = nfa->initial_state->id;
+    NFA_states_free(nfa);
+    nfa->states = nfa_project->states;
+    nfa->initial_state = nfa->states[initial_state_id];
+    nfa_project->states = nullptr;
+    nfa_project->initial_state = nullptr;
+    free(nfa_project);
+}
+
 NFA* NFA_extend(NFA* nfa, unsigned char n)
 {
     if (!nfa || n > nfa->alphabet_dim) return nullptr;
@@ -1327,8 +1355,7 @@ NFA* DFA_minimize(NFA* nfa)
     // initialize group0 - final states and group1 - non-final states
     for (int i = 0; i < 2; i++)
     {
-        groups[i] = (list*)malloc(sizeof(list));
-        groups[i]->head = NULL;
+        groups[i] = list_init();
     }
 
     for (int i = 0; i < nfa->states_count; i++)
@@ -1417,11 +1444,9 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
 
     // divide group into current_group - all states that are equiv to state0, and new_group - others
     list** groups;
-    list* current_group = (list*)malloc(sizeof(list));
-    list* new_group = (list*)malloc(sizeof(list));
+    list* current_group = list_init();;
+    list* new_group = list_init();
     node* current = group->head->next;
-    current_group->head = NULL;
-    new_group->head = NULL;
 
     add_to_list(current_group, group->head->val);
 
@@ -1461,7 +1486,7 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
         groups = (list**)realloc(groups, sizeof(list*) * ((*groups_count) - old_groups_count + 1));
         for (int i = 1; i < (*groups_count) - old_groups_count + 1; i++)
         {
-            groups[i] = (list*)malloc(sizeof(list));
+            //groups[i] = (list*)malloc(sizeof(list)); //MAYBE SHOULD BE REMOVED
             groups[i] = new_groups[i - 1];
         }
         free(new_groups);
@@ -1636,7 +1661,6 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 
 #pragma region NFA Examples
-
 NFA* NFA_get_div_2()
 {
     int* final_states = (int*)malloc(sizeof(int));
@@ -1731,8 +1755,9 @@ NFA* NFA_get_equal()
 NFA* NFA_get_random()
 {
     int states_count = get_random_num(2, 6);
-    int alphabet_dim = 1;
-    int initial_state = get_random_num(0, states_count);
+    int alphabet_dim = get_random_num(1,3);
+    //int alphabet_dim = 3;
+    int initial_state = 0;
     int final_states_count = get_random_num(1, states_count);
     int* final_states = (int*)calloc(final_states_count, sizeof(int));
     for (int i = 0; i < final_states_count; i++)
@@ -1742,18 +1767,26 @@ NFA* NFA_get_random()
 
     NFA* nfa = NFA_init(states_count, alphabet_dim, initial_state, final_states_count, final_states);
 
+    NFA_transition_add(nfa, initial_state, get_random_num(1, states_count - 1), get_random_num(0, (1 << alphabet_dim)));
+
     for (int i = 0; i < states_count; i++)
     {
-        for (int letter = 0; letter < (1 << alphabet_dim); letter++)
+        for (int j = 0; j < states_count; j++)
         {
-            int transitions_count = get_random_num(0, states_count > 3 ? 3 : states_count);
-            for (int tr = 0; tr < transitions_count; tr++)
+            // with probability of 30% there will be a transition btw states[i] and states[j] by letter
+            int transition_chance = get_random_num(1, 10);
+            if (transition_chance <= 3)
             {
-                NFA_transition_add(nfa, i, get_random_num(0, states_count), letter);
+                int transitions_count = get_random_num(1, 3);
+                for (int tr = 0; tr < transitions_count; tr++)
+                {
+                    NFA_transition_add(nfa, i, j, get_random_num(0, (1 << alphabet_dim)));
+                }
             }
         }
     }
 
+    free(final_states);
     return nfa;
 }
 
@@ -1798,6 +1831,13 @@ NFA* NFA_get_only_zeroes()
     return nfa;
 }
 
+NFA* NFA_get_div_num(int num)
+{
+    if (!num) return nullptr;
+    num = abs(num);
+
+
+}
 #pragma endregion
 
 
