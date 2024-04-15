@@ -224,13 +224,15 @@ int main() {
     {
         numslist[i] = const_cast<char*>(nums1[i]);
     }
+
+
     NFA* nfa_sum = NFA_get_sum3();
     NFA_accept(nfa_sum, numslist, 3);
     NFA_free(nfa_sum);
-    free(numslist);
+    free(numslist);*/
 
 
-    NFA* nfa = NFA_get_div_3();
+    /*NFA* nfa = NFA_get_div_3();
     int nums[] = {10,0,1,3,18,-1,-2,-27};
     int* numsp = &(nums[0]);
     big_int_list* list = big_int_list_init(8, numsp);
@@ -285,6 +287,23 @@ int main() {
     //NFA_free(nfa_zeroes);
 
 #pragma endregion
+    
+    
+#pragma region Div Tests
+    //Div power of 2
+    /*for (int i = 0; i <= 20; i += 5)
+    {
+        NFA* nfa = NFA_get_div_power_of_2(i);
+        NFA_to_DOT(nfa);
+        NFA_free(nfa);
+    }*/
+
+    NFA* nfa = NFA_get_div_num(17);
+
+#pragma endregion
+
+    
+
 
 
     big_int_free(6, zero, one, two, e, mod, ex);

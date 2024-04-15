@@ -12,7 +12,7 @@
 #include "Algorithm.h"
 #include "big_integer.h"
 #include "graph.h"
-#include <bitset>
+#include <bit>
 
 #include "direct.h"
 #include "windows.h"
@@ -36,6 +36,7 @@ void add_to_list(list* l, int val);
 void print_bin(unsigned number, unsigned int bits);
 int get_random_num(int start, int end);
 char* format_string_to_bin(const char* string);
+//int log2(int num);
 
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
@@ -165,21 +166,21 @@ void NFA_remove_epsilon_transitions(NFA* nfa);
 /**
  * @brief Creates new NFA that checks: 2|n
  */
-NFA* NFA_get_div_2();
+NFA* NFA_get_div_2_custom();
+/**
+ * @brief Creates new NFA that checks: 3|n
+ */
+NFA* NFA_get_div_3_custom();
 /**
  * @brief Creates new NFA that checks: 2^power|n
  *
  * @param power: power of two
  */
-NFA* NFA_get_div_power_of_2(int power);
-/**
- * @brief Creates new NFA that checks: 3|n
- */
-NFA* NFA_get_div_3();
+NFA* NFA_get_div_power_of_2_custom(int power);
 /**
  * @brief Creates new NFA that checks: x+y=z
  */
-NFA* NFA_get_sum3();
+NFA* NFA_get_sum();
 /**
  * @brief Creates new NFA that checks: x=y
  */
@@ -196,6 +197,11 @@ NFA* NFA_get_automaton_1();
  * @brief Creates NFA that accepts only zero-strings 
  */
 NFA* NFA_get_only_zeroes();
+NFA* NFA_get_trivial();
+NFA* NFA_get_div_2();
+NFA* NFA_get_div_3();
+NFA* NFA_get_div_power_of_2(int power);
+NFA* NFA_get_div_num(int num);
 
 
 void NFA_console_app();

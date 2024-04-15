@@ -2,19 +2,8 @@
 // Coded by Zelendzu & Umato on 29.02.2024.
 //
 
-// maybe it'd be better to replace all "int letter" with "unsigned int letter"?...
-// 0*x1, 0*x2 -> x1, x2
-// что делать с нулями в начале и строки состоящей полностью из нулей? 1) строка 2) количество незначащих нулей
-
-// eval Ex(2|x)
-// def (x=y+z /\ ~2|x) \/ 3|x
-// def pair(x,y) "E x (x=y+z)"
-
 // add epsilon-reached to accept methods and nfa_to_dfa where we search for epsilon-initial states
-// TEST ALL FUNCTIONS!!!!!!!
-// ОШИБКА В NFA_to_DOT если нет NFA0
 // NFA_remove_unreachable_states в minimize и других
-
 
 
 #include "NFA.h"
@@ -95,6 +84,11 @@ char* format_string_to_bin(const char* string)
     new_string = (char*)realloc(new_string, (new_length + 1));
     return new_string;
 }
+
+//int log2(int num) 
+//{
+//    return __builtin_ctz(num);
+//}
 
 #pragma endregion
 
@@ -1497,7 +1491,7 @@ NFA* DFA_minimize(NFA* nfa)
                 groups[i] = new_groups[0];
                 if (old_groups_count != groups_count)
                 {
-                    need_check = 1;
+                    need_check = 1; // groups changed, so we need to check all of them again
                     groups = (list**)realloc(groups, groups_count * sizeof(list*));
                     for (int j = 1; j < (groups_count - old_groups_count + 1); j++)
                     {
@@ -1529,7 +1523,7 @@ NFA* DFA_minimize(NFA* nfa)
         }
     }
 
-
+    // now each group is a new state in new nfa
     NFA* new_nfa = NFA_init(groups_count, nfa->alphabet_dim, state_group[nfa->initial_state->id], final_states_count, final_states);
     for (int i = 0; i < groups_count; i++)
     {
@@ -1550,6 +1544,29 @@ NFA* DFA_minimize(NFA* nfa)
     free(state_group);
 
     NFA_remove_unreachable_states(new_nfa);
+
+    // If there is a state which have no transition from it and it's non-final, then we can remove it
+    for (int i = 0; i < new_nfa->states_count; i++)
+    {
+        if (!new_nfa->states[i]->is_final)
+        {
+            bool have_transitions = 0;
+            for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
+            {
+                if (new_nfa->states[i]->transitions[letter]->head)
+                {
+                    have_transitions = 1;
+                    break;
+                }
+            }
+            
+            if (!have_transitions)
+            {
+                NFA_state_remove(new_nfa, i);
+                i--;
+            }
+        }
+    }
 
     return new_nfa;
 }
@@ -1589,10 +1606,10 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
 
             // if both != null AND (only one of them = null OR groups are not equal)
             if (!(dest_state1 == NULL && dest_state2 == NULL) && 
-                ((dest_state1 == NULL ^ dest_state2 == NULL) || ((*state_group)[dest_state1->val] != (*state_group)[dest_state2->val])))
+                (((dest_state1 == NULL) != (dest_state2 == NULL)) || ((*state_group)[dest_state1->val] != (*state_group)[dest_state2->val])))
             {
                 add_to_list(new_group, current->val);
-                (*state_group)[current->val] = *groups_count;
+                //(*state_group)[current->val] = *groups_count;
                 group_was_changed = 1;
                 break;
             }
@@ -1600,6 +1617,13 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
 
         if (!group_was_changed) add_to_list(current_group, current->val);
 
+        current = current->next;
+    }
+
+    current = new_group->head;
+    while (current)
+    {
+        (*state_group)[current->val] = *groups_count;
         current = current->next;
     }
 
@@ -1789,7 +1813,7 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 
 #pragma region NFA Examples
-NFA* NFA_get_div_2()
+NFA* NFA_get_div_2_custom()
 {
     int* final_states = (int*)malloc(sizeof(int));
     final_states[0] = 1;
@@ -1805,7 +1829,7 @@ NFA* NFA_get_div_2()
     return nfa;
 }
 
-NFA* NFA_get_div_3()
+NFA* NFA_get_div_3_custom()
 {
     int* final_states = (int*)malloc(sizeof(int));
     final_states[0] = 0;
@@ -1821,7 +1845,7 @@ NFA* NFA_get_div_3()
     return nfa;
 }
 
-NFA* NFA_get_div_power_of_2(int power)
+NFA* NFA_get_div_power_of_2_custom(int power)
 {
     if (power < 1) return nullptr;
 
@@ -1848,7 +1872,77 @@ NFA* NFA_get_div_power_of_2(int power)
     return nfa;
 }
 
-NFA* NFA_get_sum3()
+NFA* NFA_get_div_2()
+{
+    NFA* nfa = NFA_get_equal();
+    NFA* sum = NFA_get_sum();
+    NFA_extend_rec(&nfa, nfa->alphabet_dim);
+    NFA_intersect_rec(&nfa, sum);
+    NFA_project_rec(&nfa, 0);
+    NFA_project_rec(&nfa, 0);
+    NFA_to_DFA_rec(&nfa);
+    DFA_minimize_rec(&nfa);
+    NFA_free(sum);
+    return nfa;
+}
+
+NFA* NFA_get_div_3()
+{
+    NFA* nfa = NFA_get_equal(); // x = y
+    NFA_extend_rec(&nfa, nfa->alphabet_dim); //extend by z
+    NFA_extend_rec(&nfa, nfa->alphabet_dim); //extend by M
+    NFA* sum = NFA_get_sum(); // x + y = z
+    NFA_extend_rec(&sum, sum->alphabet_dim); // extend by M
+    NFA_intersect_rec(&nfa, sum); //x = y && x + y = z
+
+    NFA_project_rec(&sum, sum->alphabet_dim - 1); // project by M
+    NFA_extend_rec(&sum, 1); // extend by y
+    NFA_intersect_rec(&nfa, sum); // x = y && x + y = z && x + z = M
+
+    NFA_project_rec(&nfa, 0); // exist x
+    NFA_project_rec(&nfa, 0); // exist y
+    NFA_project_rec(&nfa, 0); // exist z
+
+    NFA_to_DFA_rec(&nfa);
+    DFA_minimize_rec(&nfa);
+    NFA_free(sum);
+    return nfa;
+}
+
+NFA* NFA_get_div_power_of_2(int power)
+{
+    NFA* nfa_result = NFA_get_trivial();
+    NFA* nfa_equal = NFA_get_equal();
+    NFA* nfa_sum = NFA_get_sum();
+    
+    for (int i = 0; i < power; i++)
+    {
+        NFA* nfa2 = NFA_clone(nfa_result);
+
+        NFA_extend_rec(&nfa_result, 1);
+        NFA_extend_rec(&nfa2, 0);
+        NFA_intersect_rec(&nfa_result, nfa2);
+        NFA_intersect_rec(&nfa_result, nfa_equal);
+        NFA_extend_rec(&nfa_result, 2);
+        NFA_intersect_rec(&nfa_result, nfa_sum);
+        NFA_project_rec(&nfa_result, 0);
+        NFA_project_rec(&nfa_result, 0);
+
+        NFA_to_DFA_rec(&nfa_result);
+        DFA_minimize_rec(&nfa_result);
+
+        NFA_free(nfa2);
+    }
+
+    
+
+    NFA_free(nfa_sum);
+    NFA_free(nfa_equal);
+
+    return nfa_result;
+}
+
+NFA* NFA_get_sum()
 {
     int* final_states = (int*)malloc(sizeof(int));
     final_states[0] = 0;
@@ -1871,6 +1965,7 @@ NFA* NFA_get_equal()
     int* final_states = (int*)malloc(sizeof(int));
     final_states[0] = 0;
     NFA* nfa = NFA_init(2, 2, 0, 1, final_states);
+    free(final_states);
 
     NFA_transition_add(nfa, 0, 0, 0);
     NFA_transition_add(nfa, 0, 0, 3);
@@ -1960,12 +2055,46 @@ NFA* NFA_get_only_zeroes()
     return nfa;
 }
 
+NFA* NFA_get_trivial()
+{
+    int states_count = 1;
+    int alphabet_dim = 1;
+    int initial_state = 0;
+    int final_states_count = 1;
+    int final_states[] = { 0 };
+
+    NFA* nfa = NFA_init(states_count, alphabet_dim, initial_state, final_states_count, final_states);
+
+    NFA_transition_add(nfa, 0, 0, 0);
+    NFA_transition_add(nfa, 0, 0, 1);
+
+    return nfa;
+}
+
 NFA* NFA_get_div_num(int num)
 {
-    // x = 2y автомат проверяющий что <-
-    if (!num) return nullptr;
+    if (!num) return nullptr; //num = 0
     num = abs(num);
 
+    NFA* nfa_result = NFA_get_trivial();
+    NFA* nfa_equal = NFA_get_equal();
+    NFA* nfa_sum = NFA_get_sum();
+
+    while (num)
+    {
+        int powered_2 = std::bit_floor((unsigned)num);
+        num -= powered_2;
+
+        NFA* nfa2 = NFA_get_div_power_of_2((int)log2(powered_2));
+        NFA_extend_rec(&nfa_result, 1);
+        NFA_extend_rec(&nfa2, 0);
+        NFA_intersect_rec(&nfa_result, nfa2);
+    }
+    
+    NFA_free(nfa_equal);
+    NFA_free(nfa_sum);
+
+    return nullptr;
 
 }
 #pragma endregion
