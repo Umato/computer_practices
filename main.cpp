@@ -146,12 +146,12 @@ int main() {
     //NFA* nfa_sum = NFA_get_sum3(); // x + z = y
     //NFA* nfa_sum_1 = NFA_extend(nfa_sum, nfa_sum->alphabet_dim); //extend by M
 
-    //NFA* nfa_inter = intersect_NFA(nfa_equal_xz_2, nfa_sum_1); //x = z && x + z = y
+    //NFA* nfa_inter = NFA_intersect(nfa_equal_xz_2, nfa_sum_1); //x = z && x + z = y
 
     //NFA* nfa_res_sum = NFA_get_sum3(); //x + y = M
     //NFA* nfa_res_sum_1 = NFA_extend(nfa_res_sum, 1); //extend by z
 
-    //NFA* result1 = intersect_NFA(nfa_inter, nfa_res_sum_1); // x = z && x + z = y && x + y = M
+    //NFA* result1 = NFA_intersect(nfa_inter, nfa_res_sum_1); // x = z && x + z = y && x + y = M
     //NFA* existx = NFA_project(result1, 0);
     //NFA* existy = NFA_project(existx, 0);
     //NFA* existz = NFA_project(existy, 0);
@@ -217,23 +217,77 @@ int main() {
     NFA_to_DOT(newnfa);*/
 #pragma endregion
 
-#pragma region Tests
-    big_int_free(6, zero, one, two, e, mod, ex);
-    NFA* nfa = NFA_get_random();
-    NFA_to_DOT(nfa);
-    NFA* dfa = NFA_to_DFA(nfa);
-    NFA_to_DOT(dfa);
-    NFA* nfa2 = DFA_minimize(dfa);
-    NFA_to_DFA(nfa2);
+#pragma region Accept Tests
+    /*const char* nums1[] = { "10", "11", "101"};
+    char** numslist = (char**)malloc(sizeof(char*) * 3);
+    for (int i = 0; i < 3; i++)
+    {
+        numslist[i] = const_cast<char*>(nums1[i]);
+    }
+    NFA* nfa_sum = NFA_get_sum3();
+    NFA_accept(nfa_sum, numslist, 3);
+    NFA_free(nfa_sum);
+    free(numslist);
 
 
+    NFA* nfa = NFA_get_div_3();
+    int nums[] = {10,0,1,3,18,-1,-2,-27};
+    int* numsp = &(nums[0]);
+    big_int_list* list = big_int_list_init(8, numsp);
+    big_int_list_add_num(list, nullptr);
+    for (int i = 0; i < list->count; i++)
+    {
+        printf("test %d: %d\n", i, NFA_accept(nfa, list->big_ints[i]));
+    }
+    big_int_list_free(list);
+    NFA_free(nfa);*/
 
-    
-    
 
 #pragma endregion
 
-    //big_int_free(6, zero, one, two, e, mod, ex);
+#pragma region Operations Tests
+    
+    //NFA* nfa_zeroes = NFA_get_only_zeroes();
+    //NFA* nfa1 = NFA_get_automaton_1();
+    //NFA* nfa2 = NFA_get_random();
+    ////NFA_to_DOT(nfa2);
+    //while (nfa2->alphabet_dim != nfa1->alphabet_dim)
+    //{
+    //    NFA_extend_rec(&nfa1, nfa1->alphabet_dim);
+    //}
+    ////NFA_to_DOT(nfa1);
+
+    //NFA_to_DFA_rec(&nfa1);
+    ////NFA_to_DOT(nfa1);
+
+    //DFA_minimize_rec(&nfa1);
+    ////NFA_to_DOT(nfa1);
+
+    //NFA_intersect_rec(&nfa1, nfa2);
+    ////NFA_to_DOT(nfa1);
+
+    //NFA_rightquo_unioned(&nfa1, nfa_zeroes);
+    //NFA_to_DOT(nfa1);
+
+    //NFA_to_DFA_rec(&nfa1);
+    //DFA_minimize_rec(&nfa1);
+    //NFA_to_DOT(nfa1);
+
+    //NFA_leftquo_unioned(&nfa2, nfa_zeroes);
+    //NFA_to_DOT(nfa2);
+
+    //NFA_swap_rec(&nfa2, 0, 1);
+    //NFA_to_DOT(nfa2);
+
+
+    //NFA_free(nfa1);
+    //NFA_free(nfa2);
+    //NFA_free(nfa_zeroes);
+
+#pragma endregion
+
+
+    big_int_free(6, zero, one, two, e, mod, ex);
     return 0;
 }
 

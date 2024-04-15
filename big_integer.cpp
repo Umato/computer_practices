@@ -43,6 +43,7 @@ void big_int_list_free(big_int_list* bigint_list)
     {
         big_int_free(bigint_list->big_ints[i]);
     }
+    free(bigint_list->big_ints);
     free(bigint_list);
 }
 
@@ -384,8 +385,13 @@ void big_int_remove_zeroes(big_int *num) {
     }
 }
 
-const char* big_int_to_string(const big_int *num) {
-    if (!num || num->length == 0) return "";
+char* big_int_to_string(const big_int *num) {
+    if (!num || num->length == 0)
+    {
+        char* empty_string = (char*)malloc(sizeof(char));
+        empty_string[0] = '\0';
+        return empty_string;
+    }
 
     const size_t total_bits = num->length << 3;
 

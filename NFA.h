@@ -30,11 +30,12 @@ typedef struct NFA {
     NFA_state* initial_state;
 } NFA;
 
-
+list* list_init();
 void list_free(list* tr_list);
 void add_to_list(list* l, int val);
 void print_bin(unsigned number, unsigned int bits);
 int get_random_num(int start, int end);
+char* format_string_to_bin(const char* string);
 
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
@@ -53,6 +54,8 @@ bool NFA_state_remove(NFA* nfa, int id);
  */
 bool NFA_state_list_remove(NFA* nfa, int* removed_states, int list_size);
 void NFA_transitions_list_add(NFA* nfa, int start_state, list* end_states, int letter);
+bool NFA_accept(NFA* nfa, char* num);
+bool NFA_accept(NFA* nfa, char** nums, int nums_count);
 bool NFA_accept(NFA* nfa, big_int* num);
 bool NFA_accept(NFA* nfa, big_int_list* bigint_list);
 
@@ -64,17 +67,32 @@ void NFA_to_file(NFA* automaton, const char* filename);
 NFA* NFA_from_file(const char* filename);
 
 
-NFA* intersect_NFA(NFA* nfa1, NFA* nfa2);
-NFA* union_NFA(NFA* nfa1, NFA* nfa2);
+NFA* NFA_intersect(NFA* nfa1, NFA* nfa2);
+void NFA_intersect_rec(NFA** nfa1, NFA* nfa2);
+NFA* NFA_union(NFA* nfa1, NFA* nfa2);
+void NFA_union_rec(NFA** nfa1, NFA* nfa2);
 void DFA_complement(NFA* nfa);
 /**
- * @brief Creates NFA which accepts words from L2\\L1 {suffixes: w2 + suffix = w1, w1 in L1, w2 in L2}
+ * @brief Creates NFA which accepts words from L2\\L1 {suffixes: w2 + suffix = w1, w1 in L1, w2 in L2}.
+ * Note that nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently).
  */
 NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2);
 /**
- * @brief Creates NFA which accepts words from L1/L2 {prefixes: prefix + w2 = w1, w1 in L1, w2 in L2}
+ * @brief Assigns union of nfa1 and new NFA to nfa1. New NFA accepts words from L2\\L1 {suffixes: w2 + suffix = w1, w1 in L1, w2 in L2}.
+ * Note that nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently).
+ */
+void NFA_leftquo_unioned(NFA** nfa1, NFA* nfa2);
+/**
+ * @brief Creates NFA which accepts words from L1/L2 {prefixes: prefix + w2 = w1, w1 in L1, w2 in L2}.
+ * Note that nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently).
  */
 NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2);
+/**
+ * @brief Assigns union of nfa1 and new NFA to nfa1. 
+ * New NFA accepts words from L1/L2 {prefixes: prefix + w2 = w1, w1 in L1, w2 in L2}.
+ * Note that nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently).
+ */
+void NFA_rightquo_unioned(NFA** nfa1, NFA* nfa2);
 /**
  * @brief Return a pointer to new NFA with deleted n-th coordinate in transition letters
  *
@@ -86,29 +104,51 @@ NFA* NFA_project(NFA* nfa, unsigned char n);
  *
  * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
  */
-void NFA_project_rec(NFA* nfa, unsigned char n);
+void NFA_project_rec(NFA** nfa, unsigned char n);
 /**
- * @brief Add n-th coordinate in transition letters
+ * @brief Return a pointer to new NFA with added n-th coordinate in transition letters
  *
- * @param n: Number of a coordinate, starting from left with 0(e.g. "0010" plus 2-nd coordinate = "00010"/"00110")
+ * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" plus 2-nd coordinate = "00010"/"00110")
  */
 NFA* NFA_extend(NFA* nfa, unsigned char n);
 /**
- * @brief Swap n1-th and n2-th coordinates in transition letters
+ * @brief Add n-th coordinate in transition letters
+ *
+ * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" plus 2-nd coordinate = "00010"/"00110")
+ */
+void NFA_extend_rec(NFA** nfa, unsigned char n);
+/**
+ * @brief Return a pointer to new NFA with swapped n1-th and n2-th coordinates in transition letters
  *
  * @param n: Number of a coordinate, starting from left with 0 (e.g. swap 0,1 in letter "0111" will result in "1011")
  */
 NFA* NFA_swap(NFA* nfa, int n1, int n2);
 /**
+ * @brief Swap n1-th and n2-th coordinates in transition letters
+ *
+ * @param n: Number of a coordinate, starting from left with 0 (e.g. swap 0,1 in letter "0111" will result in "1011")
+ */
+void NFA_swap_rec(NFA** nfa, int n1, int n2);
+/**
  * @brief IMPORTANT! Removes unreachable states from initial automaton
- * Converts NFA to DFA
+ * Return a pointer to new DFA which is converted from given NFA
  */
 NFA* NFA_to_DFA(NFA* nfa);
 /**
  * @brief IMPORTANT! Removes unreachable states from initial automaton
- * Minimize given DFA
+ * Converts NFA to DFA
+ */
+void NFA_to_DFA_rec(NFA** nfa);
+/**
+ * @brief IMPORTANT! Removes unreachable states from initial automaton
+ * Return a pointer to a new minimized DFA 
  */
 NFA* DFA_minimize(NFA* nfa);
+/**
+ * @brief IMPORTANT! Removes unreachable states from initial automaton
+ * Minimize given DFA
+ */
+void DFA_minimize_rec(NFA** nfa);
 
 
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);

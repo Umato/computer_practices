@@ -247,7 +247,7 @@ void big_int_remove_zeroes(big_int *num);
  * @param num A pointer to the big_int number structure.
  * @return A string representation of the big_int number, or an empty string if the input is null.
  */
-const char* big_int_to_string(const big_int *num);
+char* big_int_to_string(const big_int *num);
 
 #pragma endregion
 
