@@ -454,7 +454,7 @@ bool NFA_accept(NFA* nfa, big_int* num)
 
 bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
 {
-    if (!nfa || !bigint_list || nfa->alphabet_dim != bigint_list->count) return 0;
+    if (!nfa || !bigint_list || nfa->alphabet_dim != bigint_list->count) return false;
 
     stack* current_states = create_stack();
     stack* next_states;
@@ -976,6 +976,18 @@ void DFA_complement(NFA* nfa) {
     }
 }
 
+NFA* DFA_complement_return(NFA* nfa)
+{
+    if (!nfa || !NFA_is_DFA(nfa)) return nullptr;
+
+    NFA* complement_dfa = NFA_clone(nfa);
+    for (int i = 0; i < complement_dfa->states_count; i++){
+        complement_dfa->states[i]->is_final = !complement_dfa->states[i]->is_final;
+    }
+
+    return complement_dfa;
+}
+
 NFA* NFA_project(NFA* nfa, unsigned char n)
 {
     if (!nfa || n >= nfa->alphabet_dim) return nullptr;
@@ -1467,7 +1479,7 @@ NFA* NFA_get_automaton_1()
 
 NFA* NFA_get_only_zeroes()
 {
-    int states_count = 2;
+    int states_count = 1;
     int alphabet_dim = 1;
     int initial_state = 0;
     int final_states_count = 1;
@@ -1483,30 +1495,35 @@ NFA* NFA_get_only_zeroes()
 
 
 #pragma region Handful Functions For Console App
+
 void NFA_console_app() {
     char input[256];
-    cout << "Enter command (type '>exit' to quit):\n";
+    cout << "Enter command (type 'exit' to quit):\n";
     while (true) {
         fflush(stdout);
-
-        if (fgets(input, sizeof(input), stdin) == NULL) {
+        cout << ">";
+        if (fgets(input, sizeof(input), stdin) == nullptr) {
             break;
         }
 
         input[strcspn(input, "\n")] = 0;
 
-        if (strcmp(input, ">exit") == 0) {
+        if (strcmp(input, "exit") == 0) {
             cout << "Exiting NFA Console Application.\n";
             break;
         }
-        else if (strcmp(input, ">help") == 0) {
+        else if (strcmp(input, "help") == 0) {
             print_help();
         }
-        else if (strcmp(input, ">nfa_list") == 0) {
+        else if (strcmp(input, "nfa_list") == 0) {
             NFA_list();
+        } else if (strncmp(input, "def ", 4) == 0) {
+            NFA_def(input);
+        } else if (strncmp(input, "eval ", 5) == 0) {
+            NFA_eval_command(input);
         }
         else {
-            printf("You entered: %s\n", input);
+            printf("Unknown command: %s\n", input);
         }
     }
 
@@ -1514,9 +1531,11 @@ void NFA_console_app() {
 
 void print_help() {
     cout << "Available commands:\n";
-    cout << ">exit - Exit the NFA Console Application.\n";
-    cout << ">help - Display this help message.\n";
-    cout << ">nfa_list - List available automata.\n";
+    cout << "exit - Exit the NFA Console Application.\n";
+    cout << "help - Display this help message.\n";
+    cout << "nfa_list - List available automata.\n";
+    cout << "def <name> \"<predicate>\" - Define a new NFA from a logical predicate and save it.\n";
+    cout << "eval \"$automaton_name(num1, num2, ... numN)\" - Evaluate an automaton with a given number.\n";
 }
 
 void NFA_list() {
@@ -1566,12 +1585,11 @@ char* NFA_RPN(const char* formula) {
     stack* operators = create_stack();
     char* rpn = (char*)malloc(2 * strlen(formula) + 1);
     int j = 0;
-
     for (char *c = (char*)formula; *c != '\0'; c++) {
         switch (*c)
         {
         case '(' :
-            push(operators, (int)c);
+            push(operators, (int)(*c));
             break;
         case '&' :
         case '|' :
@@ -1579,16 +1597,16 @@ char* NFA_RPN(const char* formula) {
         case 'E' :
         case 'A' :
             while (!is_stack_empty(operators) && nfa_get_priority(*c) <= nfa_get_priority(stack_top(operators))) {
-                cout << (char)stack_top(operators) << " " << nfa_get_priority(stack_top(operators)) << " " << nfa_get_priority(*c) << endl;
+//                cout << (char)stack_top(operators) << " " << nfa_get_priority(stack_top(operators)) << " " << nfa_get_priority(*c) << endl;
                 rpn[j++] = pop(operators);
-
+                rpn[j++] = ' ';
             }
-            push(operators, (int)c);
+            push(operators, (int)(*c));
             break;
         case ')' :
             while (!is_stack_empty(operators) && stack_top(operators) != '(') {
                 rpn[j++] = ' ';
-                rpn[j++] = pop(operators);
+                rpn[j++] = (char)pop(operators);
             }
             pop(operators);
             break;
@@ -1602,7 +1620,7 @@ char* NFA_RPN(const char* formula) {
             c--;
             break;
         default:
-            if (*c == ' ' && rpn[j - 1] != ' ')
+            if (j != 0 && *c == ' ' && rpn[j - 1] != ' ')
                 rpn[j++] = *c;
             else if (*c != ' ') // ? Exception ?? with pointer to its position? 
                 rpn[j++] = *c;
@@ -1612,7 +1630,7 @@ char* NFA_RPN(const char* formula) {
 
     while (!is_stack_empty(operators)) {
         rpn[j++] = ' ';
-        rpn[j++] = pop(operators);
+        rpn[j++] =(char)pop(operators);
     }
 
     if (j > 0 && rpn[j - 1] == ' ') {
@@ -1622,6 +1640,180 @@ char* NFA_RPN(const char* formula) {
     rpn[j] = '\0';
     free_stack(operators);
     return rpn;
+}
+
+NFA* load_NFA_from_file(const char* filename)
+{
+    char path[256];
+    sprintf(path, "../NFA/NFAs/%s.txt", filename);
+
+    return NFA_from_file(path);
+}
+
+NFA* NFA_from_predicate(const char* predicate) {
+    char* rpn = NFA_RPN(predicate);
+
+    nfa_stack* nfa_stack = create_nfa_stack();
+
+    char* token = strtok(rpn, " ");
+    while (token) {
+        if (token[0] == '$') {
+            char filename[256];
+            const char* start = token + 1;
+            const char* end = strchr(start, '(');
+
+            if (end == nullptr) {
+                end = start + strlen(start);
+            }
+
+            size_t length = end - start;
+            strncpy(filename, start, length);
+            filename[length] = '\0';
+
+            NFA* nfa = load_NFA_from_file(filename);
+            NFA_to_DOT(nfa);
+            push(nfa_stack, nfa);
+        } else {
+
+            if (strcmp(token, "&") == 0) {
+                NFA* nfa2 = pop(nfa_stack);
+                NFA* nfa1 = pop(nfa_stack);
+                NFA_to_DOT(nfa2);
+                NFA_to_DOT(nfa1);
+
+                NFA* result = intersect_NFA(nfa1, nfa2);
+                NFA_free(nfa1);
+                NFA_free(nfa2);
+                NFA_to_DOT(result);
+
+                push(nfa_stack, result);
+            } else if (strcmp(token, "|") == 0) {
+                NFA* nfa2 = pop(nfa_stack);
+                NFA* nfa1 = pop(nfa_stack);
+                NFA_to_DOT(nfa2);
+                NFA_to_DOT(nfa1);
+                NFA* result = union_NFA(nfa1, nfa2);
+                NFA_free(nfa1);
+                NFA_free(nfa2);
+                NFA_to_DOT(result);
+
+                push(nfa_stack, result);
+            } else if (strcmp(token, "~") == 0) {
+                NFA* nfa = pop(nfa_stack);
+                NFA_to_DOT(nfa);
+
+                NFA* comp = DFA_complement_return(nfa);
+                NFA_to_DOT(comp);
+                NFA_free(nfa);
+
+                if(!comp) {
+                    free(rpn);
+                    NFA_free(comp);
+                    free_stack(nfa_stack);
+                    return nullptr;}
+                push(nfa_stack, comp);
+            }
+        }
+        token = strtok(nullptr, " ");
+    }
+
+    NFA* final_nfa = pop(nfa_stack);
+    free(rpn);
+    free_stack(nfa_stack);
+    return final_nfa;
+}
+
+void NFA_def(const char* command) {
+    char name[256], predicate[1024];
+    if (sscanf(command, "def %s \"%[^\"]\"", name, predicate) == 2) {
+        NFA *nfa = NFA_from_predicate(predicate);
+        if (nfa != nullptr) {
+            char filename[300];
+            sprintf(filename, "../NFA/NFAs/%s.txt", name);
+            NFA_to_file(nfa, filename);
+            NFA_free(nfa);
+        } else {
+            cout << "Failed to create NFA from predicate.\n";
+        }
+    } else {
+        cout << "Invalid command format. Use def <name> \"<predicate>\"\n";
+    }
+}
+
+void NFA_eval_command(const char* command)
+{
+    char automaton_name[256];
+    char number_string[1024];
+    int nums[100]; // max = 100
+    int num_count = 0;
+
+    if (sscanf(command, "eval \"$%[^(](%[^)]", automaton_name, number_string) == 2) {
+        NFA* nfa = load_NFA_from_file(automaton_name);
+        if (!nfa) {
+            cout << "Failed to load NFA: " << automaton_name << endl;
+            return;
+        }
+
+        char* token = strtok(number_string, ", ");
+        while (token != nullptr && num_count != nfa->alphabet_dim) {
+            nums[num_count++] = atoi(token);
+            token = strtok(nullptr, ", ");
+        }
+        // Create a big_int_list with the parsed numbers
+        big_int_list* bigint_list = big_int_list_init(num_count, nums);
+
+        // Use the list to evaluate the NFA
+        bool result = NFA_accept(nfa, bigint_list);
+
+        cout << (result ? "True" : "False") << endl;
+
+        NFA_free(nfa);
+        big_int_list_free(bigint_list);
+    } else  {
+        cout << "Invalid command format. Use eval \"$automaton_name(num1, num2, ... numN)\"" << endl;
+    }
+}
+
+#pragma endregion
+
+
+#pragma region NFA Stack
+
+nfa_stack* create_nfa_stack() {
+    nfa_stack* s = (nfa_stack*)malloc(sizeof(nfa_stack));
+    if (!s) return nullptr;
+    s->top = nullptr;
+    return s;
+}
+
+void push(nfa_stack* s, NFA* nfa) {
+    nfa_node* new_node = (nfa_node*)malloc(sizeof(nfa_node));
+    if (!new_node) return;
+    new_node->nfa = nfa;
+    new_node->next = s->top;
+    s->top = new_node;
+}
+
+NFA* pop(nfa_stack* s)
+{
+    if (s->top == nullptr) return nullptr;
+    nfa_node* temp = s->top;
+    NFA* nfa = temp->nfa;
+    s->top = temp->next;
+    free(temp);
+    return nfa;
+}
+
+bool is_stack_empty(nfa_stack* s) {
+    return s->top == nullptr;
+}
+
+void free_stack(nfa_stack* s)
+{
+    while (!is_stack_empty(s)){
+        NFA_free(pop(s));
+    }
+    free(s);
 }
 
 #pragma endregion

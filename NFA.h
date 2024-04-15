@@ -30,7 +30,14 @@ typedef struct NFA {
     NFA_state* initial_state;
 } NFA;
 
+typedef struct nfa_node {
+    NFA* nfa;
+    struct nfa_node* next;
+} nfa_node;
 
+typedef struct nfa_stack {
+    nfa_node* top;
+} nfa_stack;
 
 void list_free(list* tr_list);
 void print_bin(unsigned number, unsigned int bits);
@@ -143,5 +150,20 @@ void print_help();
 void NFA_list();
 int nfa_get_priority(char op);
 char* NFA_RPN(const char* formula);
+NFA* load_NFA_from_file(const char* filename);
+NFA* predicate_to_NFA(const char* predicate);
 
+
+nfa_stack* create_nfa_stack();
+void push(nfa_stack* s, NFA* nfa);
+NFA* pop(nfa_stack* s);
+bool is_stack_empty(nfa_stack* s);
+void free_stack(nfa_stack* s);
+NFA* NFA_from_predicate(const char* predicate);
+
+void NFA_def(const char* command);
+void NFA_eval_command(const char* command);
+
+
+NFA* DFA_complement_return(NFA* nfa);
 #endif //COMPUTER_PRACTICES_NFA_H

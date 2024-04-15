@@ -129,50 +129,85 @@ int main() {
 
 #pragma region Div2
     //// DIV2
-    //NFA* nfa_eq = NFA_get_equal();
-    //NFA* nfa_sum = NFA_get_sum3();
-    //NFA* nfa_eq_1 = NFA_extend(nfa_eq, 2);
-    //NFA* nfa_new = intersect_NFA(nfa_eq_1, nfa_sum);
-    //NFA* nfa_new_result = NFA_project(nfa_new, 0);
-    //NFA* nfa_new_result_2 = NFA_project(nfa_new_result, 0);
-    //NFA_remove_unreachable_states(nfa_new_result_2);
-    //NFA_to_DOT(nfa_new_result_2);
+//    NFA* nfa_eq = NFA_get_equal();
+//    NFA* nfa_sum = NFA_get_sum3();
+//    NFA* nfa_eq_1 = NFA_extend(nfa_eq, 2);
+//    NFA* nfa_new = intersect_NFA(nfa_eq_1, nfa_sum);
+//    NFA* nfa_new_result = NFA_project(nfa_new, 0);
+//    NFA* nfa_new_result_2 = NFA_project(nfa_new_result, 0);
+//    NFA_remove_unreachable_states(nfa_new_result_2);
+//    NFA_to_DOT(nfa_new_result_2);
 #pragma endregion
 
 #pragma region Div3
 //// DIV3
-    NFA* nfa_equal_xz = NFA_get_equal(); // x = z
-    NFA* nfa_equal_xz_1 = NFA_extend(nfa_equal_xz, nfa_equal_xz->alphabet_dim); //extend by y
-    NFA* nfa_equal_xz_2 = NFA_extend(nfa_equal_xz_1, nfa_equal_xz_1->alphabet_dim); //extend by M
-
-    NFA* nfa_sum = NFA_get_sum3(); // x + z = y
-    NFA* nfa_sum_1 = NFA_extend(nfa_sum, nfa_sum->alphabet_dim); //extend by M
-
-    NFA* nfa_inter = intersect_NFA(nfa_equal_xz_2, nfa_sum_1); //x = z && x + z = y
-
-    NFA* nfa_res_sum = NFA_get_sum3(); //x + y = M
-    NFA* nfa_res_sum_1 = NFA_extend(nfa_res_sum, 1); //extend by z
-
-    NFA* result1 = intersect_NFA(nfa_inter, nfa_res_sum_1); // x = z && x + z = y && x + y = M
-    NFA* existx = NFA_project(result1, 0);
-    NFA* existy = NFA_project(existx, 0);
-    NFA* existz = NFA_project(existy, 0);
-
-    NFA_remove_unreachable_states(existz);
-    
-
-    for (int i = 0; i < 1000; i++)
-    {
-        big_int* n = big_int_get(i);
-        if ((i % 3 == 0) != NFA_accept(existz, n))
-        {
-            printf("%d\n", i);
-        }
-    }
+//    NFA* nfa_equal_xz = NFA_get_equal(); // x = z
+//    NFA* nfa_equal_xz_1 = NFA_extend(nfa_equal_xz, nfa_equal_xz->alphabet_dim); //extend by y
+//    NFA* nfa_equal_xz_2 = NFA_extend(nfa_equal_xz_1, nfa_equal_xz_1->alphabet_dim); //extend by M
+//
+//    NFA* nfa_sum = NFA_get_sum3(); // x + z = y
+//    NFA* nfa_sum_1 = NFA_extend(nfa_sum, nfa_sum->alphabet_dim); //extend by M
+//
+//    NFA* nfa_inter = intersect_NFA(nfa_equal_xz_2, nfa_sum_1); //x = z && x + z = y
+//
+//    NFA* nfa_res_sum = NFA_get_sum3(); //x + y = M
+//    NFA* nfa_res_sum_1 = NFA_extend(nfa_res_sum, 1); //extend by z
+//
+//    NFA* result1 = intersect_NFA(nfa_inter, nfa_res_sum_1); // x = z && x + z = y && x + y = M
+//    NFA* existx = NFA_project(result1, 0);
+//    NFA* existy = NFA_project(existx, 0);
+//    NFA* existz = NFA_project(existy, 0);
+//
+//    NFA_remove_unreachable_states(existz);
+//
+//
+//    for (int i = 0; i < 1000; i++)
+//    {
+//        big_int* n = big_int_get(i);
+//        if ((i % 3 == 0) != NFA_accept(existz, n))
+//        {
+//            printf("%d\n", i);
+//        }
+//    }
 #pragma endregion
-    
-    
 
+
+// $aut1() // let this automaton be n-ary. // we expect n terms
+// terms are linear terms : arithmetic expressios with +, (,), a* -> rpn
+//  +
+// a* _ b
+// x
+// -> nfa for y = a*x; z = b; t = y + z; project all auxiliary variables -> nfa for t = term1(x)
+// aut1(t1,t2) & t1 = term1(x) & t2 = term2(x) -> project over t1, t2
+
+//    char* a = NFA_RPN("E ~x & ~(~(($div2(x) & ~$is_zero(y)) & ~(~x & ~y)))");
+//
+//    cout << a;
+
+//    char a[] = "123 char 12e fff  111111111";
+//
+//    char* token = strtok(a, " ");
+//    while (token != nullptr) {
+//        cout << token << endl;  // выводит следующий символ после первого в каждом токене
+//        token = strtok(nullptr, " ");
+//    }
+//    NFA_console_app();
+//    NFA* n1 = NFA_get_div_2();
+//    NFA* n2 = NFA_get_div_3();
+//    NFA* in = intersect_NFA(n1, n2);
+//    DFA_complement(n1);
+////
+//    NFA* r = union_NFA(n1, in);
+////
+//    NFA_to_DOT(r);
+    NFA* sum = NFA_get_sum3();
+    NFA_to_DOT(sum);
+//    NFA* r1 = NFA_from_file("../NFA/NFAs/test.txt");
+//    NFA_to_DOT(r1);
+//    for (int i = 0; i < 100; i++)
+//    {
+//        cout << i << " " << NFA_accept(r, big_int_get(i)) << endl;
+//    }
 
     big_int_free(4, zero, one, two, e, mod, ex);
     return 0;
