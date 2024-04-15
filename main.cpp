@@ -126,7 +126,6 @@ int main() {
     //NFA_to_DOT(right);
 #pragma endregion
 
-
 #pragma region Div2
     //// DIV2
 //    NFA* nfa_eq = NFA_get_equal();
@@ -140,6 +139,7 @@ int main() {
 #pragma endregion
 
 #pragma region Div3
+
 //// DIV3
 //    NFA* nfa_equal_xz = NFA_get_equal(); // x = z
 //    NFA* nfa_equal_xz_1 = NFA_extend(nfa_equal_xz, nfa_equal_xz->alphabet_dim); //extend by y
@@ -200,8 +200,7 @@ int main() {
 //    NFA* r = union_NFA(n1, in);
 ////
 //    NFA_to_DOT(r);
-    NFA* sum = NFA_get_sum3();
-    NFA_to_DOT(sum);
+
 //    NFA* r1 = NFA_from_file("../NFA/NFAs/test.txt");
 //    NFA_to_DOT(r1);
 //    for (int i = 0; i < 100; i++)
@@ -209,7 +208,155 @@ int main() {
 //        cout << i << " " << NFA_accept(r, big_int_get(i)) << endl;
 //    }
 
-    big_int_free(4, zero, one, two, e, mod, ex);
+    //NFA* nfa_equal_xz = NFA_get_equal(); // x = z
+    //NFA* nfa_equal_xz_1 = NFA_extend(nfa_equal_xz, nfa_equal_xz->alphabet_dim); //extend by y
+    //NFA* nfa_equal_xz_2 = NFA_extend(nfa_equal_xz_1, nfa_equal_xz_1->alphabet_dim); //extend by M
+
+    //NFA* nfa_sum = NFA_get_sum3(); // x + z = y
+    //NFA* nfa_sum_1 = NFA_extend(nfa_sum, nfa_sum->alphabet_dim); //extend by M
+
+    //NFA* nfa_inter = NFA_intersect(nfa_equal_xz_2, nfa_sum_1); //x = z && x + z = y
+
+    //NFA* nfa_res_sum = NFA_get_sum3(); //x + y = M
+    //NFA* nfa_res_sum_1 = NFA_extend(nfa_res_sum, 1); //extend by z
+
+    //NFA* result1 = NFA_intersect(nfa_inter, nfa_res_sum_1); // x = z && x + z = y && x + y = M
+    //NFA* existx = NFA_project(result1, 0);
+    //NFA* existy = NFA_project(existx, 0);
+    //NFA* existz = NFA_project(existy, 0);
+
+    //NFA_remove_unreachable_states(existz);
+    //
+    //
+
+    //for (int i = 0; i < 1000; i++)
+    //{
+    //    big_int* n = big_int_get(i);
+    //    if ((i % 3 == 0) != NFA_accept(existz, n))
+    //    {
+    //        printf("%d\n", i);
+    //    }
+    //}
+
+
+#pragma endregion
+    
+#pragma region DFA_minimize Check
+    //int fs[] = { 6, 7 };
+    //int* fsl = &(fs[0]);
+    //NFA* nfa_test = NFA_init(8, 1, 0, 2, fsl);
+    //NFA_transition_add(nfa_test, 0, 1, 1);
+    //NFA_transition_add(nfa_test, 0, 2, 0);
+    //NFA_transition_add(nfa_test, 1, 0, 1);
+    //NFA_transition_add(nfa_test, 1, 2, 0);
+    //NFA_transition_add(nfa_test, 2, 3, 0);
+    //NFA_transition_add(nfa_test, 2, 3, 1);
+    //NFA_transition_add(nfa_test, 3, 4, 0);
+    //NFA_transition_add(nfa_test, 3, 7, 1);
+    //NFA_transition_add(nfa_test, 4, 7, 0);
+    //NFA_transition_add(nfa_test, 4, 6, 1);
+    //NFA_transition_add(nfa_test, 5, 4, 0);
+    //NFA_transition_add(nfa_test, 5, 7, 1);
+    //NFA_transition_add(nfa_test, 6, 6, 0);
+    //NFA_transition_add(nfa_test, 6, 7, 1);
+    //NFA_transition_add(nfa_test, 7, 7, 0);
+    //NFA_transition_add(nfa_test, 7, 7, 1);
+
+    //NFA* new_nfa = DFA_minimize(nfa_test);
+    //NFA_to_DOT(nfa_test);
+    //NFA_to_DOT(new_nfa);
+#pragma endregion
+
+#pragma region NFA_to_DFA and DFA_minimize Check
+    /*int fs[] = { 2,3 };
+    int* fsl = &(fs[0]);
+    NFA* nfa_test = NFA_init(4, 1, 0, 2, fsl);
+    NFA_transition_add(nfa_test, 0,1,1);
+    NFA_transition_add(nfa_test, 0,2,2);
+    NFA_transition_add(nfa_test, 0,3,0);
+    NFA_transition_add(nfa_test, 1,0,2);
+    NFA_transition_add(nfa_test, 1,1,1);
+    NFA_transition_add(nfa_test, 1,2,0);
+    NFA_transition_add(nfa_test, 1,2,1);
+
+    NFA_to_DOT(nfa_test);
+    NFA* new_nfa = NFA_to_DFA(nfa_test);
+    NFA_to_DOT(new_nfa);
+    NFA* newnfa = DFA_minimize(new_nfa);
+    NFA_to_DOT(newnfa);*/
+#pragma endregion
+
+#pragma region Accept Tests
+    /*const char* nums1[] = { "10", "11", "101"};
+    char** numslist = (char**)malloc(sizeof(char*) * 3);
+    for (int i = 0; i < 3; i++)
+    {
+        numslist[i] = const_cast<char*>(nums1[i]);
+    }
+    NFA* nfa_sum = NFA_get_sum3();
+    NFA_accept(nfa_sum, numslist, 3);
+    NFA_free(nfa_sum);
+    free(numslist);
+
+
+    NFA* nfa = NFA_get_div_3();
+    int nums[] = {10,0,1,3,18,-1,-2,-27};
+    int* numsp = &(nums[0]);
+    big_int_list* list = big_int_list_init(8, numsp);
+    big_int_list_add_num(list, nullptr);
+    for (int i = 0; i < list->count; i++)
+    {
+        printf("test %d: %d\n", i, NFA_accept(nfa, list->big_ints[i]));
+    }
+    big_int_list_free(list);
+    NFA_free(nfa);*/
+
+
+#pragma endregion
+
+#pragma region Operations Tests
+    
+    //NFA* nfa_zeroes = NFA_get_only_zeroes();
+    //NFA* nfa1 = NFA_get_automaton_1();
+    //NFA* nfa2 = NFA_get_random();
+    ////NFA_to_DOT(nfa2);
+    //while (nfa2->alphabet_dim != nfa1->alphabet_dim)
+    //{
+    //    NFA_extend_rec(&nfa1, nfa1->alphabet_dim);
+    //}
+    ////NFA_to_DOT(nfa1);
+
+    //NFA_to_DFA_rec(&nfa1);
+    ////NFA_to_DOT(nfa1);
+
+    //DFA_minimize_rec(&nfa1);
+    ////NFA_to_DOT(nfa1);
+
+    //NFA_intersect_rec(&nfa1, nfa2);
+    ////NFA_to_DOT(nfa1);
+
+    //NFA_rightquo_unioned(&nfa1, nfa_zeroes);
+    //NFA_to_DOT(nfa1);
+
+    //NFA_to_DFA_rec(&nfa1);
+    //DFA_minimize_rec(&nfa1);
+    //NFA_to_DOT(nfa1);
+
+    //NFA_leftquo_unioned(&nfa2, nfa_zeroes);
+    //NFA_to_DOT(nfa2);
+
+    //NFA_swap_rec(&nfa2, 0, 1);
+    //NFA_to_DOT(nfa2);
+
+
+    //NFA_free(nfa1);
+    //NFA_free(nfa2);
+    //NFA_free(nfa_zeroes);
+
+#pragma endregion
+
+
+    big_int_free(6, zero, one, two, e, mod, ex);
     return 0;
 }
 
