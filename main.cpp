@@ -288,21 +288,91 @@ int main() {
 
 #pragma endregion
     
-    
 #pragma region Div Tests
     //Div power of 2
-    /*for (int i = 0; i <= 20; i += 5)
-    {
-        NFA* nfa = NFA_get_div_power_of_2(i);
-        NFA_to_DOT(nfa);
-        NFA_free(nfa);
-    }*/
 
-    NFA* nfa = NFA_get_div_num(17);
+    /*NFA* nfa = NFA_get_2_power_m_y(3);
+    NFA_project_rec(&nfa, 1);
+    NFA_to_DFA_rec(&nfa);
+    DFA_minimize_rec(&nfa);*/
+
+    /*NFA* nfa3 = NFA_get_random();
+    DFA_minimize_rec(&nfa3);
+    NFA_to_DOT(nfa3);
+    NFA* nfa = NFA_get_equal_coordinates(nfa3, 1, 2);
+    NFA_to_DOT(nfa);*/
+
+    /*NFA* nfa1 = NFA_get_div_2_power_m(3);
+    NFA* nfa2 = NFA_get_div_a(5);
+    printf("Num, div8, div5\n");
+    for (int i = 0; i < 50; i++)
+    {
+        char* string = int_to_string(i);
+
+        printf("\ni = %d: %d, %d", i, NFA_accept(nfa1, string), NFA_accept(nfa2, string));
+    }*/
+#pragma endregion
+
+#pragma region NFA_get_sum_xn
+
+  
+    // реяр NFA_get_sum_xn
+
+    /*int count = 3;
+    int* a = (int*)malloc(sizeof(int) * count);
+    a[0] = 2;
+    a[1] = 2;
+    a[2] = 3;
+    NFA* nfa = NFA_get_sum_xn(a, count);
+    char** strings = (char**)malloc(sizeof(char*) * 3);
+    strings[0] = int_to_string(13);
+    strings[1] = int_to_string(2);
+    strings[2] = int_to_string(3);
+    printf("\nresult: %d", NFA_accept(nfa, strings, 3));
+    strings[0] = int_to_string(20);
+    printf("\nresult: %d", NFA_accept(nfa, strings, 3));*/
 
 #pragma endregion
 
-    
+#pragma region 2 != 2
+
+    NFA* nfa_div2 = NFA_get_div_2();
+    NFA* nfa_div3 = NFA_get_div_3();
+    NFA* nfa_new = NFA_union(nfa_div2, nfa_div3);
+    NFA_to_DOT(nfa_new);
+    DFA_minimize_rec(&nfa_new);
+
+
+    printf("div 6\n\n\n");
+    for (int i = 0; i < 50; i++)
+    {
+        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
+    }
+
+    DFA_complement_rec(&nfa_div2);
+    DFA_complement_rec(&nfa_div3);
+    NFA_union_rec(&nfa_new, nfa_div2);
+    DFA_minimize_rec(&nfa_new);
+
+    printf("\n\n\ndiv 6 or odd\n\n\n");
+    for (int i = 0; i < 50; i++)
+    {
+        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
+    }
+
+    NFA_union_rec(&nfa_new, nfa_div3);
+    DFA_minimize_rec(&nfa_new);
+
+    printf("\n\n\ndiv 6 or odd or not div3\n\n\n");
+    for (int i = 0; i < 50; i++)
+    {
+        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
+    }
+
+    NFA_to_DOT(nfa_new);
+
+#pragma endregion
+
 
 
 

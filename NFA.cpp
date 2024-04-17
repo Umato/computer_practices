@@ -4,7 +4,7 @@
 
 // add epsilon-reached to accept methods and nfa_to_dfa where we search for epsilon-initial states
 // NFA_remove_unreachable_states в minimize и других
-
+// MINIMIZE 2=2
 
 #include "NFA.h"
 
@@ -85,10 +85,31 @@ char* format_string_to_bin(const char* string)
     return new_string;
 }
 
-//int log2(int num) 
-//{
-//    return __builtin_ctz(num);
-//}
+char* int_to_string(int num)
+{
+    char* string;
+
+    if (!num)
+    {
+        string = (char*)malloc(sizeof(char) * (2));
+        string[0] = '0';
+        string[1] = '\0';
+        return string;
+    }
+
+    num = abs(num);
+    int bits_count = floor(log2(num)) + 1;
+    string = (char*)malloc(sizeof(char) * (bits_count + 1));
+    string[bits_count] = '\0';
+    while (bits_count)
+    {
+        string[bits_count - 1] = (num & 1) ? '1' : '0';
+        num >>= 1;
+        bits_count--;
+    }
+
+    return string;
+}
 
 #pragma endregion
 
@@ -1098,17 +1119,28 @@ void NFA_union_rec(NFA** nfa1, NFA* nfa2)
     *nfa1 = nfa_unioned;
 }
 
-void DFA_complement(NFA* nfa) {
-    if (!nfa) return;
+NFA* DFA_complement(NFA* nfa)
+{
+    if (!nfa) return nullptr;
 
-    if (!NFA_is_DFA(nfa)) {
-        printf("The automaton is not a DFA.");
-        return;
+    NFA* complement_dfa = NFA_clone(nfa);
+    DFA_make_complete(complement_dfa);
+    if (!complement_dfa) return nullptr;
+
+    for (int i = 0; i < complement_dfa->states_count; i++) 
+    {
+        complement_dfa->states[i]->is_final = !complement_dfa->states[i]->is_final;
     }
 
-    for (int i = 0; i < nfa->states_count; i++) {
-        nfa->states[i]->is_final = !nfa->states[i]->is_final;
-    }
+    DFA_minimize_rec(&complement_dfa);
+    return complement_dfa;
+}
+
+void DFA_complement_rec(NFA** nfa) 
+{
+    NFA* dfa_complement = DFA_complement(*nfa);
+    NFA_free(*nfa);
+    *nfa = dfa_complement;
 }
 
 NFA* NFA_project(NFA* nfa, unsigned char n)
@@ -1181,7 +1213,7 @@ NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2)
 
     stack* initial_states = create_stack();
     NFA* inter_nfa = NFA_intersect(nfa1, nfa2);
-    NFA_remove_unreachable_states(inter_nfa);
+    NFA_remove_unreachable_states_rec(inter_nfa);
     
     // combined_state_id = i * nfa2->states_count + j;
     // if nfa2.states[j] is final => nfa1.states[i] is new initial
@@ -1240,7 +1272,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
     {
         new_nfa->initial_state = new_nfa->states[i];
         NFA* inter_nfa = NFA_intersect(new_nfa, nfa2_clone);
-        NFA_remove_unreachable_states(inter_nfa);
+        NFA_remove_unreachable_states_rec(inter_nfa);
         
         if (NFA_get_final_states_count(inter_nfa) != 0)
         {
@@ -1322,10 +1354,17 @@ void NFA_swap_rec(NFA** nfa, int n1, int n2)
     *nfa = nfa_swap;
 }
 
-NFA* NFA_to_DFA(NFA* nfa)
+NFA* NFA_to_DFA(NFA* nfa_original)
 {
-    if (!nfa || nfa->states_count == 0) return nfa;
-    NFA_remove_unreachable_states(nfa); // Be careful! Removes unreachable states from initial nfa! 
+    if (!nfa_original) return nullptr;
+    
+    NFA* nfa = NFA_clone(nfa_original);
+    NFA_remove_unreachable_states_rec(nfa);
+
+    if (nfa->states_count == 0 || NFA_is_DFA(nfa))
+    {
+        return nfa;
+    }
 
     // Each big_int in new_states represents a new state, which is a set of old states of given nfa
     // Least significant bit (from right) of big_int is state with id = 0, lefter - with id = 1, etc.
@@ -1444,6 +1483,8 @@ NFA* NFA_to_DFA(NFA* nfa)
     free(transitions);
     free(final_states);
 
+    NFA_remove_unreachable_states_rec(dfa);
+
     return dfa;
 }
 
@@ -1454,12 +1495,18 @@ void NFA_to_DFA_rec(NFA** nfa)
     *nfa = dfa;
 }
 
-NFA* DFA_minimize(NFA* nfa)
+NFA* DFA_minimize(NFA* nfa_original)
 {
-    if (!nfa || !NFA_is_DFA(nfa)) return nullptr;
+    if (!nfa_original) return nullptr;
 
-    NFA_remove_unreachable_states(nfa);
+    NFA* nfa = NFA_clone(nfa_original);
+    NFA_remove_unreachable_states_rec(nfa);
 
+    if (!NFA_is_DFA(nfa))
+    {
+        NFA_to_DFA_rec(&nfa);
+    }
+    
     int groups_count = 2;
     int* state_group = (int*)calloc(nfa->states_count, sizeof(int)); // represents group number of each state
     list** groups = (list**)malloc(2 * sizeof(list*)); // list of groups, where each group is a set of states {s1,s2,..}
@@ -1543,9 +1590,9 @@ NFA* DFA_minimize(NFA* nfa)
     free(final_states);
     free(state_group);
 
-    NFA_remove_unreachable_states(new_nfa);
+    NFA_remove_unreachable_states_rec(new_nfa);
 
-    // If there is a state which have no transition from it and it's non-final, then we can remove it
+    // If there is a state which have no transition from it (besides itself) and it's non-final, then we can remove it
     for (int i = 0; i < new_nfa->states_count; i++)
     {
         if (!new_nfa->states[i]->is_final)
@@ -1553,7 +1600,10 @@ NFA* DFA_minimize(NFA* nfa)
             bool have_transitions = 0;
             for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
             {
-                if (new_nfa->states[i]->transitions[letter]->head)
+                node* head = new_nfa->states[i]->transitions[letter]->head;
+                // HERE IS THE PLACE WHERE 2 != 2 !!!!!!!!!!!!!!!!!!
+                //if (head) printf("\nhead val = %d, i = %d, headval == i = %d", head->val, i, head->val == i);
+                if (head && !(head->val == i));
                 {
                     have_transitions = 1;
                     break;
@@ -1563,7 +1613,7 @@ NFA* DFA_minimize(NFA* nfa)
             if (!have_transitions)
             {
                 NFA_state_remove(new_nfa, i);
-                i--;
+                i = 0;
             }
         }
     }
@@ -1581,6 +1631,34 @@ void DFA_minimize_rec(NFA** nfa)
 
 
 #pragma region NFA Support Functions
+void DFA_make_complete(NFA* nfa) 
+{
+    if (!nfa) return;
+
+    if (!NFA_is_DFA(nfa)) 
+    {
+        NFA_to_DFA_rec(&nfa);
+    }
+
+    int states_count = nfa->states_count;
+    NFA_state_add(nfa, false);
+
+    for (int i = 0; i < states_count; i++)
+    {
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++) 
+        {
+            if (!nfa->states[i]->transitions[letter]->head)
+            {
+                NFA_transition_add(nfa, i, states_count, letter);
+            }
+        }
+    }
+
+    for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++) 
+    {
+        NFA_transition_add(nfa, states_count, states_count, letter);
+    }
+}
 
 // NEED TO BE TESTED
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count)
@@ -1649,8 +1727,15 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
     return groups;
 }
 
+NFA* NFA_remove_unreachable_states(NFA* nfa)
+{
+    NFA* nfa_result = NFA_clone(nfa);
+    NFA_remove_unreachable_states_rec(nfa_result);
+    return nfa_result;
+}
+
 // NEED TO BE TESTED
-void NFA_remove_unreachable_states(NFA* nfa)
+void NFA_remove_unreachable_states_rec(NFA* nfa)
 {
     int* state_is_reachable = (int*)calloc(nfa->states_count, sizeof(int));
     queue* states_queue = create_queue(); // quueueueu of states which were reached from the initial
@@ -1909,36 +1994,68 @@ NFA* NFA_get_div_3()
     return nfa;
 }
 
-NFA* NFA_get_div_power_of_2(int power)
+NFA* NFA_get_equal_num(int num)
 {
-    NFA* nfa_result = NFA_get_trivial();
-    NFA* nfa_equal = NFA_get_equal();
-    NFA* nfa_sum = NFA_get_sum();
-    
-    for (int i = 0; i < power; i++)
+    int* final_states = (int*)malloc(sizeof(int));
+    NFA* nfa;
+    if (!num)
     {
-        NFA* nfa2 = NFA_clone(nfa_result);
+        final_states[0] = 1;
+        nfa = NFA_init(2, 1, 0, 1, final_states);
+        NFA_transition_add(nfa, 0, 1, 0);
+    }
+    else
+    {
+        int states_count = (int)floor(log2(num)) + 2;
+        final_states[0] = states_count - 1;
+        nfa = NFA_init(states_count, 1, 0, 1, final_states);
 
-        NFA_extend_rec(&nfa_result, 1);
-        NFA_extend_rec(&nfa2, 0);
-        NFA_intersect_rec(&nfa_result, nfa2);
-        NFA_intersect_rec(&nfa_result, nfa_equal);
-        NFA_extend_rec(&nfa_result, 2);
-        NFA_intersect_rec(&nfa_result, nfa_sum);
-        NFA_project_rec(&nfa_result, 0);
-        NFA_project_rec(&nfa_result, 0);
-
-        NFA_to_DFA_rec(&nfa_result);
-        DFA_minimize_rec(&nfa_result);
-
-        NFA_free(nfa2);
+        for (int i = 0; i < states_count - 1; i++)
+        {
+            unsigned char letter = num & 1;
+            num >>= 1;
+            NFA_transition_add(nfa, i, i + 1, letter);
+        }
     }
 
-    
+    // ДОБАИВТЬ НОЛИКИ
+    NFA_transition_add(nfa, nfa->states_count - 1, nfa->states_count - 1, 0);
+
+    return nfa;
+}
+
+NFA* NFA_get_2_power_m_y(int power)
+{
+    NFA* nfa_equal = NFA_get_equal();
+    NFA* nfa_sum = NFA_get_sum();
+    NFA* nfa_result = NFA_get_equal(); // [y, y]
+    NFA_extend_rec(&nfa_equal, 2); // [y, y, -]
+    NFA_extend_rec(&nfa_sum, 3); // [x, y, z, -]
+
+    for (int i = 0; i < power; i++)
+    {
+        // NFA result = [2^i * y, y]
+        NFA_extend_rec(&nfa_result, 0); // [-, 2^i * y, y]
+        NFA_intersect_rec(&nfa_result, nfa_equal); // [2^i * y, 2^i * y, y]
+        NFA_extend_rec(&nfa_result, 2); // [2^i * y, 2^i * y, -, y]
+        NFA_intersect_rec(&nfa_result, nfa_sum); // [2^i * y, 2^i * y, 2^i+1 * y, y]
+        NFA_project_rec(&nfa_result, 0); // [2^i * y, 2^i+1 * y, y]
+        NFA_project_rec(&nfa_result, 0); // [2^i+1 * y, y]
+        NFA_to_DFA_rec(&nfa_result);
+        DFA_minimize_rec(&nfa_result);
+    }
 
     NFA_free(nfa_sum);
     NFA_free(nfa_equal);
 
+    return nfa_result;
+}
+
+NFA* NFA_get_div_2_power_m(int power)
+{
+    NFA* nfa_result = NFA_get_2_power_m_y(power);
+    NFA_project_rec(&nfa_result, 1);
+    DFA_minimize_rec(&nfa_result);
     return nfa_result;
 }
 
@@ -1979,7 +2096,7 @@ NFA* NFA_get_random()
 {
     int states_count = get_random_num(5, 6);
     //int states_count = get_random_num(2, 6);
-    int alphabet_dim = 2;
+    int alphabet_dim = 3;
     //int alphabet_dim = get_random_num(1,3);
     int initial_state = 0;
     int final_states_count = get_random_num(1, states_count);
@@ -2071,31 +2188,163 @@ NFA* NFA_get_trivial()
     return nfa;
 }
 
-NFA* NFA_get_div_num(int num)
+NFA* NFA_get_equal_coordinates(NFA* nfa, int n1, int n2)
 {
-    if (!num) return nullptr; //num = 0
+    if (!nfa || n1 >= nfa->alphabet_dim || n2 >= nfa->alphabet_dim || n1 < 0 || n2 < 0) return nullptr;
+    if (n1 == n2) return NFA_clone(nfa);
+
+    NFA* nfa_equal = NFA_get_equal();
+    NFA* nfa_result = NFA_clone(nfa);
+    int dim_difference = nfa->alphabet_dim - nfa_equal->alphabet_dim;
+    for (int i = 0; i < dim_difference; i++)
+    {
+        NFA_extend_rec(&nfa_equal, nfa_equal->alphabet_dim);
+    }
+
+    if (n1 + n2 > 1)
+    {
+        NFA_swap_rec(&nfa_result, 0, n1);
+        NFA_swap_rec(&nfa_result, 1, n2);
+    }
+
+    NFA_intersect_rec(&nfa_result, nfa_equal);
+    DFA_minimize_rec(&nfa_result);
+
+    if (n1 + n2 > 1)
+    {
+        NFA_swap_rec(&nfa_result, 1, n2);
+        NFA_swap_rec(&nfa_result, 0, n1);
+    }
+
+    NFA_free(nfa_equal);
+    return nfa_result;
+}
+
+void NFA_get_equal_coordinates_rec(NFA** nfa, int n1, int n2)
+{
+    NFA* new_nfa = NFA_get_equal_coordinates(*nfa, n1 ,n2);
+    NFA_free(*nfa);
+    *nfa = new_nfa;
+}
+
+NFA* NFA_get_a_y(int num)
+{
+    if (!num)  //num = 0
+    {
+        return NFA_get_equal_num(0);
+    }
     num = abs(num);
 
-    NFA* nfa_result = NFA_get_trivial();
-    NFA* nfa_equal = NFA_get_equal();
-    NFA* nfa_sum = NFA_get_sum();
+    NFA* nfa_result = NFA_get_equal(); // [y, y]
+    NFA* nfa_sum = NFA_get_sum(); // [x, y, z]
+    NFA_swap_rec(&nfa_sum, 0, 2); // [z, y, x]
+    NFA_extend_rec(&nfa_sum, 2); // [z, y, -, x]
+    NFA_extend_rec(&nfa_sum, 4); // [z, y, -, x, -]
+
+    num--;
+    int power = 0;
 
     while (num)
     {
-        int powered_2 = std::bit_floor((unsigned)num);
-        num -= powered_2;
+        // NFA_result: [12y, y]
+        unsigned char bit = num & 1;
+        num >>= 1;
+        if (bit)
+        {
+            NFA* nfa = NFA_get_2_power_m_y(power); // [4z, z]
+            NFA_extend_rec(&nfa_result, nfa_result->alphabet_dim); // [12y, y, -]
+            NFA_extend_rec(&nfa_result, nfa_result->alphabet_dim); // [12y, y, -, -]
+            NFA_extend_rec(&nfa, 0); // [-, 4z, z]
+            NFA_extend_rec(&nfa, 0); // [-, -, 4z, z]
+            NFA_intersect_rec(&nfa_result, nfa); //[12y, y, 4z, z]
+            DFA_minimize_rec(&nfa_result);
 
-        NFA* nfa2 = NFA_get_div_power_of_2((int)log2(powered_2));
-        NFA_extend_rec(&nfa_result, 1);
-        NFA_extend_rec(&nfa2, 0);
-        NFA_intersect_rec(&nfa_result, nfa2);
+            NFA_get_equal_coordinates_rec(&nfa_result, 1, 3); //[12y, y, 4y, y]
+            NFA_extend_rec(&nfa_result, 0); //[-, 12y, y, 4y, y]
+            NFA_intersect_rec(&nfa_result, nfa_sum); //[14y, 12y, y, 2y, y]
+
+            NFA_project_rec(&nfa_result, 1); //[14y, y, 2y, y]
+            NFA_project_rec(&nfa_result, 2); //[14y, y, y]
+            NFA_project_rec(&nfa_result, 2); //[14y, y]
+            DFA_minimize_rec(&nfa_result);
+
+            NFA_free(nfa);
+        }
+
+        power++;
     }
     
-    NFA_free(nfa_equal);
     NFA_free(nfa_sum);
 
-    return nullptr;
+    return nfa_result;
+}
 
+NFA* NFA_get_div_a(int a)
+{
+    NFA* nfa_result = NFA_get_a_y(a);
+    NFA_project_rec(&nfa_result, 1);
+    return nfa_result;
+}
+
+NFA* NFA_get_sum_xn(int* a, int count)
+{
+    if (!a) return nullptr;
+    if (count == 0) return NFA_get_only_zeroes();
+
+    NFA* nfa_sum = NFA_get_sum();
+    NFA* nfa_result = NFA_get_only_zeroes();
+
+    NFA_swap_rec(&nfa_sum, 0, 2); // [z, y, x]
+
+    for (int i = count - 1; i > 0; i--)
+    {
+        // y = anxn
+        // NFA_result: [y, xn]
+        NFA_extend_rec(&nfa_sum, nfa_sum->alphabet_dim); // [z, y, x, -, -]
+
+        NFA* nfa_a = NFA_get_a_y(a[i]); // [ai*xi, xi], y = a[i] * xi
+        NFA_extend_rec(&nfa_a, 0); // [-, ai*xi, xi]
+        NFA_extend_rec(&nfa_a, 0); // [-, -, ai*xi, xi]
+        for (int j = 0; j < count - 1 - i; j++)
+        {
+            NFA_extend_rec(&nfa_a, nfa_a->alphabet_dim); // [-, -, ai*xi, xi, -]
+        }
+
+        NFA_extend_rec(&nfa_result, 0); // [-, y, xn]
+        NFA_extend_rec(&nfa_result, 2); // [-, y, -, xn]
+        NFA_extend_rec(&nfa_result, 3); // [-, y, -, -, xn]
+        NFA_intersect_rec(&nfa_result, nfa_a); // [-, y, ai*xi, xi, xn]
+        DFA_minimize_rec(&nfa_result);
+        NFA_intersect_rec(&nfa_result, nfa_sum); // [new_y, y, ai*xi, xi, xn]
+        //DFA_minimize_rec(&nfa_result);
+        NFA_project_rec(&nfa_result, 1);
+        NFA_project_rec(&nfa_result, 1); // [new_y, xi, xn]
+        DFA_minimize_rec(&nfa_result);
+
+        NFA_free(nfa_a);
+    }
+
+    NFA_extend_rec(&nfa_result, 0);
+    NFA_extend_rec(&nfa_result, 0); // [-, -, y, x1, x2, ..., xn-1]
+    NFA* nfa_a0 = NFA_get_equal_num(a[0]); // [a0]
+    NFA_extend_rec(&nfa_a0, 0); // [-, a0]
+    NFA_extend_rec(&nfa_a0, 2); // [-, a0, -]
+
+    for (int i = 0; i < count - 1; i++)
+    {
+        NFA_extend_rec(&nfa_a0, nfa_a0->alphabet_dim); // [-, a0, -, -, ...]
+    }
+
+    NFA_intersect_rec(&nfa_result, nfa_a0); // [-, a0, y, x1, x2, ..., xn-1]
+    NFA_intersect_rec(&nfa_result, nfa_sum); // [new_y, a0, y, x1, x2, ..., xn-1]
+    NFA_project_rec(&nfa_result, 1);
+    NFA_project_rec(&nfa_result, 1);
+    DFA_minimize_rec(&nfa_result); // [new_y, x1, x2, ..., xn-1]
+
+    NFA_free(nfa_sum);
+    NFA_free(nfa_a0);
+
+    return nfa_result;
 }
 #pragma endregion
 
