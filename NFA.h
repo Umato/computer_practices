@@ -12,7 +12,7 @@
 #include "Algorithm.h"
 #include "big_integer.h"
 #include "graph.h"
-#include <bitset>
+#include <bit>
 
 #include "direct.h"
 #include "windows.h"
@@ -45,6 +45,7 @@ void add_to_list(list* l, int val);
 void print_bin(unsigned number, unsigned int bits);
 int get_random_num(int start, int end);
 char* format_string_to_bin(const char* string);
+char* int_to_string(int num);
 
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
@@ -81,6 +82,7 @@ void NFA_intersect_rec(NFA** nfa1, NFA* nfa2);
 NFA* NFA_union(NFA* nfa1, NFA* nfa2);
 void NFA_union_rec(NFA** nfa1, NFA* nfa2);
 NFA* DFA_complement(NFA* nfa);
+void DFA_complement_rec(NFA** nfa);
 /**
  * @brief Creates NFA which accepts words from L2\\L1 {suffixes: w2 + suffix = w1, w1 in L1, w2 in L2}.
  * Note that nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently).
@@ -142,7 +144,7 @@ void NFA_swap_rec(NFA** nfa, int n1, int n2);
  * @brief IMPORTANT! Removes unreachable states from initial automaton
  * Return a pointer to new DFA which is converted from given NFA
  */
-NFA* NFA_to_DFA(NFA* nfa);
+NFA* NFA_to_DFA(NFA* nfa_original);
 /**
  * @brief IMPORTANT! Removes unreachable states from initial automaton
  * Converts NFA to DFA
@@ -152,7 +154,7 @@ void NFA_to_DFA_rec(NFA** nfa);
  * @brief IMPORTANT! Removes unreachable states from initial automaton
  * Return a pointer to a new minimized DFA 
  */
-NFA* DFA_minimize(NFA* nfa);
+NFA* DFA_minimize(NFA* nfa_original);
 /**
  * @brief IMPORTANT! Removes unreachable states from initial automaton
  * Minimize given DFA
@@ -160,6 +162,7 @@ NFA* DFA_minimize(NFA* nfa);
 void DFA_minimize_rec(NFA** nfa);
 
 
+void DFA_make_complete(NFA* nfa);
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
 NFA* NFA_remove_unreachable_states(NFA* nfa);
 void NFA_remove_unreachable_states_rec(NFA* nfa);
@@ -170,26 +173,26 @@ bool NFA_is_DFA(NFA* nfa);
 void copy_transitions(NFA* nfa, int from_state, int to_state);
 void find_epsilon_closure(NFA* nfa, int state_id, bool* epsilon_closure);
 void NFA_remove_epsilon_transitions(NFA* nfa);
-void make_DFA_complete(NFA* dfa);
+
 
 /**
  * @brief Creates new NFA that checks: 2|n
  */
-NFA* NFA_get_div_2();
+NFA* NFA_get_div_2_custom();
+/**
+ * @brief Creates new NFA that checks: 3|n
+ */
+NFA* NFA_get_div_3_custom();
 /**
  * @brief Creates new NFA that checks: 2^power|n
  *
  * @param power: power of two
  */
-NFA* NFA_get_div_power_of_2(int power);
-/**
- * @brief Creates new NFA that checks: 3|n
- */
-NFA* NFA_get_div_3();
+NFA* NFA_get_div_power_of_2_custom(int power);
 /**
  * @brief Creates new NFA that checks: x+y=z
  */
-NFA* NFA_get_sum3();
+NFA* NFA_get_sum();
 /**
  * @brief Creates new NFA that checks: x=y
  */
@@ -206,6 +209,17 @@ NFA* NFA_get_automaton_1();
  * @brief Creates NFA that accepts only zero-strings 
  */
 NFA* NFA_get_only_zeroes();
+NFA* NFA_get_trivial();
+NFA* NFA_get_equal_coordinates(NFA* nfa, int n1, int n2);
+void NFA_get_equal_coordinates_rec(NFA** nfa, int n1, int n2);
+NFA* NFA_get_equal_num(int num);
+NFA* NFA_get_div_2();
+NFA* NFA_get_div_3();
+NFA* NFA_get_2_power_m_y(int power);
+NFA* NFA_get_div_2_power_m(int power);
+NFA* NFA_get_a_y(int num);
+NFA* NFA_get_div_a(int a);
+NFA* NFA_get_sum_xn(int* a, int count);
 
 
 void NFA_console_app();

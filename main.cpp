@@ -76,7 +76,7 @@ int main() {
 
 #pragma region NFA_leftquo Check
 
-    //// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ {0}+{1}* (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 000111, 00001, 11111, 1) (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 0 пїЅпїЅ +\\inf, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 1 пїЅпїЅ +\\inf)
+    //// автомат принимающий строки {0}+{1}* (например 000111, 00001, 11111, 1) (нулей от 0 до +\\inf, потом единиц от 1 до +\\inf)
     //int fs[] = { 1 };
     //int* fsl = &(fs[0]);
     //NFA* nfa01 = NFA_init(2, 1, 0, 1, fsl);
@@ -84,17 +84,17 @@ int main() {
     //NFA_transition_add(nfa01, 0, 1, 1);
     //NFA_transition_add(nfa01, 1, 1, 1);
 
-    //// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ {0}+1 (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 0000001, 01, 1) (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 0 пїЅпїЅ +\\inf, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ 1)
+    //// автомат принимающий строки {0}+1 (например 0000001, 01, 1) (нулей от 0 до +\\inf, потом всегда одна 1)
     //int fs2[] = { 1 };
     //int* fsl2 = &(fs[0]);
     //NFA* nfa_zeroes1 = NFA_init(2, 1, 0, 1, fsl2);
     //NFA_transition_add(nfa_zeroes1, 0, 0, 0);
     //NFA_transition_add(nfa_zeroes1, 0, 1, 1);
 
-    //// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ {1}* (пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 1 пїЅпїЅ +\\inf)
+    //// нужен автомат принимающий {1}* (то есть единиц от 1 до +\\inf)
     //NFA* new_nfa = NFA_leftquo(nfa01, nfa_zeroes1);
     //NFA_to_DOT(new_nfa);
-    //// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ nfa01, пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ {0}*, пїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ :(
+    //// он работает как то неправильно - просто копирует nfa01, а нужно чтоб он не принимал строки начинающиеся с {0}*, а он принимает :(
 
 #pragma endregion
 
@@ -102,24 +102,24 @@ int main() {
     //int fs[] = { 0 };
     //int* fsl = &(fs[0]);
 
-    //NFA* nfa2 = NFA_init(2, 1, 0, 1, fsl); // (01)* = 01/0101/010101/01010101 - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ L2 - пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    //NFA* nfa2 = NFA_init(2, 1, 0, 1, fsl); // (01)* = 01/0101/010101/01010101 - принимает L2 - если смотреть слева направо как обычно
     //NFA_transition_add(nfa2, 0, 1, 0);
     //NFA_transition_add(nfa2, 1, 0, 1);
 
-    //NFA* nfa1 = NFA_init(1, 1, 0, 1, fsl); // {0,1}* - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ L1 - пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    //NFA* nfa1 = NFA_init(1, 1, 0, 1, fsl); // {0,1}* - принимает L1 - все что угодно
     //NFA_transition_add(nfa1, 0, 0, 0);
     //NFA_transition_add(nfa1, 0, 0, 1);
 
 
     //// L2  (01)* = 01/0101/010101/01010101
-    //// L1  {0,1}* - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    //// L1  {0,1}* - принимает все что угодно
 
-    //NFA* left = NFA_leftquo(nfa2, nfa1); // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ S, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ L1 пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ L1+S in L2 
-    //// (spoiler: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 1/01/101/0101/ 10101/ 010101/ 1010101 (01)* )
+    //NFA* left = NFA_leftquo(nfa2, nfa1); // все такие суффиксы S, что есть слово из L1 такие что L1+S in L2 
+    //// (spoiler: получится 1/01/101/0101/ 10101/ 010101/ 1010101 (01)* )
 
 
-    //NFA* right = NFA_rightquo(nfa2, nfa1); // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ P, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ L1 пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ P+L1 in Ls 
-    //// (spoiler: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 0/01/010/0101/01010 - пїЅпїЅ пїЅпїЅпїЅпїЅ L2 U 0(01)* )
+    //NFA* right = NFA_rightquo(nfa2, nfa1); // все такие префиксы P, что есть слово из L1 такие что P+L1 in Ls 
+    //// (spoiler: получится 0/01/010/0101/01010 - то есть L2 U 0(01)* )
 
 
     //NFA_to_DOT(left);
@@ -128,86 +128,17 @@ int main() {
 
 #pragma region Div2
     //// DIV2
-//    NFA* nfa_eq = NFA_get_equal();
-//    NFA* nfa_sum = NFA_get_sum3();
-//    NFA* nfa_eq_1 = NFA_extend(nfa_eq, 2);
-//    NFA* nfa_new = intersect_NFA(nfa_eq_1, nfa_sum);
-//    NFA* nfa_new_result = NFA_project(nfa_new, 0);
-//    NFA* nfa_new_result_2 = NFA_project(nfa_new_result, 0);
-//    NFA_remove_unreachable_states(nfa_new_result_2);
-//    NFA_to_DOT(nfa_new_result_2);
+    //NFA* nfa_eq = NFA_get_equal();
+    //NFA* nfa_sum = NFA_get_sum3();
+    //NFA* nfa_eq_1 = NFA_extend(nfa_eq, 2);
+    //NFA* nfa_new = intersect_NFA(nfa_eq_1, nfa_sum);
+    //NFA* nfa_new_result = NFA_project(nfa_new, 0);
+    //NFA* nfa_new_result_2 = NFA_project(nfa_new_result, 0);
+    //NFA_remove_unreachable_states(nfa_new_result_2);
+    //NFA_to_DOT(nfa_new_result_2);
 #pragma endregion
 
 #pragma region Div3
-
-//// DIV3
-//    NFA* nfa_equal_xz = NFA_get_equal(); // x = z
-//    NFA* nfa_equal_xz_1 = NFA_extend(nfa_equal_xz, nfa_equal_xz->alphabet_dim); //extend by y
-//    NFA* nfa_equal_xz_2 = NFA_extend(nfa_equal_xz_1, nfa_equal_xz_1->alphabet_dim); //extend by M
-//
-//    NFA* nfa_sum = NFA_get_sum3(); // x + z = y
-//    NFA* nfa_sum_1 = NFA_extend(nfa_sum, nfa_sum->alphabet_dim); //extend by M
-//
-//    NFA* nfa_inter = intersect_NFA(nfa_equal_xz_2, nfa_sum_1); //x = z && x + z = y
-//
-//    NFA* nfa_res_sum = NFA_get_sum3(); //x + y = M
-//    NFA* nfa_res_sum_1 = NFA_extend(nfa_res_sum, 1); //extend by z
-//
-//    NFA* result1 = intersect_NFA(nfa_inter, nfa_res_sum_1); // x = z && x + z = y && x + y = M
-//    NFA* existx = NFA_project(result1, 0);
-//    NFA* existy = NFA_project(existx, 0);
-//    NFA* existz = NFA_project(existy, 0);
-//
-//    NFA_remove_unreachable_states(existz);
-//
-//
-//    for (int i = 0; i < 1000; i++)
-//    {
-//        big_int* n = big_int_get(i);
-//        if ((i % 3 == 0) != NFA_accept(existz, n))
-//        {
-//            printf("%d\n", i);
-//        }
-//    }
-#pragma endregion
-
-
-// $aut1() // let this automaton be n-ary. // we expect n terms
-// terms are linear terms : arithmetic expressios with +, (,), a* -> rpn
-//  +
-// a* _ b
-// x
-// -> nfa for y = a*x; z = b; t = y + z; project all auxiliary variables -> nfa for t = term1(x)
-// aut1(t1,t2) & t1 = term1(x) & t2 = term2(x) -> project over t1, t2
-
-//    char* a = NFA_RPN("E ~x & ~(~(($div2(x) & ~$is_zero(y)) & ~(~x & ~y)))");
-//
-//    cout << a;
-
-//    char a[] = "123 char 12e fff  111111111";
-//
-//    char* token = strtok(a, " ");
-//    while (token != nullptr) {
-//        cout << token << endl;  // РІС‹РІРѕРґРёС‚ СЃР»РµРґСѓСЋС‰РёР№ СЃРёРјРІРѕР» РїРѕСЃР»Рµ РїРµСЂРІРѕРіРѕ РІ РєР°Р¶РґРѕРј С‚РѕРєРµРЅРµ
-//        token = strtok(nullptr, " ");
-//    }
-//    NFA_console_app();
-//    NFA* n1 = NFA_get_div_2();
-//    NFA* n2 = NFA_get_div_3();
-//    NFA* in = intersect_NFA(n1, n2);
-//    DFA_complement(n1);
-////
-//    NFA* r = union_NFA(n1, in);
-////
-//    NFA_to_DOT(r);
-
-//    NFA* r1 = NFA_from_file("../NFA/NFAs/test.txt");
-//    NFA_to_DOT(r1);
-//    for (int i = 0; i < 100; i++)
-//    {
-//        cout << i << " " << NFA_accept(r, big_int_get(i)) << endl;
-//    }
-
     //NFA* nfa_equal_xz = NFA_get_equal(); // x = z
     //NFA* nfa_equal_xz_1 = NFA_extend(nfa_equal_xz, nfa_equal_xz->alphabet_dim); //extend by y
     //NFA* nfa_equal_xz_2 = NFA_extend(nfa_equal_xz_1, nfa_equal_xz_1->alphabet_dim); //extend by M
@@ -293,13 +224,15 @@ int main() {
     {
         numslist[i] = const_cast<char*>(nums1[i]);
     }
+
+
     NFA* nfa_sum = NFA_get_sum3();
     NFA_accept(nfa_sum, numslist, 3);
     NFA_free(nfa_sum);
-    free(numslist);
+    free(numslist);*/
 
 
-    NFA* nfa = NFA_get_div_3();
+    /*NFA* nfa = NFA_get_div_3();
     int nums[] = {10,0,1,3,18,-1,-2,-27};
     int* numsp = &(nums[0]);
     big_int_list* list = big_int_list_init(8, numsp);
@@ -354,42 +287,94 @@ int main() {
     //NFA_free(nfa_zeroes);
 
 #pragma endregion
-//    NFA* nfa = NFA_intersect(NFA_get_div_3(), NFA_get_div_2());
-//    NFA_to_DOT(nfa);
-//    NFA* nfa1 = DFA_complement_return(NFA_get_div_2());
-//    NFA_to_DOT(nfa1);
-//    NFA* nfa2 = NFA_union(nfa, nfa1);
-//    NFA_to_DOT(nfa2);
-//    NFA_console_app();
-//    NFA_console_app();
-//    NFA_to_DOT(NFA_get_only_zeroes());
-//    NFA* nfa = NFA_get_div_power_of_2(3);
-//    NFA_to_file(nfa, "../NFA/NFAs/div8.txt");
-//    NFA_to_DOT(div2);
+    
+#pragma region Div Tests
+    //Div power of 2
 
-    NFA* div2 = NFA_get_div_power_of_2(1);
-    NFA* div3 = NFA_get_div_3();
-    NFA* div6 = NFA_intersect(div2, div3);
-    NFA_to_DFA_rec(&div6);
+    /*NFA* nfa = NFA_get_2_power_m_y(3);
+    NFA_project_rec(&nfa, 1);
+    NFA_to_DFA_rec(&nfa);
+    DFA_minimize_rec(&nfa);*/
 
-    NFA* ndiv2 = DFA_complement(div2);
-    NFA* ndiv3 = DFA_complement(div3);
-    NFA_to_DFA_rec(&ndiv2);
-    NFA_to_DFA_rec(&ndiv3);
-    NFA* nfa1 = NFA_union(div6, ndiv2);
-    NFA_to_DFA_rec(&nfa1);
+    /*NFA* nfa3 = NFA_get_random();
+    DFA_minimize_rec(&nfa3);
+    NFA_to_DOT(nfa3);
+    NFA* nfa = NFA_get_equal_coordinates(nfa3, 1, 2);
+    NFA_to_DOT(nfa);*/
 
-    NFA* nfa2 = NFA_union(nfa1, ndiv3);
+    /*NFA* nfa1 = NFA_get_div_2_power_m(3);
+    NFA* nfa2 = NFA_get_div_a(5);
+    printf("Num, div8, div5\n");
+    for (int i = 0; i < 50; i++)
+    {
+        char* string = int_to_string(i);
 
-    for (int i = 0; i < 100; i++) {
-        cout << i << " " << NFA_accept(nfa2, big_int_get(i)) << endl;
+        printf("\ni = %d: %d, %d", i, NFA_accept(nfa1, string), NFA_accept(nfa2, string));
+    }*/
+#pragma endregion
+
+#pragma region NFA_get_sum_xn
+
+  
+    // ТЕСТ NFA_get_sum_xn
+
+    /*int count = 3;
+    int* a = (int*)malloc(sizeof(int) * count);
+    a[0] = 2;
+    a[1] = 2;
+    a[2] = 3;
+    NFA* nfa = NFA_get_sum_xn(a, count);
+    char** strings = (char**)malloc(sizeof(char*) * 3);
+    strings[0] = int_to_string(13);
+    strings[1] = int_to_string(2);
+    strings[2] = int_to_string(3);
+    printf("\nresult: %d", NFA_accept(nfa, strings, 3));
+    strings[0] = int_to_string(20);
+    printf("\nresult: %d", NFA_accept(nfa, strings, 3));*/
+
+#pragma endregion
+
+#pragma region 2 != 2
+
+    NFA* nfa_div2 = NFA_get_div_2();
+    NFA* nfa_div3 = NFA_get_div_3();
+    NFA* nfa_new = NFA_union(nfa_div2, nfa_div3);
+    NFA_to_DOT(nfa_new);
+    DFA_minimize_rec(&nfa_new);
+
+
+    printf("div 6\n\n\n");
+    for (int i = 0; i < 50; i++)
+    {
+        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
     }
 
-//    NFA_console_app();
-//    cout << NFA_RPN("($div2(x) & $div3(x)) \\ $div7(x)");
+    DFA_complement_rec(&nfa_div2);
+    DFA_complement_rec(&nfa_div3);
+    NFA_union_rec(&nfa_new, nfa_div2);
+    DFA_minimize_rec(&nfa_new);
 
-//    NFA* nfa = NFA_rightquo(NFA_get_div_power_of_2(1), NFA_get_div_power_of_2(1));
-//    NFA_to_DOT(nfa);
+    printf("\n\n\ndiv 6 or odd\n\n\n");
+    for (int i = 0; i < 50; i++)
+    {
+        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
+    }
+
+    NFA_union_rec(&nfa_new, nfa_div3);
+    DFA_minimize_rec(&nfa_new);
+
+    printf("\n\n\ndiv 6 or odd or not div3\n\n\n");
+    for (int i = 0; i < 50; i++)
+    {
+        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
+    }
+
+    NFA_to_DOT(nfa_new);
+
+#pragma endregion
+
+
+
 
     big_int_free(6, zero, one, two, e, mod, ex);
     return 0;
