@@ -30,7 +30,6 @@ typedef struct NFA {
     NFA_state* initial_state;
 } NFA;
 
-<<<<<<< HEAD
 typedef struct nfa_node {
     NFA* nfa;
     struct nfa_node* next;
@@ -40,9 +39,7 @@ typedef struct nfa_stack {
     nfa_node* top;
 } nfa_stack;
 
-=======
 list* list_init();
->>>>>>> zzel_ver
 void list_free(list* tr_list);
 void add_to_list(list* l, int val);
 void print_bin(unsigned number, unsigned int bits);
@@ -83,7 +80,7 @@ NFA* NFA_intersect(NFA* nfa1, NFA* nfa2);
 void NFA_intersect_rec(NFA** nfa1, NFA* nfa2);
 NFA* NFA_union(NFA* nfa1, NFA* nfa2);
 void NFA_union_rec(NFA** nfa1, NFA* nfa2);
-void DFA_complement(NFA* nfa);
+NFA* DFA_complement(NFA* nfa);
 /**
  * @brief Creates NFA which accepts words from L2\\L1 {suffixes: w2 + suffix = w1, w1 in L1, w2 in L2}.
  * Note that nfa2 should be EXTENDED to have the same alphabet_dim as nfa1 (each time differently).
@@ -164,7 +161,8 @@ void DFA_minimize_rec(NFA** nfa);
 
 
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
-void NFA_remove_unreachable_states(NFA* nfa);
+NFA* NFA_remove_unreachable_states(NFA* nfa);
+void NFA_remove_unreachable_states_rec(NFA* nfa);
 bool NFA_is_empty(NFA* nfa);
 int NFA_get_final_states_count(NFA* nfa);
 int* NFA_get_final_states(NFA* nfa, int* states_count);
@@ -172,7 +170,7 @@ bool NFA_is_DFA(NFA* nfa);
 void copy_transitions(NFA* nfa, int from_state, int to_state);
 void find_epsilon_closure(NFA* nfa, int state_id, bool* epsilon_closure);
 void NFA_remove_epsilon_transitions(NFA* nfa);
-
+void make_DFA_complete(NFA* dfa);
 
 /**
  * @brief Creates new NFA that checks: 2|n
@@ -228,7 +226,15 @@ NFA* NFA_from_predicate(const char* predicate);
 
 void NFA_def(const char* command);
 void NFA_eval_command(const char* command);
+void NFA_test_range(const char* command);
+void NFA_eval2_command(const char* command);
+void DFA_complement_rec(NFA** nfa);
+void NFA_visualize_command(const char* command);
+void handle_minimization(const char* automaton_name);
+void handle_conversion_to_dfa(const char* automaton_name);
+char* extract_name(const char* token);
 
+void handle_operation(nfa_stack* stack, char op);
+void to_lower_case(char *str);
 
-NFA* DFA_complement_return(NFA* nfa);
 #endif //COMPUTER_PRACTICES_NFA_H

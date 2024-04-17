@@ -4,8 +4,6 @@ digraph finite_state_machine{
 	node [shape = circle];
 	init [shape=none, label=""];
 	init -> 0;
-	0 -> 1 [label = "1"];
-	0 -> 2 [label = "0"];
+	0 -> 1 [label = "0"];
 	1 -> 1 [label = "0,1"];
-	2 -> 2 [label = "0,1"];
 }

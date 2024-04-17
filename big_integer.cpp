@@ -63,7 +63,7 @@ int big_int_list_get_bit(big_int_list* list, int big_int_index, int bit_index)
 }
 #pragma endregion
 
-#pragma region Support Functions for NFA
+#pragma region Support Functions For NFA
 // NEED TO BE TESTED
 void big_int_add_bit(big_int* num, int bit_index)
 {
@@ -90,7 +90,6 @@ big_int* big_int_init_zeroes(int bytes_count)
     return num;
 }
 #pragma endregion
-
 
 #pragma region Memory Management
 big_int *big_int_get(const int x) {

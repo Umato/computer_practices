@@ -354,7 +354,42 @@ int main() {
     //NFA_free(nfa_zeroes);
 
 #pragma endregion
+//    NFA* nfa = NFA_intersect(NFA_get_div_3(), NFA_get_div_2());
+//    NFA_to_DOT(nfa);
+//    NFA* nfa1 = DFA_complement_return(NFA_get_div_2());
+//    NFA_to_DOT(nfa1);
+//    NFA* nfa2 = NFA_union(nfa, nfa1);
+//    NFA_to_DOT(nfa2);
+//    NFA_console_app();
+//    NFA_console_app();
+//    NFA_to_DOT(NFA_get_only_zeroes());
+//    NFA* nfa = NFA_get_div_power_of_2(3);
+//    NFA_to_file(nfa, "../NFA/NFAs/div8.txt");
+//    NFA_to_DOT(div2);
 
+    NFA* div2 = NFA_get_div_power_of_2(1);
+    NFA* div3 = NFA_get_div_3();
+    NFA* div6 = NFA_intersect(div2, div3);
+    NFA_to_DFA_rec(&div6);
+
+    NFA* ndiv2 = DFA_complement(div2);
+    NFA* ndiv3 = DFA_complement(div3);
+    NFA_to_DFA_rec(&ndiv2);
+    NFA_to_DFA_rec(&ndiv3);
+    NFA* nfa1 = NFA_union(div6, ndiv2);
+    NFA_to_DFA_rec(&nfa1);
+
+    NFA* nfa2 = NFA_union(nfa1, ndiv3);
+
+    for (int i = 0; i < 100; i++) {
+        cout << i << " " << NFA_accept(nfa2, big_int_get(i)) << endl;
+    }
+
+//    NFA_console_app();
+//    cout << NFA_RPN("($div2(x) & $div3(x)) \\ $div7(x)");
+
+//    NFA* nfa = NFA_rightquo(NFA_get_div_power_of_2(1), NFA_get_div_power_of_2(1));
+//    NFA_to_DOT(nfa);
 
     big_int_free(6, zero, one, two, e, mod, ex);
     return 0;
