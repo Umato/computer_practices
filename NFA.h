@@ -250,5 +250,6 @@ char* extract_name(const char* token);
 
 void handle_operation(nfa_stack* stack, char op);
 void to_lower_case(char *str);
+void handle_remove_epsilon(const char* automaton_name);
 
 #endif //COMPUTER_PRACTICES_NFA_H
