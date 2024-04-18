@@ -9,6 +9,7 @@
 
 
 #pragma region Others
+
 list* list_init()
 {
     list* new_list = (list*)malloc(sizeof(list));
@@ -1377,9 +1378,11 @@ NFA* NFA_to_DFA(NFA* nfa_original)
     if (!nfa_original) return nullptr;
 
     NFA* nfa = NFA_clone(nfa_original);
-//    NFA_remove_epsilon_transitions(nfa);
+
+    NFA_remove_epsilon_transitions(nfa);
 
     NFA_remove_unreachable_states_rec(nfa);
+
 
     if (nfa->states_count == 0 || NFA_is_DFA(nfa))
     {
@@ -1645,10 +1648,12 @@ void DFA_minimize_rec(NFA** nfa)
     NFA_free(*nfa);
     *nfa = new_nfa;
 }
+
 #pragma endregion
 
 
 #pragma region NFA Support Functions
+
 void DFA_make_complete(NFA* nfa)
 {
     if (!nfa) return;
@@ -1678,7 +1683,6 @@ void DFA_make_complete(NFA* nfa)
     }
 }
 
-// NEED TO BE TESTED
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count)
 {
     if (!nfa || !group || !group->head || !state_group) return nullptr;
@@ -1752,7 +1756,6 @@ NFA* NFA_remove_unreachable_states(NFA* nfa)
     return nfa_result;
 }
 
-// NEED TO BE TESTED
 void NFA_remove_unreachable_states_rec(NFA* nfa)
 {
     int* state_is_reachable = (int*)calloc(nfa->states_count, sizeof(int));
@@ -1898,7 +1901,6 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
         for (size_t j = 0; j < nfa->states_count; j++) {
             if (epsilon_closure[j]) {
                 copy_transitions(nfa, i, j);
-
                 if (nfa->states[j]->is_final) {
                     nfa->states[i]->is_final = true;
                 }
@@ -1906,7 +1908,7 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
         }
 
         list_free(state->transitions[epsilon]);
-        state->transitions[epsilon] = nullptr;
+        state->transitions[epsilon] = list_init();
 
         free(epsilon_closure);
     }
@@ -2397,8 +2399,8 @@ void NFA_console_app() {
             NFA_def(input);
         } else if (strncmp(input, "eval ", 5) == 0) {
             NFA_eval_command(input);
-        } else if (strncmp(input, "test ", 5) == 0) {
-            NFA_test_range(input);
+        } else if (strncmp(input, "for  ", 4) == 0) {
+            NFA_for_command(input);
         } else if (strncmp(input, "eval2 ", 6) == 0) {
             NFA_eval2_command(input);
         } else if (strncmp(input, "visualize ", 10) == 0) {
@@ -2421,10 +2423,10 @@ void print_help() {
     cout << "exit - Exit the NFA Console Application.\n";
     cout << "help - Display this help message.\n";
     cout << "nfa_list - List available automata.\n";
-    cout << "def <name> \"<predicate>\" - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
+    cout << "def <name> \"<predicate>\" [-m] [-v] [-re] - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
     cout << "eval $automaton_name(num1, num2, ..., numN) - Evaluate an automaton with a given numbers.\n";
     cout << "eval2 $automaton_name(binary_num1, binary_num2, ..., binary_numN) - Evaluate an automaton with a binary numbers.\n";
-    cout << "test $automaton_name(start, end) - Test an automaton with a range of decimal numbers.\n";
+    cout << "for $automaton_name(start, end, [step]) - Test an automaton with a range of decimal numbers.\n";
     cout << "visualize $automaton_name - Visualize an NFA as a graphical representation.\n";
     cout << "minimize $automaton_name - Minimize.\n";
     cout << "to_dfa $automaton_name - Convert an NFA to DFA.\n";
@@ -2576,18 +2578,43 @@ NFA* NFA_from_predicate(const char* predicate) {
 
 void NFA_def(const char* command) {
     char name[256], predicate[1024];
+    bool minimize = false, visualize = false, remove_eps = false;
+
     if (sscanf(command, "def %s \"%[^\"]\"", name, predicate) == 2) {
+
+        if (strstr(command, "-m") != nullptr){
+            minimize = true;
+        }
+        if (strstr(command, "-v") != nullptr){
+            visualize = true;
+        }
+        if (strstr(command, "-re") != nullptr){
+            remove_eps = true;
+        }
+
         NFA *nfa = NFA_from_predicate(predicate);
         if (nfa != nullptr) {
+
+            if (remove_eps) {
+                NFA_remove_epsilon_transitions(nfa);
+            }
+
+            if (minimize) {
+                DFA_minimize_rec(&nfa);
+            }
             char filename[300];
             sprintf(filename, "../NFA/NFAs/%s.txt", name);
             NFA_to_file(nfa, filename);
+
+            if (visualize) {
+                NFA_to_DOT(nfa);
+            }
             NFA_free(nfa);
         } else {
             cout << "Failed to create NFA from predicate.\n";
         }
     } else {
-        cout << "Invalid command format. Use def <name> \"<predicate>\"\n";
+        cout << "Invalid command format. Use def <name> \"<predicate>\" [-m] [-v]\n";
     }
 }
 
@@ -2632,18 +2659,19 @@ void NFA_eval_command(const char* command)
     }
 }
 
-void NFA_test_range(const char* command) {
+void NFA_for_command(const char* command) {
     char automaton_name[256];
     int start, end;
+    int step = 1;  // Default
 
-    if (sscanf(command, "test $%[^(](%d, %d)", automaton_name, &start, &end) == 3) {
+    if (sscanf(command, "for $%[^(](%d, %d, %d)", automaton_name, &start, &end, &step) >= 2) {
         NFA* nfa = load_NFA_from_file(automaton_name);
         if (!nfa) {
             cout << "Failed to load NFA: " << automaton_name << endl;
             return;
         }
 
-        for (int num = start; num <= end; num++) {
+        for (int num = start; num <= end; num += step) {
             big_int* bg = big_int_get(num);
             bool result = NFA_accept(nfa, bg);
             big_int_free(bg);
@@ -2652,7 +2680,7 @@ void NFA_test_range(const char* command) {
 
         NFA_free(nfa);
     } else {
-        cout << "Invalid command format. Use test \"$automaton_name(start, end)\"" << endl;
+        cout << "Invalid command format. Use for \"$automaton_name(start, end, [step])\"" << endl;
     }
 }
 

@@ -240,7 +240,7 @@ NFA* NFA_from_predicate(const char* predicate);
 
 void NFA_def(const char* command);
 void NFA_eval_command(const char* command);
-void NFA_test_range(const char* command);
+void NFA_for_command(const char* command);
 void NFA_eval2_command(const char* command);
 void DFA_complement_rec(NFA** nfa);
 void NFA_visualize_command(const char* command);
