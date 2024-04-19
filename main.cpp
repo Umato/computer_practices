@@ -317,26 +317,72 @@ int main() {
 
   
     // ���� NFA_get_sum_xn
+//    NFA_console_app();
+    int count = 3;
+    int* a = (int*)malloc(sizeof(int) * count);
+    a[0] = 0;
+    a[1] = 2;
+    a[2] = 4;
+    NFA* nfa = NFA_get_sum_xn(a, count); // y = a_0 + a_1*x_[1]; y = 2x + 1
+//    NFA* nfa = NFA_get_a_y(23); // y = a_0 + a_1*x_[1]; y = 2x + 1
+    char** strings = (char**)malloc(sizeof(char*) * 2);
+    NFA* div2 = load_NFA_from_file("div4");
+
+    NFA_extend_rec(&div2, 1);
+    NFA_extend_rec(&div2, 2);
+
+    NFA_intersect_rec(&nfa, div2);
+
+//    NFA_project_rec(&nfa, 1);
+    NFA_project_rec(&nfa, 0);
+    NFA* nfa1 = NFA_rightquo(nfa, NFA_get_only_zeroes(2));
+
+    DFA_minimize_rec(&nfa1);
+    NFA_to_DOT(nfa1);
+
+//    for (int i =0 ;i < 100; i++) {
+//        strings[0] = int_to_string(i);
+//        printf("\n(%d) -> %d", i, NFA_accept(nfa1, strings, 1));
+//
+//    }
+
+
+
+
 
 //    int count = 2;
 //    int* a = (int*)malloc(sizeof(int) * count);
 //    a[0] = 1;
 //    a[1] = 1;
 //    NFA* nfa = NFA_get_sum_xn(a, count);
-//    NFA* div2 = load_NFA_from_file("div2");
-//
-//    NFA_extend_rec(&div2, 0);
-//    NFA_intersect_rec(&nfa, div2);
-//    NFA_project_rec(&nfa, 1);
-//    DFA_minimize_rec(&nfa);
-//    NFA_to_DOT(nfa);
+//    char** strings = (char**)malloc(sizeof(char*) * 2);
+//    strings[0] = int_to_string(5);
+//    strings[1] = int_to_string(4);
+//    printf("\nresult: %d", NFA_accept(nfa, strings, 2));
+//    strings[0] = int_to_string(20);
+//    printf("\nresult: %d", NFA_accept(nfa, strings, 2));
+
+
+//    int count = 3;
+//    int* a = (int*)malloc(sizeof(int) * count);
+//    a[0] = 2;
+//    a[1] = 3;
+////    cout << a[0] << ' ' << a[1] << ' ' << a[2] << ' ' << a[3] << '\n';
+//    NFA* nfa = NFA_get_sum_xn(a, count);
+//    char** strings = (char**)malloc(sizeof(char*) * count);
+//    strings[0] = int_to_string(596);
+//    strings[1] = int_to_string(9);
+//    strings[2] = int_to_string(9);
+//    printf("\nresult: %d", NFA_accept(nfa, strings, count));
+//    strings[0] = int_to_string(20);
+//    printf("\nresult: %d", NFA_accept(nfa, strings, count));
 
 #pragma endregion   
 
 
 
 
-    NFA_console_app();
+//    NFA_console_app();
 
 
 

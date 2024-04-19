@@ -1711,7 +1711,7 @@ NFA* DFA_minimize(NFA* nfa_original)
     }
 
     int final_states_count = 0;
-    int* final_states = NULL;
+    int* final_states = nullptr;
     for (int i = 0; i < groups_count; i++)
     {
         node* current = groups[i]->head;
@@ -1767,7 +1767,7 @@ NFA* DFA_minimize(NFA* nfa_original)
                 }
             }
 
-            if (!have_transitions)
+            if (!have_transitions && new_nfa->states[i] != new_nfa->initial_state)
             {
                 NFA_state_remove(new_nfa, i);
                 i = 0;
@@ -2319,6 +2319,20 @@ NFA* NFA_get_only_zeroes()
 {
     int states_count = 1;
     int alphabet_dim = 1;
+    int initial_state = 0;
+    int final_states_count = 1;
+    int final_states[] = { 0 };
+
+    NFA* nfa = NFA_init(states_count, alphabet_dim, initial_state, final_states_count, final_states);
+
+    NFA_transition_add(nfa, 0, 0, 0);
+    return nfa;
+}
+
+NFA* NFA_get_only_zeroes(int dim)
+{
+    int states_count = 1;
+    int alphabet_dim = dim;
     int initial_state = 0;
     int final_states_count = 1;
     int final_states[] = { 0 };

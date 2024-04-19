@@ -262,5 +262,5 @@ void handle_remove_epsilon(const char* automaton_name);
 linear_term* parse_linear_term(const char* input);
 void print_linear_term(const linear_term* term);
 
-
+NFA* NFA_get_only_zeroes(int dim);
 #endif //COMPUTER_PRACTICES_NFA_H
