@@ -17,6 +17,12 @@
 #include "direct.h"
 #include "windows.h"
 
+typedef struct linear_term {
+    int* coefficients;
+    int constant;
+    int count;
+} linear_term;
+
 typedef struct NFA_state {
     int id;
     bool is_final;
@@ -251,5 +257,10 @@ char* extract_name(const char* token);
 void handle_operation(nfa_stack* stack, char op);
 void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
+
+
+linear_term* parse_linear_term(const char* input);
+void print_linear_term(const linear_term* term);
+
 
 #endif //COMPUTER_PRACTICES_NFA_H

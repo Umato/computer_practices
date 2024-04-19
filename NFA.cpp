@@ -112,6 +112,127 @@ char* int_to_string(int num)
     return string;
 }
 
+void to_lower_case(char *str) {
+    for (; *str; ++str) *str = tolower((unsigned char) *str);
+}
+
+char* extract_name(const char* token) {
+    char* name = (char*)malloc(256 * sizeof(char));
+    if (sscanf(token + 1, "%255[^ (]", name) == 1) {
+        return name;
+    }
+    free(name);
+    return nullptr;
+}
+
+linear_term* parse_linear_term(const char* input)
+{
+    if (!input) return nullptr;
+
+    linear_term* term = (linear_term*)malloc(sizeof(linear_term));
+    if (!term) return nullptr;
+
+    int max_index = 0;
+    const char* temp_input = input;
+    int coeff, index, num_read;
+    char sign = '+';
+
+    // First pass to determine the maximum index needed for the coefficients array
+    while (*temp_input) {
+        if (sscanf(temp_input, "%d*x_%d%n", &coeff, &index, &num_read) == 2 ||
+            sscanf(temp_input, "%dx_%d%n", &coeff, &index, &num_read) == 2 ||
+            sscanf(temp_input, "%c%d*x_%d%n", &sign, &coeff, &index, &num_read) == 3) {
+            if (index > max_index) {
+                max_index = index;
+            }
+            temp_input += num_read;
+        } else if (sscanf(temp_input, "x_%d%n", &index, &num_read) == 1 ||
+                   sscanf(temp_input, "%cx_%d%n", &sign, &index, &num_read) == 2) {
+            if (index > max_index) {
+                max_index = index;
+            }
+            temp_input += num_read;
+        } else {
+            temp_input++;
+        }
+    }
+
+    int* coefficients = (int*)calloc(max_index + 1, sizeof(int));
+    if (!coefficients) {
+        free(term);
+        return nullptr;
+    }
+
+    term->constant = 0;
+    const char* scan_start = input;
+    sign = '+';
+
+    while (*scan_start) {
+        if (sscanf(scan_start, "%d*x_%d%n", &coeff, &index, &num_read) == 2 ||
+            sscanf(scan_start, "%dx_%d%n", &coeff, &index, &num_read) == 2) {
+            coefficients[index - 1] += (sign == '+' ? coeff : -coeff);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "%c%d*x_%d%n", &sign, &coeff, &index, &num_read) == 3) {
+            coefficients[index - 1] += (sign == '+' ? coeff : -coeff);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "x_%d%n", &index, &num_read) == 1) {
+            coefficients[index - 1] += (sign == '+' ? 1 : -1);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "%cx_%d%n", &sign, &index, &num_read) == 2) {
+            coefficients[index - 1] += (sign == '+' ? 1 : -1);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "%d%n", &coeff, &num_read) == 1) {
+            term->constant += (sign == '+' ? coeff : -coeff);
+            scan_start += num_read;
+            sign = '+';
+        } else if (*scan_start == '+' || *scan_start == '-') {
+            sign = *scan_start++;
+        } else {
+            scan_start++;
+        }
+    }
+
+    term->coefficients = coefficients;
+    term->count = max_index;
+    return term;
+}
+
+void print_linear_term(const linear_term* term)
+{
+    if (term == nullptr) {
+        printf("Invalid term (nullptr).\n");
+        return;
+    }
+
+    bool first = true;
+    for (int i = 0; i < term->count; i++) {
+        int coeff = term->coefficients[i];
+        if (coeff != 0) {
+            if (first) {
+                first = false;
+                printf("%d*x_%d", coeff, i + 1);
+            } else {
+                printf(" %c %d*x_%d", coeff > 0 ? '+' : '-', abs(coeff), i + 1);
+            }
+        }
+    }
+
+    // Print constant
+    if (term->constant != 0 || first) {
+        if (first) {
+            printf("%d", term->constant);
+        } else {
+            printf(" %c %d", term->constant > 0 ? '+' : '-', abs(term->constant));
+        }
+    }
+
+    printf("\n");
+}
+
 #pragma endregion
 
 
@@ -1040,6 +1161,21 @@ NFA* NFA_from_file(const char* filename)
     return automaton;
 }
 
+NFA* load_NFA_from_file(const char* filename)
+{
+    if (strncmp(filename, "div_", 4) == 0 || strncmp(filename, "div", 3) == 0) {
+        int number;
+        if (sscanf(filename, "div_%d", &number) == 1 || sscanf(filename, "div%d", &number) == 1) {
+            return NFA_get_div_a(number);
+        }
+    }
+
+    char path[256];
+    sprintf(path, "../NFA/NFAs/%s.txt", filename);
+
+    return NFA_from_file(path);
+}
+
 #pragma endregion
 
 
@@ -1918,6 +2054,7 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 
 #pragma region NFA Examples
+
 NFA* NFA_get_div_2_custom()
 {
     int* final_states = (int*)malloc(sizeof(int));
@@ -2537,21 +2674,6 @@ char* NFA_RPN(const char* formula) {
     return rpn;
 }
 
-NFA* load_NFA_from_file(const char* filename)
-{
-    if (strncmp(filename, "div_", 4) == 0 || strncmp(filename, "div", 3) == 0) {
-        int number;
-        if (sscanf(filename, "div_%d", &number) == 1 || sscanf(filename, "div%d", &number) == 1) {
-            return NFA_get_div_a(number);
-        }
-    }
-
-    char path[256];
-    sprintf(path, "../NFA/NFAs/%s.txt", filename);
-
-    return NFA_from_file(path);
-}
-
 NFA* NFA_from_predicate(const char* predicate) {
     char* rpn = NFA_RPN(predicate);
 
@@ -2787,15 +2909,6 @@ void handle_conversion_to_dfa(const char* automaton_name) {
     }
 }
 
-char* extract_name(const char* token) {
-    char* name = (char*)malloc(256 * sizeof(char));
-    if (sscanf(token + 1, "%255[^ (]", name) == 1) {
-        return name;
-    }
-    free(name);
-    return nullptr;
-}
-
 void handle_operation(nfa_stack* stack, char op) {
     switch (op) {
         case '&': {
@@ -2841,10 +2954,6 @@ void handle_operation(nfa_stack* stack, char op) {
             break;
         }
     }
-}
-
-void to_lower_case(char *str) {
-    for (; *str; ++str) *str = tolower((unsigned char) *str);
 }
 
 void handle_remove_epsilon(const char* automaton_name) {

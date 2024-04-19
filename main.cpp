@@ -318,21 +318,20 @@ int main() {
   
     // ���� NFA_get_sum_xn
 
-    /*int count = 3;
-    int* a = (int*)malloc(sizeof(int) * count);
-    a[0] = 2;
-    a[1] = 2;
-    a[2] = 3;
-    NFA* nfa = NFA_get_sum_xn(a, count);
-    char** strings = (char**)malloc(sizeof(char*) * 3);
-    strings[0] = int_to_string(13);
-    strings[1] = int_to_string(2);
-    strings[2] = int_to_string(3);
-    printf("\nresult: %d", NFA_accept(nfa, strings, 3));
-    strings[0] = int_to_string(20);
-    printf("\nresult: %d", NFA_accept(nfa, strings, 3));*/
+//    int count = 2;
+//    int* a = (int*)malloc(sizeof(int) * count);
+//    a[0] = 1;
+//    a[1] = 1;
+//    NFA* nfa = NFA_get_sum_xn(a, count);
+//    NFA* div2 = load_NFA_from_file("div2");
+//
+//    NFA_extend_rec(&div2, 0);
+//    NFA_intersect_rec(&nfa, div2);
+//    NFA_project_rec(&nfa, 1);
+//    DFA_minimize_rec(&nfa);
+//    NFA_to_DOT(nfa);
 
-#pragma endregion
+#pragma endregion   
 
 
 
