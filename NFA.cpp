@@ -4,7 +4,8 @@
 
 // add epsilon-reached to accept methods and nfa_to_dfa where we search for epsilon-initial states
 // NFA_remove_unreachable_states в minimize и других
-// MINIMIZE 2=2
+// MINIMIZE 2=2 точка с запятой
+// Убрать эпсилон переходы при НФА-ту-ДФА
 
 #include "NFA.h"
 

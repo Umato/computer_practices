@@ -6,7 +6,11 @@
 #include "graph.h"
 #include "NFA.h"
 
+
+
 int main() {
+
+    
 
     std::random_device rd;
     srand(rd());
@@ -336,7 +340,7 @@ int main() {
 
 #pragma region 2 != 2
 
-    NFA* nfa_div2 = NFA_get_div_2();
+    /*NFA* nfa_div2 = NFA_get_div_2();
     NFA* nfa_div3 = NFA_get_div_3();
     NFA* nfa_new = NFA_union(nfa_div2, nfa_div3);
     NFA_to_DOT(nfa_new);
@@ -369,7 +373,7 @@ int main() {
         printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
     }
 
-    NFA_to_DOT(nfa_new);
+    NFA_to_DOT(nfa_new);*/
 
 #pragma endregion
 
