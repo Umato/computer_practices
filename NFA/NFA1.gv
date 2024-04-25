@@ -1,9 +1,14 @@
-digraph finite_state_machine{
+digraph finite_state_machine {
 	rankdir=LR;
-	node [shape = doublecircle]; 1;
+	node [shape = doublecircle]; 0;
 	node [shape = circle];
 	init [shape=none, label=""];
 	init -> 0;
-	0 -> 1 [label = "0"];
-	1 -> 1 [label = "0,1"];
+	0 [label="0"];
+	1 [label="1"];
+	2 [label="2"];
+	3 [label="3"];
+	4 [label="4"];
+	5 [label="5"];
+	6 [label="6"];
 }

@@ -13,6 +13,8 @@
 #include "big_integer.h"
 #include "graph.h"
 #include <bit>
+#include <conio.h>
+#include <vector>
 
 #include "direct.h"
 #include "windows.h"
@@ -257,10 +259,16 @@ char* extract_name(const char* token);
 void handle_operation(nfa_stack* stack, char op);
 void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
-
+void handle_command(const std::string& command);
 
 linear_term* parse_linear_term(const char* input);
 void print_linear_term(const linear_term* term);
 
 NFA* NFA_get_only_zeroes(int dim);
+
+void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2);
+void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
+
+NFA* NFA_with_term(NFA* nfa, NFA* term);
+
 #endif //COMPUTER_PRACTICES_NFA_H

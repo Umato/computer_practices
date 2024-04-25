@@ -880,7 +880,7 @@ void NFA_to_DOT(NFA* nfa)
 
     file = fopen(filename, "w");
 
-    fprintf(file, "digraph finite_state_machine{\n");
+    fprintf(file, "digraph finite_state_machine {\n");
     fprintf(file, "\trankdir=LR;\n");
 
     char final_states_str[256] = "";
@@ -903,17 +903,21 @@ void NFA_to_DOT(NFA* nfa)
     fprintf(file, "\tinit [shape=none, label=\"\"];\n");
     fprintf(file, "\tinit -> %d;\n", nfa->initial_state->id);
 
+    for (size_t i = 0; i < nfa->states_count; i++) {
+        // Ensure that all states are accounted for by declaring them even if no transitions are listed
+        fprintf(file, "\t%d [label=\"%d\"];\n", i, i);
+    }
+
     // structure for storing labels of transitions
     char*** labels = (char***)malloc(nfa->states_count * sizeof(char**));
-    for (int i = 0; i < nfa->states_count; i++) {
+    for (size_t i = 0; i < nfa->states_count; i++) {
         labels[i] = (char**)malloc(nfa->states_count * sizeof(char*));
-        for (int j = 0; j < nfa->states_count; j++) {
-            labels[i][j] = (char*)calloc(128, sizeof(char)); // Предположим, что достаточно 128 символов для всех меток
+        for (size_t j = 0; j < nfa->states_count; j++) {
+            labels[i][j] = (char*)calloc(128, sizeof(char)); // Assuming enough space for labels
         }
     }
 
-    // filling label for every transition
-    for (size_t i = 0; i < nfa->states_count; i++) {
+        for (size_t i = 0; i < nfa->states_count; i++) {
         NFA_state* state = nfa->states[i];
         for (size_t letter = 0; letter <= (1 << nfa->alphabet_dim); letter++) {
             list* transition_list = state->transitions[letter];
@@ -923,32 +927,31 @@ void NFA_to_DOT(NFA* nfa)
 
             node* current = transition_list->head;
             while (current) {
-                if (strlen(labels[state->id][current->val]) > 0) {
-                    strcat(labels[state->id][current->val], ",");
+                if (strlen(labels[i][current->val]) > 0) {
+                    strcat(labels[i][current->val], ",");
                 }
                 char letter_str[10];
-                if (letter == (1 << nfa->alphabet_dim))
-                    sprintf(letter_str, "%c", 'E');
-                else {
-                    char binary_representation[32];
-                    sprintf(binary_representation, "");
+                if (letter == (1 << nfa->alphabet_dim)) {
+                    sprintf(letter_str, "E");
+                } else {
+                    char binary_representation[32] = "";
                     for (int bit = nfa->alphabet_dim - 1; bit >= 0; --bit) {
                         strcat(binary_representation, (letter & (1 << bit)) ? "1" : "0");
                     }
                     strcpy(letter_str, binary_representation);
                 }
-                strcat(labels[state->id][current->val], letter_str);
+                strcat(labels[i][current->val], letter_str);
 
                 current = current->next;
             }
         }
     }
 
-    // output transitions
-    for (int i = 0; i < nfa->states_count; i++) {
-        for (int j = 0; j < nfa->states_count; j++) {
+    // Output transitions with aggregated labels
+    for (size_t i = 0; i < nfa->states_count; i++) {
+        for (size_t j = 0; j < nfa->states_count; j++) {
             if (strlen(labels[i][j]) > 0) {
-                fprintf(file, "\t%d -> %d [label = \"%s\"];\n", i, j, labels[i][j]);
+                fprintf(file, "\t%d -> %d [label=\"%s\"];\n", i, j, labels[i][j]);
             }
         }
     }
@@ -956,7 +959,7 @@ void NFA_to_DOT(NFA* nfa)
     fprintf(file, "}\n");
     fclose(file);
 
-    // free memory
+//    // free memory
     for (int i = 0; i < nfa->states_count; i++) {
         for (int j = 0; j < nfa->states_count; j++) {
             free(labels[i][j]);
@@ -966,7 +969,11 @@ void NFA_to_DOT(NFA* nfa)
     free(labels);
 
     printf("NFA has been written to %s\n", filename);
-    sprintf(filename, "%s%d", base_filename, counter);
+    if (counter == 0) {
+        sprintf(filename, "%s", base_filename);
+    } else {
+        sprintf(filename, "%s%d", base_filename, counter);
+    }
     generate_png_from_dot(filename);
 }
 
@@ -1197,18 +1204,31 @@ NFA* NFA_intersect(NFA* nfa1, NFA* nfa2)
 
             combined_state->is_final = nfa1->states[i]->is_final && nfa2->states[j]->is_final;
 
-            for (size_t letter = 0; letter <= (1 << alphabet_dim); letter++) {
+            for (size_t letter = 0; letter < (1 << alphabet_dim); letter++)
+            {
                 list* list1 = nfa1->states[i]->transitions[letter];
                 list* list2 = nfa2->states[j]->transitions[letter];
 
-                for (node* node1 = list1->head; node1 != nullptr; node1 = node1->next) {
-                    for (node* node2 = list2->head; node2 != nullptr; node2 = node2->next) {
+                for (node* node1 = list1->head; node1; node1 = node1->next) {
+                    for (node* node2 = list2->head; node2; node2 = node2->next) {
                         int new_end_state = node1->val * nfa2->states_count + node2->val;
                         NFA_transition_add(intersected_nfa, combined_state_id, new_end_state, letter);
                     }
                 }
-
             }
+
+            list* eps_list1 = nfa1->states[i]->transitions[1 << alphabet_dim];
+            list* eps_list2 = nfa2->states[j]->transitions[1 << alphabet_dim];
+
+            for (node* eps1 = eps_list1->head; eps1; eps1 = eps1->next) {
+                int target_state = eps1->val * nfa2->states_count + j;
+                NFA_transition_add(intersected_nfa, combined_state_id, target_state, 1 << alphabet_dim);
+            }
+            for (node* eps2 = eps_list2->head; eps2; eps2 = eps2->next) {
+                int target_state = i * nfa2->states_count + eps2->val;
+                NFA_transition_add(intersected_nfa, combined_state_id, target_state, 1 << alphabet_dim);
+            }
+
         }
     }
 
@@ -1403,6 +1423,13 @@ NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2)
     return new_nfa;
 }
 
+void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2)
+{
+    NFA* nfa_leftquot = NFA_leftquo(*nfa1, nfa2);
+    NFA_free(*nfa1);
+    *nfa1 = nfa_leftquot;
+}
+
 void NFA_leftquo_unioned(NFA** nfa1, NFA* nfa2)
 {
     NFA* nfa_leftquo = NFA_leftquo(*nfa1, nfa2);
@@ -1447,6 +1474,13 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
     NFA_free(nfa2_clone);
 
     return new_nfa;
+}
+
+void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2)
+{
+    NFA* nfa_rightquot = NFA_rightquo(*nfa1, nfa2);
+    NFA_free(*nfa1);
+    *nfa1 = nfa_rightquot;
 }
 
 void NFA_rightquo_unioned(NFA** nfa1, NFA* nfa2)
@@ -2750,7 +2784,7 @@ void NFA_def(const char* command) {
             cout << "Failed to create NFA from predicate.\n";
         }
     } else {
-        cout << "Invalid command format. Use def <name> \"<predicate>\" [-m] [-v]\n";
+        cout << "Invalid command format. Use def <name> \"<predicate>\" [-m] [-v] [-re]\n";
     }
 }
 
@@ -2880,7 +2914,7 @@ void NFA_visualize_command(const char* command)
         NFA_free(nfa);
         printf("Visualization for %s has been generated.\n", automaton_name);
     } else {
-        printf("Invalid command format. Use visualize \"$automaton_name\"\n");
+        printf("Invalid command format. Use visualize $automaton_name\n");
     }
 
 }
@@ -3031,4 +3065,31 @@ void free_stack(nfa_stack* s)
 }
 
 #pragma endregion
+
+NFA* NFA_with_term(NFA* nfa, NFA* term)
+{
+    if (nfa->alphabet_dim != 1 || !nfa || !term) return nullptr;
+    NFA* nfa_copy = NFA_clone(nfa);
+
+    while (nfa_copy->alphabet_dim != term->alphabet_dim)
+    {
+        NFA_extend_rec(&nfa_copy, nfa_copy->alphabet_dim);
+    }
+
+
+    NFA_intersect_rec(&nfa_copy, term);
+    DFA_minimize_rec(&nfa_copy);
+
+    NFA_project_rec(&nfa_copy, 0);
+
+
+    NFA* zeroes = NFA_get_only_zeroes(nfa_copy->alphabet_dim);
+
+    NFA_rightquo_rec(&nfa_copy, zeroes);
+    NFA_free(zeroes);
+
+    DFA_minimize_rec(&nfa_copy);
+
+    return nfa_copy;
+}
 
