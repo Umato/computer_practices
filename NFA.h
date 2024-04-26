@@ -227,7 +227,7 @@ NFA* NFA_get_2_power_m_y(int power);
 NFA* NFA_get_div_2_power_m(int power);
 NFA* NFA_get_a_y(int num);
 NFA* NFA_get_div_a(int a);
-NFA* NFA_get_sum_xn(int* a, int count);
+NFA* NFA_get_linear_term(int* a, int count);
 
 
 void NFA_console_app();

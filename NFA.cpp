@@ -1785,27 +1785,49 @@ NFA* DFA_minimize(NFA* nfa_original)
 
     NFA_remove_unreachable_states_rec(new_nfa);
 
-    // If there is a state which have no transition from it (besides itself) and it's non-final, then we can remove it
-    for (int i = 0; i < new_nfa->states_count; i++)
+    // If there is a state which have no transition from it (besides itself) and it's non-final or initial, 
+    // then we can remove it
+
+    bool need_remove = true;
+
+    while (need_remove)
     {
-        if (!new_nfa->states[i]->is_final)
+        need_remove = false;
+        int* removed_states = (int*)calloc(new_nfa->states_count, sizeof(int));
+
+        for (int i = 0; i < new_nfa->states_count; i++)
         {
-            bool have_transitions = 0;
-            for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
+            if (!new_nfa->states[i]->is_final && new_nfa->states[i]->id != new_nfa->initial_state->id)
             {
-                node* head = new_nfa->states[i]->transitions[letter]->head;
-                if (head && !(head->val == i))
+                bool have_transitions = 0;
+                for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
                 {
-                    have_transitions = 1;
-                    break;
+                    node* head = new_nfa->states[i]->transitions[letter]->head;
+                    if (head && !(head->val == i))
+                    {
+                        have_transitions = 1;
+                        break;
+                    }
+                }
+
+                if (!have_transitions)
+                {
+                    removed_states[i] = 1;
+                    need_remove = true;
                 }
             }
+        }
 
-            if (!have_transitions && new_nfa->states[i] != new_nfa->initial_state)
-            {
-                NFA_state_remove(new_nfa, i);
-                i = 0;
-            }
+        if (need_remove) NFA_state_list_remove(new_nfa, removed_states, new_nfa->states_count);
+        free(removed_states);
+    }
+
+    if (new_nfa->states_count == 1 && !new_nfa->initial_state->is_final) // its initial state
+    {
+        for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
+        {
+            free(new_nfa->initial_state->transitions[letter]->head);
+            new_nfa->initial_state->transitions[letter]->head = nullptr;
         }
     }
 
@@ -2462,7 +2484,7 @@ NFA* NFA_get_a_y(int num)
             NFA_extend_rec(&nfa, 0); // [-, 4z, z]
             NFA_extend_rec(&nfa, 0); // [-, -, 4z, z]
             NFA_intersect_rec(&nfa_result, nfa); //[12y, y, 4z, z]
-            DFA_minimize_rec(&nfa_result);
+            //DFA_minimize_rec(&nfa_result);
 
             NFA_get_equal_coordinates_rec(&nfa_result, 1, 3); //[12y, y, 4y, y]
             NFA_extend_rec(&nfa_result, 0); //[-, 12y, y, 4y, y]
@@ -2471,7 +2493,7 @@ NFA* NFA_get_a_y(int num)
             NFA_project_rec(&nfa_result, 1); //[14y, y, 2y, y]
             NFA_project_rec(&nfa_result, 2); //[14y, y, y]
             NFA_project_rec(&nfa_result, 2); //[14y, y]
-            DFA_minimize_rec(&nfa_result);
+            //DFA_minimize_rec(&nfa_result);
 
             NFA_free(nfa);
         }
@@ -2479,6 +2501,7 @@ NFA* NFA_get_a_y(int num)
         power++;
     }
 
+    DFA_minimize_rec(&nfa_result);
     NFA_free(nfa_sum);
 
     return nfa_result;
@@ -2492,7 +2515,7 @@ NFA* NFA_get_div_a(int a)
     return nfa_result;
 }
 
-NFA* NFA_get_sum_xn(int* a, int count)
+NFA* NFA_get_linear_term(int* a, int count)
 {
     if (!a) return nullptr;
     if (count == 0) return NFA_get_only_zeroes();
@@ -2552,6 +2575,34 @@ NFA* NFA_get_sum_xn(int* a, int count)
 
     return nfa_result;
 }
+
+NFA* NFA_with_term(NFA* nfa, NFA* term)
+{
+    if (nfa->alphabet_dim != 1 || !nfa || !term) return nullptr;
+    NFA* nfa_copy = NFA_clone(nfa);
+
+    while (nfa_copy->alphabet_dim != term->alphabet_dim)
+    {
+        NFA_extend_rec(&nfa_copy, nfa_copy->alphabet_dim);
+    }
+
+
+    NFA_intersect_rec(&nfa_copy, term);
+    DFA_minimize_rec(&nfa_copy);
+
+    NFA_project_rec(&nfa_copy, 0);
+
+
+    NFA* zeroes = NFA_get_only_zeroes(nfa_copy->alphabet_dim);
+
+    NFA_rightquo_rec(&nfa_copy, zeroes);
+    NFA_free(zeroes);
+
+    DFA_minimize_rec(&nfa_copy);
+
+    return nfa_copy;
+}
+
 
 #pragma endregion
 
@@ -3066,30 +3117,4 @@ void free_stack(nfa_stack* s)
 
 #pragma endregion
 
-NFA* NFA_with_term(NFA* nfa, NFA* term)
-{
-    if (nfa->alphabet_dim != 1 || !nfa || !term) return nullptr;
-    NFA* nfa_copy = NFA_clone(nfa);
-
-    while (nfa_copy->alphabet_dim != term->alphabet_dim)
-    {
-        NFA_extend_rec(&nfa_copy, nfa_copy->alphabet_dim);
-    }
-
-
-    NFA_intersect_rec(&nfa_copy, term);
-    DFA_minimize_rec(&nfa_copy);
-
-    NFA_project_rec(&nfa_copy, 0);
-
-
-    NFA* zeroes = NFA_get_only_zeroes(nfa_copy->alphabet_dim);
-
-    NFA_rightquo_rec(&nfa_copy, zeroes);
-    NFA_free(zeroes);
-
-    DFA_minimize_rec(&nfa_copy);
-
-    return nfa_copy;
-}
 

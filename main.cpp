@@ -317,10 +317,18 @@ int main() {
 
 #pragma endregion   
 
+    /*NFA* nfa_div1 = NFA_get_div_a(127);
+    printf("aboba1\n");
+    NFA* nfa_div2 = NFA_get_div_a(128);
+    printf("aboba2\n");
+    NFA_to_DOT(nfa_div1);
+    NFA_to_DOT(nfa_div2);
+    DFA_minimize_rec(&nfa_div1);
+    NFA_to_DOT(nfa_div1);*/
 
 
 
-//    NFA_console_app();
+    NFA_console_app();
 
 
 
