@@ -326,8 +326,8 @@ int main() {
     DFA_minimize_rec(&nfa_div1);
     NFA_to_DOT(nfa_div1);*/
 
-
-
+    //int a[3];
+    
     NFA_console_app();
 
 

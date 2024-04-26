@@ -2698,7 +2698,7 @@ int nfa_get_priority(char op) {
     switch (op) {
     case '(': return -1;
     case '~': return 5;
-    case 'E':
+    case 'E': 
     case 'A': return 4;
     case '&': return 3;
     case '|':
