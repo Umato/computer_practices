@@ -287,7 +287,6 @@ int performOperation(int operand1, int operand2, char operation) {
 }
 
 int RPNCalculator(const char *expression) {
-//    std::stack<int> st;
     stack *st = create_stack();
     int i = 0;
     size_t len = strlen(expression);

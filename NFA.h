@@ -13,9 +13,17 @@
 #include "big_integer.h"
 #include "graph.h"
 #include <bit>
+#include <conio.h>
+#include <vector>
 
 #include "direct.h"
 #include "windows.h"
+
+typedef struct linear_term {
+    int* coefficients;
+    int constant;
+    int count;
+} linear_term;
 
 typedef struct NFA_state {
     int id;
@@ -30,6 +38,15 @@ typedef struct NFA {
     NFA_state* initial_state;
 } NFA;
 
+typedef struct nfa_node {
+    NFA* nfa;
+    struct nfa_node* next;
+} nfa_node;
+
+typedef struct nfa_stack {
+    nfa_node* top;
+} nfa_stack;
+
 list* list_init();
 void list_free(list* tr_list);
 void add_to_list(list* l, int val);
@@ -37,7 +54,6 @@ void print_bin(unsigned number, unsigned int bits);
 int get_random_num(int start, int end);
 char* format_string_to_bin(const char* string);
 char* int_to_string(int num);
-//int log2(int num);
 
 
 NFA_state* NFA_state_init(int id, bool is_final, int alphabet_dim);
@@ -211,7 +227,7 @@ NFA* NFA_get_2_power_m_y(int power);
 NFA* NFA_get_div_2_power_m(int power);
 NFA* NFA_get_a_y(int num);
 NFA* NFA_get_div_a(int a);
-NFA* NFA_get_sum_xn(int* a, int count);
+NFA* NFA_get_linear_term(int* a, int count);
 
 
 void NFA_console_app();
@@ -219,5 +235,40 @@ void print_help();
 void NFA_list();
 int nfa_get_priority(char op);
 char* NFA_RPN(const char* formula);
+NFA* load_NFA_from_file(const char* filename);
+NFA* predicate_to_NFA(const char* predicate);
+
+
+nfa_stack* create_nfa_stack();
+void push(nfa_stack* s, NFA* nfa);
+NFA* pop(nfa_stack* s);
+bool is_stack_empty(nfa_stack* s);
+void free_stack(nfa_stack* s);
+NFA* NFA_from_predicate(const char* predicate);
+
+void NFA_def(const char* command);
+void NFA_eval_command(const char* command);
+void NFA_for_command(const char* command);
+void NFA_eval2_command(const char* command);
+void DFA_complement_rec(NFA** nfa);
+void NFA_visualize_command(const char* command);
+void handle_minimization(const char* automaton_name);
+void handle_conversion_to_dfa(const char* automaton_name);
+char* extract_name(const char* token);
+
+void handle_operation(nfa_stack* stack, char op);
+void to_lower_case(char *str);
+void handle_remove_epsilon(const char* automaton_name);
+void handle_command(const std::string& command);
+
+linear_term* parse_linear_term(const char* input);
+void print_linear_term(const linear_term* term);
+
+NFA* NFA_get_only_zeroes(int dim);
+
+void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2);
+void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
+
+NFA* NFA_with_term(NFA* nfa, NFA* term);
 
 #endif //COMPUTER_PRACTICES_NFA_H

@@ -1,3 +1,4 @@
+#include "NFA.h"
 //
 // Coded by Zelendzu & Umato on 29.02.2024.
 //
@@ -7,9 +8,9 @@
 // MINIMIZE 2=2 точка с запятой
 // Убрать эпсилон переходы при НФА-ту-ДФА
 
-#include "NFA.h"
 
 #pragma region Others
+
 list* list_init()
 {
     list* new_list = (list*)malloc(sizeof(list));
@@ -65,7 +66,7 @@ int get_random_num(int start, int end)
         end = end - start;
     }
 
-    return rand() % (end - start + 1) + start;   
+    return rand() % (end - start + 1) + start;
 }
 
 char* format_string_to_bin(const char* string)
@@ -110,6 +111,127 @@ char* int_to_string(int num)
     }
 
     return string;
+}
+
+void to_lower_case(char *str) {
+    for (; *str; ++str) *str = tolower((unsigned char) *str);
+}
+
+char* extract_name(const char* token) {
+    char* name = (char*)malloc(256 * sizeof(char));
+    if (sscanf(token + 1, "%255[^ (]", name) == 1) {
+        return name;
+    }
+    free(name);
+    return nullptr;
+}
+
+linear_term* parse_linear_term(const char* input)
+{
+    if (!input) return nullptr;
+
+    linear_term* term = (linear_term*)malloc(sizeof(linear_term));
+    if (!term) return nullptr;
+
+    int max_index = 0;
+    const char* temp_input = input;
+    int coeff, index, num_read;
+    char sign = '+';
+
+    // First pass to determine the maximum index needed for the coefficients array
+    while (*temp_input) {
+        if (sscanf(temp_input, "%d*x_%d%n", &coeff, &index, &num_read) == 2 ||
+            sscanf(temp_input, "%dx_%d%n", &coeff, &index, &num_read) == 2 ||
+            sscanf(temp_input, "%c%d*x_%d%n", &sign, &coeff, &index, &num_read) == 3) {
+            if (index > max_index) {
+                max_index = index;
+            }
+            temp_input += num_read;
+        } else if (sscanf(temp_input, "x_%d%n", &index, &num_read) == 1 ||
+                   sscanf(temp_input, "%cx_%d%n", &sign, &index, &num_read) == 2) {
+            if (index > max_index) {
+                max_index = index;
+            }
+            temp_input += num_read;
+        } else {
+            temp_input++;
+        }
+    }
+
+    int* coefficients = (int*)calloc(max_index + 1, sizeof(int));
+    if (!coefficients) {
+        free(term);
+        return nullptr;
+    }
+
+    term->constant = 0;
+    const char* scan_start = input;
+    sign = '+';
+
+    while (*scan_start) {
+        if (sscanf(scan_start, "%d*x_%d%n", &coeff, &index, &num_read) == 2 ||
+            sscanf(scan_start, "%dx_%d%n", &coeff, &index, &num_read) == 2) {
+            coefficients[index - 1] += (sign == '+' ? coeff : -coeff);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "%c%d*x_%d%n", &sign, &coeff, &index, &num_read) == 3) {
+            coefficients[index - 1] += (sign == '+' ? coeff : -coeff);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "x_%d%n", &index, &num_read) == 1) {
+            coefficients[index - 1] += (sign == '+' ? 1 : -1);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "%cx_%d%n", &sign, &index, &num_read) == 2) {
+            coefficients[index - 1] += (sign == '+' ? 1 : -1);
+            scan_start += num_read;
+            sign = '+';
+        } else if (sscanf(scan_start, "%d%n", &coeff, &num_read) == 1) {
+            term->constant += (sign == '+' ? coeff : -coeff);
+            scan_start += num_read;
+            sign = '+';
+        } else if (*scan_start == '+' || *scan_start == '-') {
+            sign = *scan_start++;
+        } else {
+            scan_start++;
+        }
+    }
+
+    term->coefficients = coefficients;
+    term->count = max_index;
+    return term;
+}
+
+void print_linear_term(const linear_term* term)
+{
+    if (term == nullptr) {
+        printf("Invalid term (nullptr).\n");
+        return;
+    }
+
+    bool first = true;
+    for (int i = 0; i < term->count; i++) {
+        int coeff = term->coefficients[i];
+        if (coeff != 0) {
+            if (first) {
+                first = false;
+                printf("%d*x_%d", coeff, i + 1);
+            } else {
+                printf(" %c %d*x_%d", coeff > 0 ? '+' : '-', abs(coeff), i + 1);
+            }
+        }
+    }
+
+    // Print constant
+    if (term->constant != 0 || first) {
+        if (first) {
+            printf("%d", term->constant);
+        } else {
+            printf(" %c %d", term->constant > 0 ? '+' : '-', abs(term->constant));
+        }
+    }
+
+    printf("\n");
 }
 
 #pragma endregion
@@ -163,9 +285,9 @@ NFA* NFA_init(int states_count, int alphabet_dim, int initial_state, int final_s
 
     if (final_states)
     {
-        for (size_t i = 0; i < final_states_count; i++) 
+        for (size_t i = 0; i < final_states_count; i++)
         {
-            if (final_states[i] < states_count) 
+            if (final_states[i] < states_count)
             {
                 nfa->states[final_states[i]]->is_final = true;
             }
@@ -269,7 +391,7 @@ bool NFA_state_remove(NFA* nfa, int id)
     free(nfa->states[id]->transitions);
     free(nfa->states[id]);
 
-    // move on 1 index left all states after the current one 
+    // move on 1 index left all states after the current one
     for (int i = id; i < nfa->states_count - 1; i++)
     {
         nfa->states[i] = nfa->states[i + 1];
@@ -322,7 +444,7 @@ bool NFA_state_remove(NFA* nfa, int id)
         }
     }
 
-    
+
 
     return true;
 }
@@ -425,7 +547,7 @@ bool NFA_state_list_remove(NFA* nfa, int* removed_states, int list_size)
             }
         }
     }
-    
+
     free(new_states_id);
     return true;
 }
@@ -490,9 +612,9 @@ bool NFA_accept(NFA* nfa, char* num)
     {
         next_states_added = (bool*)calloc(nfa->states_count, sizeof(bool)); // 0: state is not in "next_states", 1: state IS in "next_states"
         next_states = create_stack(); // stack of states we can reach from current set of states
-        
+
         bit = new_num[total_bits - i - 1] == '1';
-        
+
         while (!is_stack_empty(current_states))
         {
             node* dest = nfa->states[pop(current_states)]->transitions[bit]->head;
@@ -546,7 +668,7 @@ bool NFA_accept(NFA* nfa, char* num)
         }
     }
 
-    
+
     free_stack(current_states);
     return 0;
 }
@@ -759,7 +881,7 @@ void NFA_to_DOT(NFA* nfa)
 
     file = fopen(filename, "w");
 
-    fprintf(file, "digraph finite_state_machine{\n");
+    fprintf(file, "digraph finite_state_machine {\n");
     fprintf(file, "\trankdir=LR;\n");
 
     char final_states_str[256] = "";
@@ -782,17 +904,21 @@ void NFA_to_DOT(NFA* nfa)
     fprintf(file, "\tinit [shape=none, label=\"\"];\n");
     fprintf(file, "\tinit -> %d;\n", nfa->initial_state->id);
 
+    for (size_t i = 0; i < nfa->states_count; i++) {
+        // Ensure that all states are accounted for by declaring them even if no transitions are listed
+        fprintf(file, "\t%d [label=\"%d\"];\n", i, i);
+    }
+
     // structure for storing labels of transitions
     char*** labels = (char***)malloc(nfa->states_count * sizeof(char**));
-    for (int i = 0; i < nfa->states_count; i++) {
+    for (size_t i = 0; i < nfa->states_count; i++) {
         labels[i] = (char**)malloc(nfa->states_count * sizeof(char*));
-        for (int j = 0; j < nfa->states_count; j++) {
-            labels[i][j] = (char*)calloc(128, sizeof(char)); // Предположим, что достаточно 128 символов для всех меток
+        for (size_t j = 0; j < nfa->states_count; j++) {
+            labels[i][j] = (char*)calloc(128, sizeof(char)); // Assuming enough space for labels
         }
     }
 
-    // filling label for every transition
-    for (size_t i = 0; i < nfa->states_count; i++) {
+        for (size_t i = 0; i < nfa->states_count; i++) {
         NFA_state* state = nfa->states[i];
         for (size_t letter = 0; letter <= (1 << nfa->alphabet_dim); letter++) {
             list* transition_list = state->transitions[letter];
@@ -802,32 +928,31 @@ void NFA_to_DOT(NFA* nfa)
 
             node* current = transition_list->head;
             while (current) {
-                if (strlen(labels[state->id][current->val]) > 0) {
-                    strcat(labels[state->id][current->val], ",");
+                if (strlen(labels[i][current->val]) > 0) {
+                    strcat(labels[i][current->val], ",");
                 }
                 char letter_str[10];
-                if (letter == (1 << nfa->alphabet_dim))
-                    sprintf(letter_str, "%c", 'E');
-                else {
-                    char binary_representation[32];
-                    sprintf(binary_representation, "");
+                if (letter == (1 << nfa->alphabet_dim)) {
+                    sprintf(letter_str, "E");
+                } else {
+                    char binary_representation[32] = "";
                     for (int bit = nfa->alphabet_dim - 1; bit >= 0; --bit) {
                         strcat(binary_representation, (letter & (1 << bit)) ? "1" : "0");
                     }
                     strcpy(letter_str, binary_representation);
                 }
-                strcat(labels[state->id][current->val], letter_str);
+                strcat(labels[i][current->val], letter_str);
 
                 current = current->next;
             }
         }
     }
 
-    // output transitions
-    for (int i = 0; i < nfa->states_count; i++) {
-        for (int j = 0; j < nfa->states_count; j++) {
+    // Output transitions with aggregated labels
+    for (size_t i = 0; i < nfa->states_count; i++) {
+        for (size_t j = 0; j < nfa->states_count; j++) {
             if (strlen(labels[i][j]) > 0) {
-                fprintf(file, "\t%d -> %d [label = \"%s\"];\n", i, j, labels[i][j]);
+                fprintf(file, "\t%d -> %d [label=\"%s\"];\n", i, j, labels[i][j]);
             }
         }
     }
@@ -835,7 +960,7 @@ void NFA_to_DOT(NFA* nfa)
     fprintf(file, "}\n");
     fclose(file);
 
-    // free memory
+//    // free memory
     for (int i = 0; i < nfa->states_count; i++) {
         for (int j = 0; j < nfa->states_count; j++) {
             free(labels[i][j]);
@@ -845,7 +970,11 @@ void NFA_to_DOT(NFA* nfa)
     free(labels);
 
     printf("NFA has been written to %s\n", filename);
-    sprintf(filename, "%s%d", base_filename, counter);
+    if (counter == 0) {
+        sprintf(filename, "%s", base_filename);
+    } else {
+        sprintf(filename, "%s%d", base_filename, counter);
+    }
     generate_png_from_dot(filename);
 }
 
@@ -867,6 +996,10 @@ void NFA_to_file(NFA* automaton, const char* filename)
     }
 
     FILE* file = fopen(filename, "w");
+    if (!file) {
+        cout << "Failed to open file for writing.\n";
+        return;
+    }
 
     fprintf(file, "lsd_%d\n\n", automaton->alphabet_dim);
 
@@ -889,14 +1022,18 @@ void NFA_to_file(NFA* automaton, const char* filename)
 
         fprintf(file, "%d %d\n", state->id, state_type);
 
-        for (size_t letter = 0; letter < (1 << automaton->alphabet_dim); letter++) {
+        for (size_t letter = 0; letter <= (1 << automaton->alphabet_dim); letter++) {
             list* transition_list = state->transitions[letter];
             if (transition_list == nullptr || transition_list->head == nullptr) continue;
 
             node* current = transition_list->head;
             while (current != nullptr) {
-                for (size_t bit = 0; bit < automaton->alphabet_dim; bit++) {
-                    fprintf(file, "%d ", (letter >> (automaton->alphabet_dim - 1 - bit)) & 1);
+                if (letter == (1 << automaton->alphabet_dim)) {
+                    fprintf(file, "%s ", "E");
+                } else {
+                    for (size_t bit = 0; bit < automaton->alphabet_dim; bit++) {
+                        fprintf(file, "%d ", (letter >> (automaton->alphabet_dim - 1 - bit)) & 1);
+                    }
                 }
 
                 fprintf(file, "-> %d\n", current->val);
@@ -938,7 +1075,6 @@ NFA* NFA_from_file(const char* filename)
 
     while (fgets(line, sizeof(line), file))
     {
-        //        cout << line << endl;
 
         int state_id, state_type;
 
@@ -972,9 +1108,21 @@ NFA* NFA_from_file(const char* filename)
 
             while (fgets(line, sizeof(line), file) && line[0] != '\n')
             {
-                //                cout << line << endl;
                 int letter, end_state;
                 int bit;
+                if (line[0] == 'E') {
+                    if (sscanf(line, "E -> %d\n", &end_state) == 1) {
+                        if (end_state >= automaton->states_count)
+                        {
+                            for (int i = automaton->states_count; i <= end_state; i++)
+                            {
+                                NFA_state_add(automaton, false);
+                            }
+                        }
+                        NFA_transition_add(automaton, state_id, end_state, alphabet_dim<<1);
+                        continue;
+                    };
+                }
                 if (sscanf(line, "%d ", &letter) == 1)
                 {
                     char* ptr = line + 2;
@@ -997,8 +1145,6 @@ NFA* NFA_from_file(const char* filename)
                             }
                         }
                         NFA_transition_add(automaton, state_id, end_state, letter);
-
-
                     }
                     else break;
 
@@ -1022,6 +1168,22 @@ NFA* NFA_from_file(const char* filename)
     fclose(file);
     return automaton;
 }
+
+NFA* load_NFA_from_file(const char* filename)
+{
+    if (strncmp(filename, "div_", 4) == 0 || strncmp(filename, "div", 3) == 0) {
+        int number;
+        if (sscanf(filename, "div_%d", &number) == 1 || sscanf(filename, "div%d", &number) == 1) {
+            return NFA_get_div_a(number);
+        }
+    }
+
+    char path[256];
+    sprintf(path, "../NFA/NFAs/%s.txt", filename);
+
+    return NFA_from_file(path);
+}
+
 #pragma endregion
 
 
@@ -1043,18 +1205,31 @@ NFA* NFA_intersect(NFA* nfa1, NFA* nfa2)
 
             combined_state->is_final = nfa1->states[i]->is_final && nfa2->states[j]->is_final;
 
-            for (size_t letter = 0; letter <= (1 << alphabet_dim); letter++) {
+            for (size_t letter = 0; letter < (1 << alphabet_dim); letter++)
+            {
                 list* list1 = nfa1->states[i]->transitions[letter];
                 list* list2 = nfa2->states[j]->transitions[letter];
 
-                for (node* node1 = list1->head; node1 != nullptr; node1 = node1->next) {
-                    for (node* node2 = list2->head; node2 != nullptr; node2 = node2->next) {
+                for (node* node1 = list1->head; node1; node1 = node1->next) {
+                    for (node* node2 = list2->head; node2; node2 = node2->next) {
                         int new_end_state = node1->val * nfa2->states_count + node2->val;
                         NFA_transition_add(intersected_nfa, combined_state_id, new_end_state, letter);
                     }
                 }
-
             }
+
+            list* eps_list1 = nfa1->states[i]->transitions[1 << alphabet_dim];
+            list* eps_list2 = nfa2->states[j]->transitions[1 << alphabet_dim];
+
+            for (node* eps1 = eps_list1->head; eps1; eps1 = eps1->next) {
+                int target_state = eps1->val * nfa2->states_count + j;
+                NFA_transition_add(intersected_nfa, combined_state_id, target_state, 1 << alphabet_dim);
+            }
+            for (node* eps2 = eps_list2->head; eps2; eps2 = eps2->next) {
+                int target_state = i * nfa2->states_count + eps2->val;
+                NFA_transition_add(intersected_nfa, combined_state_id, target_state, 1 << alphabet_dim);
+            }
+
         }
     }
 
@@ -1128,7 +1303,7 @@ NFA* DFA_complement(NFA* nfa)
     DFA_make_complete(complement_dfa);
     if (!complement_dfa) return nullptr;
 
-    for (int i = 0; i < complement_dfa->states_count; i++) 
+    for (int i = 0; i < complement_dfa->states_count; i++)
     {
         complement_dfa->states[i]->is_final = !complement_dfa->states[i]->is_final;
     }
@@ -1137,7 +1312,7 @@ NFA* DFA_complement(NFA* nfa)
     return complement_dfa;
 }
 
-void DFA_complement_rec(NFA** nfa) 
+void DFA_complement_rec(NFA** nfa)
 {
     NFA* dfa_complement = DFA_complement(*nfa);
     NFA_free(*nfa);
@@ -1215,7 +1390,7 @@ NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2)
     stack* initial_states = create_stack();
     NFA* inter_nfa = NFA_intersect(nfa1, nfa2);
     NFA_remove_unreachable_states_rec(inter_nfa);
-    
+
     // combined_state_id = i * nfa2->states_count + j;
     // if nfa2.states[j] is final => nfa1.states[i] is new initial
     for (int i = 0; i < inter_nfa->states_count; i++)
@@ -1236,7 +1411,7 @@ NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2)
         free_stack(initial_states);
         return nullptr;
     }
-    
+
     int new_initial = new_nfa->states_count - 1;
     new_nfa->initial_state = new_nfa->states[new_initial];
     // add epsilon-transitions from new initial state to states from stack
@@ -1247,6 +1422,13 @@ NFA* NFA_leftquo(NFA* nfa1, NFA* nfa2)
 
     free_stack(initial_states);
     return new_nfa;
+}
+
+void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2)
+{
+    NFA* nfa_leftquot = NFA_leftquo(*nfa1, nfa2);
+    NFA_free(*nfa1);
+    *nfa1 = nfa_leftquot;
 }
 
 void NFA_leftquo_unioned(NFA** nfa1, NFA* nfa2)
@@ -1274,7 +1456,7 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
         new_nfa->initial_state = new_nfa->states[i];
         NFA* inter_nfa = NFA_intersect(new_nfa, nfa2_clone);
         NFA_remove_unreachable_states_rec(inter_nfa);
-        
+
         if (NFA_get_final_states_count(inter_nfa) != 0)
         {
             state_is_new_final[i] = 1;
@@ -1293,6 +1475,13 @@ NFA* NFA_rightquo(NFA* nfa1, NFA* nfa2)
     NFA_free(nfa2_clone);
 
     return new_nfa;
+}
+
+void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2)
+{
+    NFA* nfa_rightquot = NFA_rightquo(*nfa1, nfa2);
+    NFA_free(*nfa1);
+    *nfa1 = nfa_rightquot;
 }
 
 void NFA_rightquo_unioned(NFA** nfa1, NFA* nfa2)
@@ -1358,9 +1547,13 @@ void NFA_swap_rec(NFA** nfa, int n1, int n2)
 NFA* NFA_to_DFA(NFA* nfa_original)
 {
     if (!nfa_original) return nullptr;
-    
+
     NFA* nfa = NFA_clone(nfa_original);
+
+    NFA_remove_epsilon_transitions(nfa);
+
     NFA_remove_unreachable_states_rec(nfa);
+
 
     if (nfa->states_count == 0 || NFA_is_DFA(nfa))
     {
@@ -1372,7 +1565,7 @@ NFA* NFA_to_DFA(NFA* nfa_original)
     big_int_list* new_states = big_int_list_init(1, (nfa->states_count + 7) >> 3);
     big_int* next_state_added = nullptr;
     // Table of transitions, where first id is state_id, and second - is letter. Stores destinations states ids
-    int** transitions = (int**)malloc(sizeof(int*)); 
+    int** transitions = (int**)malloc(sizeof(int*));
     int final_states_count = 0;
     int* final_states = (int*)malloc(sizeof(int));
     big_int* empty_state = big_int_init_zeroes((nfa->states_count + 7) >> 3); // for comparing
@@ -1401,7 +1594,7 @@ NFA* NFA_to_DFA(NFA* nfa_original)
 
             for (int s = 0; s < nfa->states_count; s++)
             {
-                // For each old state checks if it's in new_states[new_state_id] 
+                // For each old state checks if it's in new_states[new_state_id]
                 // and adds states, reached by the letter, to next_state_added
                 if (big_int_list_get_bit(new_states, new_state_id, s) == 1) // may return -1, so need to check
                 {
@@ -1409,10 +1602,10 @@ NFA* NFA_to_DFA(NFA* nfa_original)
                     node* dest = nfa->states[s]->transitions[letter]->head;
                     while (dest)
                     {
-                        if (big_int_get_bit(next_state_added, dest->val) == 0) // may return -1, so need to check 
+                        if (big_int_get_bit(next_state_added, dest->val) == 0) // may return -1, so need to check
                         {
                             big_int_add_bit(next_state_added, dest->val);
-                            
+
                             // Check all epsilon-reached states
                             queue* eps_queue = create_queue();
                             enqueue(eps_queue, dest->val);
@@ -1507,7 +1700,7 @@ NFA* DFA_minimize(NFA* nfa_original)
     {
         NFA_to_DFA_rec(&nfa);
     }
-    
+
     int groups_count = 2;
     int* state_group = (int*)calloc(nfa->states_count, sizeof(int)); // represents group number of each state
     list** groups = (list**)malloc(2 * sizeof(list*)); // list of groups, where each group is a set of states {s1,s2,..}
@@ -1520,7 +1713,7 @@ NFA* DFA_minimize(NFA* nfa_original)
     for (int i = 0; i < nfa->states_count; i++)
     {
         //if final = 1 -> add to groups[0], if final = 0 => groups[1]
-        add_to_list(groups[nfa->states[i]->is_final == 0], i); 
+        add_to_list(groups[nfa->states[i]->is_final == 0], i);
         state_group[i] = nfa->states[i]->is_final == 0;
     }
 
@@ -1553,7 +1746,7 @@ NFA* DFA_minimize(NFA* nfa_original)
     }
 
     int final_states_count = 0;
-    int* final_states = NULL;
+    int* final_states = nullptr;
     for (int i = 0; i < groups_count; i++)
     {
         node* current = groups[i]->head;
@@ -1566,7 +1759,7 @@ NFA* DFA_minimize(NFA* nfa_original)
                 final_states[final_states_count - 1] = i;
                 break;
             }
-            
+
             current = current->next;
         }
     }
@@ -1593,29 +1786,49 @@ NFA* DFA_minimize(NFA* nfa_original)
 
     NFA_remove_unreachable_states_rec(new_nfa);
 
-    // If there is a state which have no transition from it (besides itself) and it's non-final, then we can remove it
-    for (int i = 0; i < new_nfa->states_count; i++)
+    // If there is a state which have no transition from it (besides itself) and it's non-final or initial, 
+    // then we can remove it
+
+    bool need_remove = true;
+
+    while (need_remove)
     {
-        if (!new_nfa->states[i]->is_final)
+        need_remove = false;
+        int* removed_states = (int*)calloc(new_nfa->states_count, sizeof(int));
+
+        for (int i = 0; i < new_nfa->states_count; i++)
         {
-            bool have_transitions = 0;
-            for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
+            if (!new_nfa->states[i]->is_final && new_nfa->states[i]->id != new_nfa->initial_state->id)
             {
-                node* head = new_nfa->states[i]->transitions[letter]->head;
-                // HERE IS THE PLACE WHERE 2 != 2 !!!!!!!!!!!!!!!!!!
-                //if (head) printf("\nhead val = %d, i = %d, headval == i = %d", head->val, i, head->val == i);
-                if (head && !(head->val == i));
+                bool have_transitions = 0;
+                for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
                 {
-                    have_transitions = 1;
-                    break;
+                    node* head = new_nfa->states[i]->transitions[letter]->head;
+                    if (head && !(head->val == i))
+                    {
+                        have_transitions = 1;
+                        break;
+                    }
+                }
+
+                if (!have_transitions)
+                {
+                    removed_states[i] = 1;
+                    need_remove = true;
                 }
             }
-            
-            if (!have_transitions)
-            {
-                NFA_state_remove(new_nfa, i);
-                i = 0;
-            }
+        }
+
+        if (need_remove) NFA_state_list_remove(new_nfa, removed_states, new_nfa->states_count);
+        free(removed_states);
+    }
+
+    if (new_nfa->states_count == 1 && !new_nfa->initial_state->is_final) // its initial state
+    {
+        for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
+        {
+            free(new_nfa->initial_state->transitions[letter]->head);
+            new_nfa->initial_state->transitions[letter]->head = nullptr;
         }
     }
 
@@ -1628,15 +1841,17 @@ void DFA_minimize_rec(NFA** nfa)
     NFA_free(*nfa);
     *nfa = new_nfa;
 }
+
 #pragma endregion
 
 
 #pragma region NFA Support Functions
-void DFA_make_complete(NFA* nfa) 
+
+void DFA_make_complete(NFA* nfa)
 {
     if (!nfa) return;
 
-    if (!NFA_is_DFA(nfa)) 
+    if (!NFA_is_DFA(nfa))
     {
         NFA_to_DFA_rec(&nfa);
     }
@@ -1646,7 +1861,7 @@ void DFA_make_complete(NFA* nfa)
 
     for (int i = 0; i < states_count; i++)
     {
-        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++) 
+        for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
         {
             if (!nfa->states[i]->transitions[letter]->head)
             {
@@ -1655,13 +1870,12 @@ void DFA_make_complete(NFA* nfa)
         }
     }
 
-    for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++) 
+    for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
     {
         NFA_transition_add(nfa, states_count, states_count, letter);
     }
 }
 
-// NEED TO BE TESTED
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count)
 {
     if (!nfa || !group || !group->head || !state_group) return nullptr;
@@ -1679,12 +1893,12 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
         bool group_was_changed = 0;
         for (int letter = 0; letter < (1 << nfa->alphabet_dim); letter++)
         {
-            // as we have dfa, then we need to compare only heads of the transition lists 
+            // as we have dfa, then we need to compare only heads of the transition lists
             node* dest_state1 = nfa->states[group->head->val]->transitions[letter]->head;
             node* dest_state2 = nfa->states[current->val]->transitions[letter]->head;
 
             // if both != null AND (only one of them = null OR groups are not equal)
-            if (!(dest_state1 == NULL && dest_state2 == NULL) && 
+            if (!(dest_state1 == NULL && dest_state2 == NULL) &&
                 (((dest_state1 == NULL) != (dest_state2 == NULL)) || ((*state_group)[dest_state1->val] != (*state_group)[dest_state2->val])))
             {
                 add_to_list(new_group, current->val);
@@ -1722,7 +1936,7 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
         }
         free(new_groups);
     }
-        
+
     current_group = nullptr;
     list_free(new_group);
     return groups;
@@ -1735,7 +1949,6 @@ NFA* NFA_remove_unreachable_states(NFA* nfa)
     return nfa_result;
 }
 
-// NEED TO BE TESTED
 void NFA_remove_unreachable_states_rec(NFA* nfa)
 {
     int* state_is_reachable = (int*)calloc(nfa->states_count, sizeof(int));
@@ -1881,7 +2094,6 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
         for (size_t j = 0; j < nfa->states_count; j++) {
             if (epsilon_closure[j]) {
                 copy_transitions(nfa, i, j);
-
                 if (nfa->states[j]->is_final) {
                     nfa->states[i]->is_final = true;
                 }
@@ -1889,7 +2101,7 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
         }
 
         list_free(state->transitions[epsilon]);
-        state->transitions[epsilon] = nullptr;
+        state->transitions[epsilon] = list_init();
 
         free(epsilon_closure);
     }
@@ -1899,6 +2111,7 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 
 #pragma region NFA Examples
+
 NFA* NFA_get_div_2_custom()
 {
     int* final_states = (int*)malloc(sizeof(int));
@@ -2173,6 +2386,20 @@ NFA* NFA_get_only_zeroes()
     return nfa;
 }
 
+NFA* NFA_get_only_zeroes(int dim)
+{
+    int states_count = 1;
+    int alphabet_dim = dim;
+    int initial_state = 0;
+    int final_states_count = 1;
+    int final_states[] = { 0 };
+
+    NFA* nfa = NFA_init(states_count, alphabet_dim, initial_state, final_states_count, final_states);
+
+    NFA_transition_add(nfa, 0, 0, 0);
+    return nfa;
+}
+
 NFA* NFA_get_trivial()
 {
     int states_count = 1;
@@ -2258,7 +2485,7 @@ NFA* NFA_get_a_y(int num)
             NFA_extend_rec(&nfa, 0); // [-, 4z, z]
             NFA_extend_rec(&nfa, 0); // [-, -, 4z, z]
             NFA_intersect_rec(&nfa_result, nfa); //[12y, y, 4z, z]
-            DFA_minimize_rec(&nfa_result);
+            //DFA_minimize_rec(&nfa_result);
 
             NFA_get_equal_coordinates_rec(&nfa_result, 1, 3); //[12y, y, 4y, y]
             NFA_extend_rec(&nfa_result, 0); //[-, 12y, y, 4y, y]
@@ -2267,14 +2494,15 @@ NFA* NFA_get_a_y(int num)
             NFA_project_rec(&nfa_result, 1); //[14y, y, 2y, y]
             NFA_project_rec(&nfa_result, 2); //[14y, y, y]
             NFA_project_rec(&nfa_result, 2); //[14y, y]
-            DFA_minimize_rec(&nfa_result);
+            //DFA_minimize_rec(&nfa_result);
 
             NFA_free(nfa);
         }
 
         power++;
     }
-    
+
+    DFA_minimize_rec(&nfa_result);
     NFA_free(nfa_sum);
 
     return nfa_result;
@@ -2284,10 +2512,11 @@ NFA* NFA_get_div_a(int a)
 {
     NFA* nfa_result = NFA_get_a_y(a);
     NFA_project_rec(&nfa_result, 1);
+    DFA_minimize_rec(&nfa_result);
     return nfa_result;
 }
 
-NFA* NFA_get_sum_xn(int* a, int count)
+NFA* NFA_get_linear_term(int* a, int count)
 {
     if (!a) return nullptr;
     if (count == 0) return NFA_get_only_zeroes();
@@ -2347,34 +2576,80 @@ NFA* NFA_get_sum_xn(int* a, int count)
 
     return nfa_result;
 }
+
+NFA* NFA_with_term(NFA* nfa, NFA* term)
+{
+    if (nfa->alphabet_dim != 1 || !nfa || !term) return nullptr;
+    NFA* nfa_copy = NFA_clone(nfa);
+
+    while (nfa_copy->alphabet_dim != term->alphabet_dim)
+    {
+        NFA_extend_rec(&nfa_copy, nfa_copy->alphabet_dim);
+    }
+
+
+    NFA_intersect_rec(&nfa_copy, term);
+    DFA_minimize_rec(&nfa_copy);
+
+    NFA_project_rec(&nfa_copy, 0);
+
+
+    NFA* zeroes = NFA_get_only_zeroes(nfa_copy->alphabet_dim);
+
+    NFA_rightquo_rec(&nfa_copy, zeroes);
+    NFA_free(zeroes);
+
+    DFA_minimize_rec(&nfa_copy);
+
+    return nfa_copy;
+}
+
+
 #pragma endregion
 
 
 #pragma region Handful Functions For Console App
+
 void NFA_console_app() {
     char input[256];
-    cout << "Enter command (type '>exit' to quit):\n";
+    cout << "Enter command (type 'exit' to quit):\n";
     while (true) {
         fflush(stdout);
-
-        if (fgets(input, sizeof(input), stdin) == NULL) {
+        cout << ">";
+        if (fgets(input, sizeof(input), stdin) == nullptr) {
             break;
         }
 
+        to_lower_case(input);
         input[strcspn(input, "\n")] = 0;
 
-        if (strcmp(input, ">exit") == 0) {
+        if (strcmp(input, "exit") == 0) {
             cout << "Exiting NFA Console Application.\n";
             break;
         }
-        else if (strcmp(input, ">help") == 0) {
+        else if (strcmp(input, "help") == 0) {
             print_help();
         }
-        else if (strcmp(input, ">nfa_list") == 0) {
+        else if (strcmp(input, "nfa_list") == 0) {
             NFA_list();
-        }
-        else {
-            printf("You entered: %s\n", input);
+        } else if (strncmp(input, "def ", 4) == 0) {
+            NFA_def(input);
+        } else if (strncmp(input, "eval ", 5) == 0) {
+            NFA_eval_command(input);
+        } else if (strncmp(input, "for  ", 4) == 0) {
+            NFA_for_command(input);
+        } else if (strncmp(input, "eval2 ", 6) == 0) {
+            NFA_eval2_command(input);
+        } else if (strncmp(input, "visualize ", 10) == 0) {
+            NFA_visualize_command(input);
+        } else if (strncmp(input, "minimize $", 10) == 0) {
+            handle_minimization(input + 10);
+        } else if (strncmp(input, "to_dfa $", 8) == 0) {
+            handle_conversion_to_dfa(input + 8);
+        } else if (strncmp(input, "remove_eps $", 12) == 0) {
+            handle_remove_epsilon(input + 12);
+        } else {
+                printf("Unknown command: %s\n", input);
         }
     }
 
@@ -2382,9 +2657,17 @@ void NFA_console_app() {
 
 void print_help() {
     cout << "Available commands:\n";
-    cout << ">exit - Exit the NFA Console Application.\n";
-    cout << ">help - Display this help message.\n";
-    cout << ">nfa_list - List available automata.\n";
+    cout << "exit - Exit the NFA Console Application.\n";
+    cout << "help - Display this help message.\n";
+    cout << "nfa_list - List available automata.\n";
+    cout << "def <name> \"<predicate>\" [-m] [-v] [-re] - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
+    cout << "eval $automaton_name(num1, num2, ..., numN) - Evaluate an automaton with a given numbers.\n";
+    cout << "eval2 $automaton_name(binary_num1, binary_num2, ..., binary_numN) - Evaluate an automaton with a binary numbers.\n";
+    cout << "for $automaton_name(start, end, [step]) - Test an automaton with a range of decimal numbers.\n";
+    cout << "visualize $automaton_name - Visualize an NFA as a graphical representation.\n";
+    cout << "minimize $automaton_name - Minimize.\n";
+    cout << "to_dfa $automaton_name - Convert an NFA to DFA.\n";
+    cout << "remove_eps $automaton_name - Remove epsilon transitions from an NFA.\n";
 }
 
 void NFA_list() {
@@ -2415,17 +2698,15 @@ void NFA_list() {
 int nfa_get_priority(char op) {
     switch (op) {
     case '(': return -1;
-    case '~': return 4;
-    case 'E':
-    case 'A':
-        return 3;
-    case '&':
-        return 2;
+    case '~': return 5;
+    case 'E': 
+    case 'A': return 4;
+    case '&': return 3;
     case '|':
-        return 1;
-    case '$':
-        return 0;
-    defaul:
+    case '/':
+    case '\\': return 2;
+    case '$': return 1;
+    default:
         return -1;
     }
 }
@@ -2439,40 +2720,41 @@ char* NFA_RPN(const char* formula) {
         switch (*c)
         {
         case '(' :
-            push(operators, (int)c);
+            push(operators, (int)(*c));
             break;
         case '&' :
         case '|' :
         case '~' :
         case 'E' :
         case 'A' :
+        case '/' :
+        case '\\':
             while (!is_stack_empty(operators) && nfa_get_priority(*c) <= nfa_get_priority(stack_top(operators))) {
-                cout << (char)stack_top(operators) << " " << nfa_get_priority(stack_top(operators)) << " " << nfa_get_priority(*c) << endl;
                 rpn[j++] = pop(operators);
-
+                rpn[j++] = ' ';
             }
-            push(operators, (int)c);
+            push(operators, (int)(*c));
             break;
         case ')' :
             while (!is_stack_empty(operators) && stack_top(operators) != '(') {
                 rpn[j++] = ' ';
-                rpn[j++] = pop(operators);
+                rpn[j++] = (char)pop(operators);
             }
             pop(operators);
             break;
         case '$' :
             rpn[j++] = *c;
             c++;
-            while (*c != ' ' && *c != '\0' && !strchr("&|~E", *c)) {
+            while (*c != ' ' && *c != '\0' && !strchr("&|~E/A\\", *c)) {
                 if (rpn[j - 1] == ')') break;
                 rpn[j++] = *(c++);
             }
             c--;
             break;
         default:
-            if (*c == ' ' && rpn[j - 1] != ' ')
+            if (j != 0 && *c == ' ' && rpn[j - 1] != ' ')
                 rpn[j++] = *c;
-            else if (*c != ' ') // ? Exception ?? with pointer to its position? 
+            else if (*c != ' ')
                 rpn[j++] = *c;
             break;
         }
@@ -2480,7 +2762,7 @@ char* NFA_RPN(const char* formula) {
 
     while (!is_stack_empty(operators)) {
         rpn[j++] = ' ';
-        rpn[j++] = pop(operators);
+        rpn[j++] = (char)pop(operators);
     }
 
     if (j > 0 && rpn[j - 1] == ' ') {
@@ -2492,4 +2774,348 @@ char* NFA_RPN(const char* formula) {
     return rpn;
 }
 
+NFA* NFA_from_predicate(const char* predicate) {
+    char* rpn = NFA_RPN(predicate);
+
+    nfa_stack* nfa_stack = create_nfa_stack();
+
+    char* token = strtok(rpn, " ");
+    while (token) {
+        if (token[0] == '$') {
+            char* name = extract_name(token);
+            NFA* nfa = load_NFA_from_file(name);
+            push(nfa_stack, nfa);
+            free(name);
+        } else {
+            handle_operation(nfa_stack, token[0]);
+        }
+        token = strtok(nullptr, " ");
+    }
+
+    NFA* final_nfa = pop(nfa_stack);
+    free(rpn);
+    free_stack(nfa_stack);
+    return final_nfa;
+}
+
+void NFA_def(const char* command) {
+    char name[256], predicate[1024];
+    bool minimize = false, visualize = false, remove_eps = false;
+
+    if (sscanf(command, "def %s \"%[^\"]\"", name, predicate) == 2) {
+
+        if (strstr(command, "-m") != nullptr){
+            minimize = true;
+        }
+        if (strstr(command, "-v") != nullptr){
+            visualize = true;
+        }
+        if (strstr(command, "-re") != nullptr){
+            remove_eps = true;
+        }
+
+        NFA *nfa = NFA_from_predicate(predicate);
+        if (nfa != nullptr) {
+
+            if (remove_eps) {
+                NFA_remove_epsilon_transitions(nfa);
+            }
+
+            if (minimize) {
+                DFA_minimize_rec(&nfa);
+            }
+            char filename[300];
+            sprintf(filename, "../NFA/NFAs/%s.txt", name);
+            NFA_to_file(nfa, filename);
+
+            if (visualize) {
+                NFA_to_DOT(nfa);
+            }
+            NFA_free(nfa);
+        } else {
+            cout << "Failed to create NFA from predicate.\n";
+        }
+    } else {
+        cout << "Invalid command format. Use def <name> \"<predicate>\" [-m] [-v] [-re]\n";
+    }
+}
+
+void NFA_eval_command(const char* command)
+{
+    char automaton_name[256];
+    char number_string[1024];
+    int nums[100]; // max = 100
+    int num_count = 0;
+
+    if (sscanf(command, "eval $%[^(](%[^)]", automaton_name, number_string) == 2) {
+        NFA* nfa = load_NFA_from_file(automaton_name);
+        if (!nfa) {
+            cout << "Failed to load NFA: " << automaton_name << endl;
+            return;
+        }
+
+        char* token = strtok(number_string, ", ");
+        while (token != nullptr && num_count < 100) {
+            nums[num_count++] = atoi(token);
+            token = strtok(nullptr, ", ");
+        }
+
+        if (num_count != nfa->alphabet_dim) {
+            cout << "Error: Number of binary inputs does not match the automaton's dimension." << endl;
+            NFA_free(nfa);
+            return;
+        }
+
+        // Create a big_int_list with the parsed numbers
+        big_int_list* bigint_list = big_int_list_init(num_count, nums);
+
+        // Use the list to evaluate the NFA
+        bool result = NFA_accept(nfa, bigint_list);
+
+        cout << (result ? "True" : "False") << endl;
+
+        NFA_free(nfa);
+        big_int_list_free(bigint_list);
+    } else  {
+        cout << "Invalid command format. Use eval \"$automaton_name(num1, num2, ... numN)\"" << endl;
+    }
+}
+
+void NFA_for_command(const char* command) {
+    char automaton_name[256];
+    int start, end;
+    int step = 1;  // Default
+
+    if (sscanf(command, "for $%[^(](%d, %d, %d)", automaton_name, &start, &end, &step) >= 2) {
+        NFA* nfa = load_NFA_from_file(automaton_name);
+        if (!nfa) {
+            cout << "Failed to load NFA: " << automaton_name << endl;
+            return;
+        }
+
+        for (int num = start; num <= end; num += step) {
+            big_int* bg = big_int_get(num);
+            bool result = NFA_accept(nfa, bg);
+            big_int_free(bg);
+            cout << num << " - " << (result ? "True" : "False") << endl;
+        }
+
+        NFA_free(nfa);
+    } else {
+        cout << "Invalid command format. Use for \"$automaton_name(start, end, [step])\"" << endl;
+    }
+}
+
+void NFA_eval2_command(const char* command)
+{
+    char automaton_name[256];
+    char binary_numbers[1024];
+    char* binary_strings[100];  // Assuming a max of 100 binary strings for simplicity
+    int num_count = 0;
+
+    if (sscanf(command, "eval2 $%[^(](%[^)]", automaton_name, binary_numbers) == 2) {
+        NFA* nfa = load_NFA_from_file(automaton_name);
+        if (!nfa) {
+            cout << "Failed to load NFA: " << automaton_name << endl;
+            return;
+        }
+
+        char* token = strtok(binary_numbers, ", ");
+        while (token != nullptr && num_count < 100) {
+            binary_strings[num_count++] = strdup(token); // Duplicate the string to store it
+            token = strtok(nullptr, ", ");
+        }
+
+        // Validate the number of dimensions
+        if (num_count != nfa->alphabet_dim) {
+            cout << "Error: Number of binary inputs does not match the automaton's dimension." << endl;
+            for (int i = 0; i < num_count; i++) {
+                free(binary_strings[i]);
+            }
+            NFA_free(nfa);
+            return;
+        }
+
+        bool result = NFA_accept(nfa, binary_strings, num_count);
+
+        cout << (result ? "True" : "False") << endl;
+        for (int i = 0; i < num_count; i++) {
+            free(binary_strings[i]);
+        }
+        NFA_free(nfa);
+    } else {
+        cout << "Invalid command format. Use eval2 \"$automaton_name(binary_number1, binary_number2, ...)\"" << endl;
+    }
+}
+
+void NFA_visualize_command(const char* command)
+{
+    char automaton_name[256];
+
+    if (sscanf(command, "visualize $%s", automaton_name) == 1) {
+        char filename[300];
+        sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
+
+        NFA* nfa = NFA_from_file(filename);
+        if (nfa == nullptr) {
+            printf("Failed to load NFA: %s\n", automaton_name);
+            return;
+        }
+
+        NFA_to_DOT(nfa);
+        NFA_free(nfa);
+        printf("Visualization for %s has been generated.\n", automaton_name);
+    } else {
+        printf("Invalid command format. Use visualize $automaton_name\n");
+    }
+
+}
+
+void handle_minimization(const char* automaton_name) {
+    char filename[300];
+    sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
+    NFA* nfa = NFA_from_file(filename);
+    if (nfa) {
+        NFA* minimized = DFA_minimize(nfa);
+        if (minimized) {
+            NFA_to_file(minimized, filename);
+            NFA_free(minimized);
+            cout << "NFA/DFA has been minimized and saved to " << filename << ".\n";
+        } else {
+            cout << "Error during minimization.\n";
+        }
+        NFA_free(nfa);
+    } else {
+        cout << "Failed to load automaton from file: " << filename << "\n";
+    }
+}
+
+void handle_conversion_to_dfa(const char* automaton_name) {
+    char filename[300];
+    sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
+    NFA* nfa = NFA_from_file(filename);
+    if (nfa) {
+        NFA* dfa = NFA_to_DFA(nfa);
+        if (dfa) {
+            NFA_to_file(dfa, filename);
+            NFA_free(dfa);
+            cout << "NFA has been converted to DFA and saved to " << filename << ".\n";
+        } else {
+            cout << "Error during DFA conversion.\n";
+        }
+        NFA_free(nfa);
+    } else {
+        cout << "Failed to load automaton from file: " << filename << "\n";
+    }
+}
+
+void handle_operation(nfa_stack* stack, char op) {
+    switch (op) {
+        case '&': {
+            NFA* nfa2 = pop(stack);
+            NFA* nfa1 = pop(stack);
+            NFA_intersect_rec(&nfa1, nfa2);
+            push(stack, nfa1);
+            NFA_free(nfa2);
+            break;
+        }
+        case '|': {
+            NFA* nfa2 = pop(stack);
+            NFA* nfa1 = pop(stack);
+            NFA_union_rec(&nfa1, nfa2);
+            push(stack, nfa1);
+            NFA_free(nfa2);
+            break;
+        }
+        case '~': {
+            NFA* nfa = pop(stack);
+            DFA_complement_rec(&nfa);
+            push(stack, nfa);
+            break;
+        }
+        case '/': {
+            // Right quotient
+            NFA* nfa2 = pop(stack);
+            NFA* nfa1 = pop(stack);
+            NFA* result = NFA_rightquo(nfa1, nfa2);
+            push(stack, result);
+            NFA_free(nfa1);
+            NFA_free(nfa2);
+            break;
+        }
+        case '\\': {
+            // Left quotient
+            NFA* nfa2 = pop(stack);
+            NFA* nfa1 = pop(stack);
+            NFA* result = NFA_leftquo(nfa1, nfa2);
+            push(stack, result);
+            NFA_free(nfa1);
+            NFA_free(nfa2);
+            break;
+        }
+    }
+}
+
+void handle_remove_epsilon(const char* automaton_name) {
+    char filename[300];
+    sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
+    NFA* nfa = NFA_from_file(filename);
+    if (nfa) {
+        NFA_remove_epsilon_transitions(nfa);
+        if (nfa) {        NFA_to_file(nfa, filename);
+        NFA_free(nfa);
+        cout << "Epsilon transitions removed and NFA saved to " << filename << ".\n";
+        } else {
+            cout << "Failed to remove epsilon transitions\n";
+        }
+
+    } else {
+        cout << "Failed to load automaton from file: " << filename << "\n";
+    }
+}
+
 #pragma endregion
+
+
+#pragma region NFA Stack
+
+nfa_stack* create_nfa_stack() {
+    nfa_stack* s = (nfa_stack*)malloc(sizeof(nfa_stack));
+    if (!s) return nullptr;
+    s->top = nullptr;
+    return s;
+}
+
+void push(nfa_stack* s, NFA* nfa) {
+    nfa_node* new_node = (nfa_node*)malloc(sizeof(nfa_node));
+    if (!new_node) return;
+    new_node->nfa = nfa;
+    new_node->next = s->top;
+    s->top = new_node;
+}
+
+NFA* pop(nfa_stack* s)
+{
+    if (s->top == nullptr) return nullptr;
+    nfa_node* temp = s->top;
+    NFA* nfa = temp->nfa;
+    s->top = temp->next;
+    free(temp);
+    return nfa;
+}
+
+bool is_stack_empty(nfa_stack* s) {
+    return s->top == nullptr;
+}
+
+void free_stack(nfa_stack* s)
+{
+    while (!is_stack_empty(s)){
+        NFA_free(pop(s));
+    }
+    free(s);
+}
+
+#pragma endregion
+
+
