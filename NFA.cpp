@@ -114,7 +114,11 @@ char* int_to_string(int num)
 }
 
 void to_lower_case(char *str) {
-    for (; *str; ++str) *str = tolower((unsigned char) *str);
+    for (; *str; ++str)
+    {
+        if (*str != 'E' && *str != 'A')
+            *str = tolower((unsigned char)*str);
+    }
 }
 
 char* extract_name(const char* token) {
@@ -3051,6 +3055,24 @@ void handle_operation(nfa_stack* stack, char op) {
             push(stack, result);
             NFA_free(nfa1);
             NFA_free(nfa2);
+            break;
+        }
+        case 'E': {
+            // ex x=y+z
+            NFA* nfa = pop(stack);
+            NFA_project_rec(&nfa, 0);
+            DFA_minimize_rec(&nfa);
+            push(stack, nfa);
+            break;
+        }
+        case 'A': {
+            NFA* nfa = pop(stack);
+            DFA_minimize_rec(&nfa);
+            DFA_complement_rec(&nfa);
+            NFA_project_rec(&nfa, 0);
+            DFA_minimize_rec(&nfa);
+            DFA_complement_rec(&nfa);
+            push(stack, nfa);
             break;
         }
     }

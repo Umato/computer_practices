@@ -305,6 +305,7 @@ int main() {
     NFA_to_DOT(nfa3);
     NFA* nfa = NFA_get_equal_coordinates(nfa3, 1, 2);
     NFA_to_DOT(nfa);*/
+
     /*NFA* nfa1 = NFA_get_div_2_power_m(3);
     NFA* nfa2 = NFA_get_div_a(5);
     printf("Num, div8, div5\n");
@@ -321,45 +322,8 @@ int main() {
 
 #pragma endregion   
 
-#pragma region 2 != 2
-
-    /*NFA* nfa_div2 = NFA_get_div_2();
-    NFA* nfa_div3 = NFA_get_div_3();
-    NFA* nfa_new = NFA_union(nfa_div2, nfa_div3);
-    NFA_to_DOT(nfa_new);
-    DFA_minimize_rec(&nfa_new);
-
-
-    printf("div 6\n\n\n");
-    for (int i = 0; i < 50; i++)
-    {
-        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
-    }
-
-    DFA_complement_rec(&nfa_div2);
-    DFA_complement_rec(&nfa_div3);
-    NFA_union_rec(&nfa_new, nfa_div2);
-    DFA_minimize_rec(&nfa_new);
-
-    printf("\n\n\ndiv 6 or odd\n\n\n");
-    for (int i = 0; i < 50; i++)
-    {
-        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
-    }
-
-    NFA_union_rec(&nfa_new, nfa_div3);
-    DFA_minimize_rec(&nfa_new);
-
-    printf("\n\n\ndiv 6 or odd or not div3\n\n\n");
-    for (int i = 0; i < 50; i++)
-    {
-        printf("\ni = %d, result = %d", i, NFA_accept(nfa_new, int_to_string(i)));
-    }
-
-    NFA_to_DOT(nfa_new);*/
-
     //int a[3];
-    
+
     NFA_console_app();
 
 
