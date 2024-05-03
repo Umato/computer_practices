@@ -2696,8 +2696,7 @@ char* NFA_RPN(const char* formula) {
     int length = strlen(formula);
     char* rpn = (char*)malloc(length + 1);
     char* exist_forall = (char*)malloc(length + 1);
-    int j = 0;
-    int k = 0;
+    int j = 0, k = 0;
 
     for (const char *c = formula; *c; c++) {
         switch (*c) {
@@ -2709,6 +2708,13 @@ char* NFA_RPN(const char* formula) {
             while (*c != ':' && *c != '\0'){
                 exist_forall[k++] = *c;
                 c++;
+            }
+            if (*c == '\0') {
+                cout << "Error: quotes not found\n";
+                free(rpn);
+                free(exist_forall);
+                free_stack(operators);
+                return nullptr;
             }
             exist_forall[k++] = ':';
             exist_forall[k++] = ' ';
@@ -2733,11 +2739,26 @@ char* NFA_RPN(const char* formula) {
             break;
         case '$' :
             rpn[j++] = *(c++);
-            while (*c != '\0' && !strchr("&|~E/A\\", *c)) {
-                if (rpn[j - 1] == ')') break;
+            while (*c && *c != ')'){
+                if (strchr("&|~/\\$", *c)){
+                    fprintf(stderr, "Error: Invalid character '%c' in the expression\n", *c);
+                    free(rpn);
+                    free(exist_forall);
+                    free_stack(operators);
+                    return nullptr;
+                }
                 rpn[j++] = *(c++);
             }
-            c--;
+            if (*c == '\0') {
+                cout << "Error: closing parenthesis not found\n";
+                free(rpn);
+                free(exist_forall);
+                free_stack(operators);
+                return nullptr;
+            } else if (*c == ')') {
+                rpn[j++] = *c;
+                c--;
+            }
             break;
         default:
             if (*c != ' ' || (j != 0 && rpn[j - 1] != ' '))
@@ -2745,9 +2766,6 @@ char* NFA_RPN(const char* formula) {
             break;
         }
     }
-
-    exist_forall[k] = '\0';
-
 
 
     while (!is_stack_empty(operators)) {
@@ -2760,11 +2778,16 @@ char* NFA_RPN(const char* formula) {
     }
 
     rpn[j] = '\0';
+    exist_forall[k] = '\0';
+    char* result = (char*)malloc(strlen(rpn) + strlen(exist_forall) + 2);
+    strcpy(result, rpn);
+    strcat(result, " ");
+    strcat(result, exist_forall);
 
-    strcat(rpn, " ");
-    strcat(rpn, exist_forall);
+    free(rpn);
+    free(exist_forall);
     free_stack(operators);
-    return rpn;
+    return result;
 }
 
 NFA* NFA_from_predicate(const char* predicate) {

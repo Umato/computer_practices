@@ -334,7 +334,7 @@ int main() {
 
 //    NFA_console_app();
 
-//    cout << NFA_RPN("~$div(2x+1) & $aut(faust))))))))))))))))");
+    cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac ~$div(2x+1) & $aut(faust)");
     system("pause");
 
     big_int_free(6, zero, one, two, e, mod, ex);
