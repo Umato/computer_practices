@@ -10,7 +10,7 @@
 
 int main() {
 
-    
+
 
     std::random_device rd;
     srand(rd());
@@ -118,11 +118,11 @@ int main() {
     // L2  (01)* = 01/0101/010101/01010101
     // L1  {0,1}* - ��������� ��� ��� ������
 
-    NFA* left = NFA_leftquo(nfa2, nfa1); // ��� ����� �������� S, ��� ���� ����� �� L1 ����� ��� L1+S in L2 
+    NFA* left = NFA_leftquo(nfa2, nfa1); // ��� ����� �������� S, ��� ���� ����� �� L1 ����� ��� L1+S in L2
     // (spoiler: ��������� 1/01/101/0101/ 10101/ 010101/ 1010101 (01)* )
 
 
-    NFA* right = NFA_rightquo(nfa2, nfa1); // ��� ����� �������� P, ��� ���� ����� �� L1 ����� ��� P+L1 in Ls 
+    NFA* right = NFA_rightquo(nfa2, nfa1); // ��� ����� �������� P, ��� ���� ����� �� L1 ����� ��� P+L1 in Ls
     // (spoiler: ��������� 0/01/010/0101/01010 - �� ���� L2 U 0(01)* )
 
 
@@ -319,31 +319,17 @@ int main() {
 
 
 
-#pragma region NFA_variables
-    /*NFA_variables* vars = NFA_variables_init();
-
-    NFA_variables_add(vars, "x");
-    NFA_variables_add(vars, "y");
-    NFA_variables_add(vars, "x");
-    NFA_variables_add(vars, "aboba");
-    NFA_variables_add(vars, "abo");
-    
-    NFA_variables_in(vars, "aboba");
-    NFA_variables_in(vars, "abob");
-
-    NFA_variables_index(vars, "aboba");
-    NFA_variables_index(vars, "abob");
-    NFA_variables_index(vars, "x");
-
-    NFA_variables_free(vars);*/
-#pragma endregion
+#pragma endregion   
 
     
 
 
     NFA_console_app();
 
+//    NFA_console_app();
 
+    cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac: ~$div(2x+1) & $aut(faust)");
+    system("pause");
 
     big_int_free(6, zero, one, two, e, mod, ex);
     return 0;

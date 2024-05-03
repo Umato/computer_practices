@@ -19,11 +19,16 @@
 #include "direct.h"
 #include "windows.h"
 
-typedef struct linear_term {
-    int* coefficients;
+typedef struct term {
+    int coefficient;
+    char variable[100];
+} term;
+
+typedef struct linear_expression {
+    term *terms;
+    int terms_count;
     int constant;
-    int count;
-} linear_term;
+} linear_expression;
 
 typedef struct NFA_variables
 {
@@ -183,8 +188,8 @@ NFA* DFA_minimize(NFA* nfa_original);
  */
 void DFA_minimize_rec(NFA** nfa);
 
-
-void DFA_make_complete(NFA* nfa);
+NFA* DFA_make_complete(NFA* nfa);
+void DFA_make_complete_rec(NFA** nfa);
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
 stack* NFA_get_reachable_states(NFA* nfa, int start_state, char letter);
 NFA* NFA_remove_unreachable_states(NFA* nfa);
@@ -243,7 +248,7 @@ NFA* NFA_get_div_2_power_m(int power);
 NFA* NFA_get_a_y(int num);
 NFA* NFA_get_div_a(int a);
 NFA* NFA_get_linear_term(int* a, int count);
-
+NFA* NFA_from_linear_expression(linear_expression* expr);
 
 void NFA_console_app();
 void print_help();
@@ -277,14 +282,19 @@ void handle_remove_epsilon(const char* automaton_name);
 void handle_cls();
 void handle_command(const std::string& command);
 
-linear_term* parse_linear_term(const char* input);
-void print_linear_term(const linear_term* term);
 
 NFA* NFA_get_only_zeroes(int dim);
-
+void handle_operation(nfa_stack* stack, char op, int variable_index);
 void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2);
 void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
 
 NFA* NFA_with_term(NFA* nfa, NFA* term);
+
+void add_term(linear_expression* expr, int coefficient, const char* variable);
+linear_expression* init_linear_expression();
+void free_linear_expression(linear_expression* expr);
+linear_expression* parse_linear_expression(const char* input);
+void print_linear_expression(linear_expression* expr);
+void remove_spaces(char* str);
 
 #endif //COMPUTER_PRACTICES_NFA_H

@@ -179,114 +179,6 @@ char* extract_name(const char* token) {
     return nullptr;
 }
 
-linear_term* parse_linear_term(const char* input)
-{
-    if (!input) return nullptr;
-
-    linear_term* term = (linear_term*)malloc(sizeof(linear_term));
-    if (!term) return nullptr;
-
-    int max_index = 0;
-    const char* temp_input = input;
-    int coeff, index, num_read;
-    char sign = '+';
-
-    // First pass to determine the maximum index needed for the coefficients array
-    while (*temp_input) {
-        if (sscanf(temp_input, "%d*x_%d%n", &coeff, &index, &num_read) == 2 ||
-            sscanf(temp_input, "%dx_%d%n", &coeff, &index, &num_read) == 2 ||
-            sscanf(temp_input, "%c%d*x_%d%n", &sign, &coeff, &index, &num_read) == 3) {
-            if (index > max_index) {
-                max_index = index;
-            }
-            temp_input += num_read;
-        } else if (sscanf(temp_input, "x_%d%n", &index, &num_read) == 1 ||
-                   sscanf(temp_input, "%cx_%d%n", &sign, &index, &num_read) == 2) {
-            if (index > max_index) {
-                max_index = index;
-            }
-            temp_input += num_read;
-        } else {
-            temp_input++;
-        }
-    }
-
-    int* coefficients = (int*)calloc(max_index + 1, sizeof(int));
-    if (!coefficients) {
-        free(term);
-        return nullptr;
-    }
-
-    term->constant = 0;
-    const char* scan_start = input;
-    sign = '+';
-
-    while (*scan_start) {
-        if (sscanf(scan_start, "%d*x_%d%n", &coeff, &index, &num_read) == 2 ||
-            sscanf(scan_start, "%dx_%d%n", &coeff, &index, &num_read) == 2) {
-            coefficients[index - 1] += (sign == '+' ? coeff : -coeff);
-            scan_start += num_read;
-            sign = '+';
-        } else if (sscanf(scan_start, "%c%d*x_%d%n", &sign, &coeff, &index, &num_read) == 3) {
-            coefficients[index - 1] += (sign == '+' ? coeff : -coeff);
-            scan_start += num_read;
-            sign = '+';
-        } else if (sscanf(scan_start, "x_%d%n", &index, &num_read) == 1) {
-            coefficients[index - 1] += (sign == '+' ? 1 : -1);
-            scan_start += num_read;
-            sign = '+';
-        } else if (sscanf(scan_start, "%cx_%d%n", &sign, &index, &num_read) == 2) {
-            coefficients[index - 1] += (sign == '+' ? 1 : -1);
-            scan_start += num_read;
-            sign = '+';
-        } else if (sscanf(scan_start, "%d%n", &coeff, &num_read) == 1) {
-            term->constant += (sign == '+' ? coeff : -coeff);
-            scan_start += num_read;
-            sign = '+';
-        } else if (*scan_start == '+' || *scan_start == '-') {
-            sign = *scan_start++;
-        } else {
-            scan_start++;
-        }
-    }
-
-    term->coefficients = coefficients;
-    term->count = max_index;
-    return term;
-}
-
-void print_linear_term(const linear_term* term)
-{
-    if (term == nullptr) {
-        printf("Invalid term (nullptr).\n");
-        return;
-    }
-
-    bool first = true;
-    for (int i = 0; i < term->count; i++) {
-        int coeff = term->coefficients[i];
-        if (coeff != 0) {
-            if (first) {
-                first = false;
-                printf("%d*x_%d", coeff, i + 1);
-            } else {
-                printf(" %c %d*x_%d", coeff > 0 ? '+' : '-', abs(coeff), i + 1);
-            }
-        }
-    }
-
-    // Print constant
-    if (term->constant != 0 || first) {
-        if (first) {
-            printf("%d", term->constant);
-        } else {
-            printf(" %c %d", term->constant > 0 ? '+' : '-', abs(term->constant));
-        }
-    }
-
-    printf("\n");
-}
-
 #pragma endregion
 
 
@@ -1296,7 +1188,7 @@ NFA* NFA_union(NFA* nfa1, NFA* nfa2)
     if (nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
 
     // + 1, because the added state is the new initial one
-    int combined_states_count = nfa1->states_count * nfa2->states_count + 1;
+    int combined_states_count = nfa1->states_count * nfa2->states_count + 2;
     int alphabet_dim = nfa1->alphabet_dim;
 
     NFA* unioned_NFA = NFA_init(combined_states_count, alphabet_dim, 0, 0, nullptr);
@@ -1342,7 +1234,7 @@ NFA* DFA_complement(NFA* nfa)
     if (!nfa) return nullptr;
 
     NFA* complement_dfa = NFA_clone(nfa);
-    DFA_make_complete(complement_dfa);
+    DFA_make_complete_rec(&complement_dfa);
     if (!complement_dfa) return nullptr;
 
     for (int i = 0; i < complement_dfa->states_count; i++)
@@ -1856,7 +1748,7 @@ NFA* DFA_minimize(NFA* nfa_original)
 
     NFA_remove_unreachable_states_rec(new_nfa);
 
-    // If there is a state which have no transition from it (besides itself) and it's non-final or initial, 
+    // If there is a state which have no transition from it (besides itself) and it's non-final or initial,
     // then we can remove it
 
     bool need_remove = true;
@@ -1917,9 +1809,11 @@ void DFA_minimize_rec(NFA** nfa)
 
 #pragma region NFA Support Functions
 
-void DFA_make_complete(NFA* nfa)
+NFA* DFA_make_complete(NFA* nfa_original)
 {
-    if (!nfa) return;
+    if (!nfa_original) return nullptr;
+
+    NFA* nfa = NFA_clone(nfa_original);
 
     if (!NFA_is_DFA(nfa))
     {
@@ -1944,6 +1838,15 @@ void DFA_make_complete(NFA* nfa)
     {
         NFA_transition_add(nfa, states_count, states_count, letter);
     }
+
+    return nfa;
+}
+
+void DFA_make_complete_rec(NFA** nfa)
+{
+    NFA* new_nfa = DFA_make_complete(*nfa);
+    NFA_free(*nfa);
+    *nfa = new_nfa;
 }
 
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count)
@@ -2563,7 +2466,6 @@ NFA* NFA_get_a_y(int num)
             NFA_extend_rec(&nfa, 0); // [-, 4z, z]
             NFA_extend_rec(&nfa, 0); // [-, -, 4z, z]
             NFA_intersect_rec(&nfa_result, nfa); //[12y, y, 4z, z]
-            //DFA_minimize_rec(&nfa_result);
 
             NFA_get_equal_coordinates_rec(&nfa_result, 1, 3); //[12y, y, 4y, y]
             NFA_extend_rec(&nfa_result, 0); //[-, 12y, y, 4y, y]
@@ -2572,7 +2474,6 @@ NFA* NFA_get_a_y(int num)
             NFA_project_rec(&nfa_result, 1); //[14y, y, 2y, y]
             NFA_project_rec(&nfa_result, 2); //[14y, y, y]
             NFA_project_rec(&nfa_result, 2); //[14y, y]
-            //DFA_minimize_rec(&nfa_result);
 
             NFA_free(nfa);
         }
@@ -2682,6 +2583,23 @@ NFA* NFA_with_term(NFA* nfa, NFA* term)
     return nfa_copy;
 }
 
+NFA* NFA_from_linear_expression(linear_expression* expr)
+{
+    if (!expr) return nullptr;
+
+    int* coefficients = (int*)malloc(sizeof(int) * (expr->terms_count + 1));
+
+    coefficients[0] = expr->constant;
+    for (int i = 1; i < expr->terms_count + 1; i++){
+        coefficients[i] = expr->terms[i - 1].coefficient;
+    }
+
+    NFA* result = NFA_get_linear_term(coefficients, expr->terms_count + 1);
+    free(coefficients);
+
+    return result;
+}
+
 #pragma endregion
 
 
@@ -2779,7 +2697,7 @@ int nfa_get_priority(char op) {
     switch (op) {
     case '(': return -1;
     case '~': return 5;
-    case 'E': 
+    case 'E':
     case 'A': return 4;
     case '&': return 3;
     case '|':
@@ -2793,52 +2711,80 @@ int nfa_get_priority(char op) {
 
 char* NFA_RPN(const char* formula) {
     stack* operators = create_stack();
-    char* rpn = (char*)malloc(2 * strlen(formula) + 1);
-    int j = 0;
+    int length = strlen(formula);
+    char* rpn = (char*)malloc(length + 1);
+    char* exist_forall = (char*)malloc(length + 1);
+    int j = 0, k = 0;
 
-    for (char *c = (char*)formula; *c != '\0'; c++) {
-        switch (*c)
-        {
+    for (const char *c = formula; *c; c++) {
+        switch (*c) {
         case '(' :
-            push(operators, (int)(*c));
+            push(operators, *c  );
+            break;
+        case 'E' :
+        case 'A' :
+            while (*c != ':' && *c != '\0'){
+                exist_forall[k++] = *c;
+                c++;
+            }
+            if (*c == '\0') {
+                cout << "Error: quotes not found\n";
+                free(rpn);
+                free(exist_forall);
+                free_stack(operators);
+                return nullptr;
+            }
+            exist_forall[k++] = ':';
+            exist_forall[k++] = ' ';
             break;
         case '&' :
         case '|' :
         case '~' :
-        case 'E' :
-        case 'A' :
         case '/' :
         case '\\':
             while (!is_stack_empty(operators) && nfa_get_priority(*c) <= nfa_get_priority(stack_top(operators))) {
                 rpn[j++] = pop(operators);
                 rpn[j++] = ' ';
             }
-            push(operators, (int)(*c));
+            push(operators, *c);
             break;
         case ')' :
             while (!is_stack_empty(operators) && stack_top(operators) != '(') {
                 rpn[j++] = ' ';
                 rpn[j++] = (char)pop(operators);
             }
-            pop(operators);
+            pop(operators); // Remove '(' from stack
             break;
         case '$' :
-            rpn[j++] = *c;
-            c++;
-            while (*c != ' ' && *c != '\0' && !strchr("&|~E/A\\", *c)) {
-                if (rpn[j - 1] == ')') break;
+            rpn[j++] = *(c++);
+            while (*c && *c != ')'){
+                if (strchr("&|~/\\$", *c)){
+                    fprintf(stderr, "Error: Invalid character '%c' in the expression\n", *c);
+                    free(rpn);
+                    free(exist_forall);
+                    free_stack(operators);
+                    return nullptr;
+                }
                 rpn[j++] = *(c++);
             }
-            c--;
-            break;
-        default: 
-            if (j != 0 && *c == ' ' && rpn[j - 1] != ' ')
+            if (*c == '\0') {
+                cout << "Error: closing parenthesis not found\n";
+                free(rpn);
+                free(exist_forall);
+                free_stack(operators);
+                return nullptr;
+            } else if (*c == ')') {
                 rpn[j++] = *c;
-            else if (*c != ' ')
+                c--;
+            }
+            break;
+        default:
+            if (*c != ' ' || (j != 0 && rpn[j - 1] != ' '))
                 rpn[j++] = *c;
             break;
         }
     }
+
 
     while (!is_stack_empty(operators)) {
         rpn[j++] = ' ';
@@ -2846,16 +2792,26 @@ char* NFA_RPN(const char* formula) {
     }
 
     if (j > 0 && rpn[j - 1] == ' ') {
-        j--;
+        j--; // Remove trailing space if it exists
     }
 
     rpn[j] = '\0';
+    exist_forall[k] = '\0';
+    char* result = (char*)malloc(strlen(rpn) + strlen(exist_forall) + 2);
+    strcpy(result, rpn);
+    strcat(result, " ");
+    strcat(result, exist_forall);
+
+    free(rpn);
+    free(exist_forall);
     free_stack(operators);
-    return rpn;
+    return result;
 }
 
 NFA* NFA_from_predicate(const char* predicate) {
     char* rpn = NFA_RPN(predicate);
+
+    remove_spaces(rpn);
 
     nfa_stack* nfa_stack = create_nfa_stack();
 
@@ -2864,6 +2820,23 @@ NFA* NFA_from_predicate(const char* predicate) {
         if (token[0] == '$') {
             char* name = extract_name(token);
             NFA* nfa = load_NFA_from_file(name);
+
+            if (*(token + strlen(name) + 1) == '(') {
+                char* term_start = token + strlen(name) + 2; // Move pointer past the character '('
+                char* term_end = strchr(term_start, ')');
+                if (term_end) {
+                    *term_end = '\0'; // Replace ')' with '\0'
+                    linear_expression* expr = parse_linear_expression(term_start);
+                    NFA* term_nfa = NFA_from_linear_expression(expr);
+                    free_linear_expression(expr);
+
+                    NFA* new_nfa = NFA_with_term(nfa, term_nfa);
+                    NFA_free(nfa);
+                    NFA_free(term_nfa);
+                    nfa = new_nfa;
+                }
+            }
+
             push(nfa_stack, nfa);
             free(name);
         } else {
@@ -3090,68 +3063,72 @@ void handle_conversion_to_dfa(const char* automaton_name) {
 }
 
 void handle_operation(nfa_stack* stack, char op) {
-    switch (op) {
-        case '&': {
-            NFA* nfa2 = pop(stack);
-            NFA* nfa1 = pop(stack);
-            NFA_intersect_rec(&nfa1, nfa2);
-            push(stack, nfa1);
-            NFA_free(nfa2);
-            break;
-        }
-        case '|': {
-            NFA* nfa2 = pop(stack);
-            NFA* nfa1 = pop(stack);
-            NFA_union_rec(&nfa1, nfa2);
-            push(stack, nfa1);
-            NFA_free(nfa2);
-            break;
-        }
-        case '~': {
-            NFA* nfa = pop(stack);
-            DFA_complement_rec(&nfa);
-            push(stack, nfa);
-            break;
-        }
-        case '/': {
-            // Right quotient
-            NFA* nfa2 = pop(stack);
-            NFA* nfa1 = pop(stack);
-            NFA* result = NFA_rightquo(nfa1, nfa2);
-            push(stack, result);
-            NFA_free(nfa1);
-            NFA_free(nfa2);
-            break;
-        }
-        case '\\': {
-            // Left quotient
-            NFA* nfa2 = pop(stack);
-            NFA* nfa1 = pop(stack);
-            NFA* result = NFA_leftquo(nfa1, nfa2);
-            push(stack, result);
-            NFA_free(nfa1);
-            NFA_free(nfa2);
-            break;
-        }
-        case 'E': {
-            // ex x=y+z
-            NFA* nfa = pop(stack);
-            NFA_project_rec(&nfa, 0, 1);
-            DFA_minimize_rec(&nfa);
-            push(stack, nfa);
-            break;
-        }
-        case 'A': {
-            NFA* nfa = pop(stack);
-            DFA_minimize_rec(&nfa);
-            DFA_complement_rec(&nfa);
-            NFA_project_rec(&nfa, 0, 1);
-            DFA_minimize_rec(&nfa);
-            DFA_complement_rec(&nfa);
-            push(stack, nfa);
-            break;
-        }
+    switch (op)
+    {
+    case '&': {
+        NFA *nfa2 = pop(stack);
+        NFA *nfa1 = pop(stack);
+        NFA_intersect_rec(&nfa1, nfa2);
+        push(stack, nfa1);
+        NFA_free(nfa2);
+        break;
     }
+    case '|': {
+        NFA *nfa2 = pop(stack);
+        NFA *nfa1 = pop(stack);
+        NFA_union_rec(&nfa1, nfa2);
+        push(stack, nfa1);
+        NFA_free(nfa2);
+        break;
+    }
+    case '~': {
+        NFA *nfa = pop(stack);
+        DFA_complement_rec(&nfa);
+        push(stack, nfa);
+        break;
+    }
+    case '/': {
+        // Right quotient
+        NFA *nfa2 = pop(stack);
+        NFA *nfa1 = pop(stack);
+        NFA *result = NFA_rightquo(nfa1, nfa2);
+        push(stack, result);
+        NFA_free(nfa1);
+        NFA_free(nfa2);
+        break;
+    }
+    case '\\': {
+        // Left quotient
+        NFA *nfa2 = pop(stack);
+        NFA *nfa1 = pop(stack);
+        NFA *result = NFA_leftquo(nfa1, nfa2);
+        push(stack, result);
+        NFA_free(nfa1);
+        NFA_free(nfa2);
+        break;
+    }
+    case 'E': { // So far, the projection is only based on the first variable
+        NFA* nfa = pop(stack);
+        NFA_project_rec(&nfa, 0);
+        NFA* only_zeros = NFA_get_only_zeroes(nfa->alphabet_dim);
+        NFA_rightquo_rec(&nfa, only_zeros);
+        NFA_free(only_zeros);
+        DFA_minimize_rec(&nfa);
+        push(stack, nfa);
+        break;
+    }
+    case 'A': {
+        NFA* nfa = pop(stack);
+        DFA_complement_rec(&nfa);
+        NFA_project_rec(&nfa, 0);
+        NFA* only_zeros = NFA_get_only_zeroes(nfa->alphabet_dim);
+        NFA_rightquo_rec(&nfa, only_zeros);
+        NFA_free(only_zeros);
+        DFA_complement_rec(&nfa);
+        DFA_minimize_rec(&nfa);
+        push(stack, nfa);
+        break;
+    }}
 }
 
 void handle_remove_epsilon(const char* automaton_name) {
@@ -3177,6 +3154,26 @@ void handle_cls()
     system("cls");
     cout << "Enter command (type 'exit' to quit):\n";
 }
+
+void remove_spaces(char* str) {
+    char* dst = str;
+    bool within_parentheses = false;
+
+    while (*str != '\0') {
+        if (*str == '(') {
+            within_parentheses = true;
+            *dst++ = *str;
+        } else if (*str == ')') {
+            within_parentheses = false;
+            *dst++ = *str;
+        } else if (!within_parentheses || (*str != ' ' && *str != '\t')) {
+            *dst++ = *str;
+        }
+        str++;
+    }
+    *dst = '\0';
+}
+
 
 #pragma endregion
 
@@ -3223,3 +3220,89 @@ void free_stack(nfa_stack* s)
 #pragma endregion
 
 
+#pragma region Linear Term parser
+
+void add_term(linear_expression* expr, int coefficient, const char* variable)
+{
+    for (int i = 0; i < expr->terms_count; i++) {
+        if (strcmp(expr->terms[i].variable, variable) == 0) {
+            expr->terms[i].coefficient += coefficient;
+            return;
+        }
+    }
+    expr->terms = (term*)realloc(expr->terms, (expr->terms_count + 1) * sizeof(term));
+    expr->terms[expr->terms_count].coefficient = coefficient;
+    strcpy(expr->terms[expr->terms_count].variable, variable);
+    expr->terms_count++;
+}
+
+linear_expression* init_linear_expression()
+{
+    linear_expression* expr = (linear_expression*)malloc(sizeof(linear_expression));
+    expr->terms = nullptr;
+    expr->terms_count = 0;
+    expr->constant = 0;
+    return expr;
+}
+
+void free_linear_expression(linear_expression* expr)
+{
+    free(expr->terms);
+    free(expr);
+}
+
+linear_expression* parse_linear_expression(const char* input)
+{
+    linear_expression* expr = init_linear_expression();
+
+    const char* p = input;
+    while (*p)
+    {
+        int coefficient = 0;
+        char variable[100] = {0};
+        char* var_start = variable;
+
+        while (*p == ' ' || *p == '+') p++;
+
+        if (isdigit(*p)){
+            while (isdigit(*p)){
+                coefficient = coefficient * 10 + (*p - '0');
+                p++;
+            }
+        } else {
+            coefficient = 1;
+        }
+
+        if (*p == '*') p++;
+
+        while (isalpha(*p) || *p == '_' || isdigit(*p))
+        {
+            *var_start++ = *p++;
+        }
+        *var_start = '\0';
+
+        if (strlen(variable) > 0) {
+            add_term(expr, coefficient, variable);
+        } else {
+            expr->constant += coefficient;
+        }
+    }
+
+    return expr;
+}
+
+void print_linear_expression(linear_expression* expr)
+{
+    for (int i = 0; i < expr->terms_count; i++)
+    {
+        printf("%d%s ", expr->terms[i].coefficient, expr->terms[i].variable);
+        if (i < expr->terms_count - 1) cout << "+ ";
+    }
+    if (expr->constant != 0)
+    {
+        cout << "+ " << expr->constant;
+    }
+    cout << "\n";
+}
+
+#pragma endregion;
