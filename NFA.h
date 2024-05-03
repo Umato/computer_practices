@@ -123,12 +123,14 @@ void NFA_rightquo_unioned(NFA** nfa1, NFA* nfa2);
  * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
  */
 NFA* NFA_project(NFA* nfa, unsigned char n);
+NFA* NFA_project(NFA* nfa, unsigned char n, bool with_quotient);
 /**
  * @brief Delete n-th coordinate in transition letters
  *
  * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
  */
 void NFA_project_rec(NFA** nfa, unsigned char n);
+void NFA_project_rec(NFA** nfa, unsigned char n, bool with_quotient);
 /**
  * @brief Return a pointer to new NFA with added n-th coordinate in transition letters
  *
@@ -177,6 +179,7 @@ void DFA_minimize_rec(NFA** nfa);
 NFA* DFA_make_complete(NFA* nfa);
 void DFA_make_complete_rec(NFA** nfa);
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
+stack* NFA_get_reachable_states(NFA* nfa, int start_state, char letter);
 NFA* NFA_remove_unreachable_states(NFA* nfa);
 void NFA_remove_unreachable_states_rec(NFA* nfa);
 bool NFA_is_empty(NFA* nfa);
@@ -232,7 +235,7 @@ NFA* NFA_get_2_power_m_y(int power);
 NFA* NFA_get_div_2_power_m(int power);
 NFA* NFA_get_a_y(int num);
 NFA* NFA_get_div_a(int a);
-NFA* NFA_get_sum_xn(int* a, int count);
+NFA* NFA_get_linear_term(int* a, int count);
 NFA* NFA_from_linear_expression(linear_expression* expr);
 
 void NFA_console_app();
@@ -264,8 +267,8 @@ char* extract_name(const char* token);
 void handle_operation(nfa_stack* stack, char op);
 void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
+void handle_cls();
 void handle_command(const std::string& command);
-
 
 
 NFA* NFA_get_only_zeroes(int dim);

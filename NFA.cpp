@@ -5,7 +5,7 @@
 
 // add epsilon-reached to accept methods and nfa_to_dfa where we search for epsilon-initial states
 // NFA_remove_unreachable_states в minimize и других
-// MINIMIZE 2=2
+// Убрать эпсилон переходы при НФА-ту-ДФА
 
 
 #pragma region Others
@@ -487,21 +487,15 @@ bool NFA_accept(NFA* nfa, char* num)
     char* new_num = format_string_to_bin(num);
     if (!nfa || !new_num || strlen(new_num) == 0) return 0;
 
-    stack* current_states = create_stack();
+    stack* current_states;
     stack* next_states;
     bool* next_states_added;
 
     char bit;
     size_t total_bits = strlen(new_num);
 
-
+    current_states = NFA_get_reachable_states(nfa, nfa->initial_state->id, (1 << nfa->alphabet_dim));
     push(current_states, nfa->initial_state->id);
-    node* eps_initial = nfa->initial_state->transitions[(1 << nfa->alphabet_dim)]->head;
-    while (eps_initial)
-    {
-        push(current_states, eps_initial->val);
-        eps_initial = eps_initial->next;
-    }
 
     for (int i = 0; i < total_bits; i++)
     {
@@ -599,13 +593,8 @@ bool NFA_accept(NFA* nfa, char** nums, int nums_count)
     bool* next_states_added;
     int total_bits = max_length;
 
+    current_states = NFA_get_reachable_states(nfa, nfa->initial_state->id, (1 << nfa->alphabet_dim));
     push(current_states, nfa->initial_state->id);
-    node* eps_initial = nfa->initial_state->transitions[(1 << nfa->alphabet_dim)]->head;
-    while (eps_initial)
-    {
-        push(current_states, eps_initial->val);
-        eps_initial = eps_initial->next;
-    }
 
     for (int i = 0; i < total_bits; i++)
     {
@@ -1147,6 +1136,7 @@ NFA* NFA_union(NFA* nfa1, NFA* nfa2)
     if (!nfa2) return NFA_clone(nfa1);
     if (!nfa1) return NFA_clone(nfa2);
     if (nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
+
     // + 1, because the added state is the new initial one
     int combined_states_count = nfa1->states_count * nfa2->states_count + 2;
     int alphabet_dim = nfa1->alphabet_dim;
@@ -1239,6 +1229,34 @@ NFA* NFA_project(NFA* nfa, unsigned char n)
 void NFA_project_rec(NFA** nfa, unsigned char n)
 {
     NFA* nfa_project = NFA_project(*nfa, n);
+    NFA_free(*nfa);
+    *nfa = nfa_project;
+}
+
+NFA* NFA_project(NFA* nfa, unsigned char n, bool with_quotient)
+{
+    if (!nfa || n >= nfa->alphabet_dim) return nullptr;
+    NFA* result;
+    if (with_quotient)
+    {
+        NFA* zeroes = NFA_get_only_zeroes(nfa->alphabet_dim - 1);
+        NFA_extend_rec(&zeroes, n);
+        result = NFA_rightquo(nfa, zeroes);
+        NFA_union_rec(&result, nfa);
+        NFA_project_rec(&result, n);
+        NFA_free(zeroes);
+    }
+    else
+    {
+        result = NFA_project(nfa, n);
+    }
+
+    return result;
+}
+
+void NFA_project_rec(NFA** nfa, unsigned char n, bool with_quotient)
+{
+    NFA* nfa_project = NFA_project(*nfa, n, 1);
     NFA_free(*nfa);
     *nfa = nfa_project;
 }
@@ -1680,27 +1698,49 @@ NFA* DFA_minimize(NFA* nfa_original)
 
     NFA_remove_unreachable_states_rec(new_nfa);
 
-    // If there is a state which have no transition from it (besides itself) and it's non-final, then we can remove it
-    for (int i = 0; i < new_nfa->states_count; i++)
+    // If there is a state which have no transition from it (besides itself) and it's non-final or initial,
+    // then we can remove it
+
+    bool need_remove = true;
+
+    while (need_remove)
     {
-        if (!new_nfa->states[i]->is_final)
+        need_remove = false;
+        int* removed_states = (int*)calloc(new_nfa->states_count, sizeof(int));
+
+        for (int i = 0; i < new_nfa->states_count; i++)
         {
-            bool have_transitions = 0;
-            for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
+            if (!new_nfa->states[i]->is_final && new_nfa->states[i]->id != new_nfa->initial_state->id)
             {
-                node* head = new_nfa->states[i]->transitions[letter]->head;
-                if (head && !(head->val == i))
+                bool have_transitions = 0;
+                for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
                 {
-                    have_transitions = 1;
-                    break;
+                    node* head = new_nfa->states[i]->transitions[letter]->head;
+                    if (head && !(head->val == i))
+                    {
+                        have_transitions = 1;
+                        break;
+                    }
+                }
+
+                if (!have_transitions)
+                {
+                    removed_states[i] = 1;
+                    need_remove = true;
                 }
             }
+        }
 
-            if (!have_transitions && new_nfa->states[i] != new_nfa->initial_state)
-            {
-                NFA_state_remove(new_nfa, i);
-                i = 0;
-            }
+        if (need_remove) NFA_state_list_remove(new_nfa, removed_states, new_nfa->states_count);
+        free(removed_states);
+    }
+
+    if (new_nfa->states_count == 1 && !new_nfa->initial_state->is_final) // its initial state
+    {
+        for (int letter = 0; letter <= (1 << new_nfa->alphabet_dim); letter++)
+        {
+            free(new_nfa->initial_state->transitions[letter]->head);
+            new_nfa->initial_state->transitions[letter]->head = nullptr;
         }
     }
 
@@ -1823,6 +1863,46 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
     current_group = nullptr;
     list_free(new_group);
     return groups;
+}
+
+stack* NFA_get_reachable_states(NFA* nfa, int start_state, char letter)
+{
+    if (!nfa || start_state < 0 || start_state >= nfa->states_count || letter >(1 << nfa->alphabet_dim)) return nullptr;
+    stack* reached_states = create_stack();
+    bool* reached_states_added = (bool*)calloc(nfa->states_count, sizeof(bool));
+    node* dest = nfa->states[start_state]->transitions[letter]->head;
+    while (dest)
+    {
+        if (!reached_states_added[dest->val]) // if destination_state is not in the next_states
+        {
+            push(reached_states, dest->val); // push it into next_states
+            reached_states_added[dest->val] = 1;
+
+            // we also check all states that are epsilon-reached from this destination_state
+            // and push them in next_states
+            queue* eps_queue = create_queue();
+            enqueue(eps_queue, dest->val);
+            while (!is_queue_empty(eps_queue))
+            {
+                node* eps_dest = nfa->states[dequeue(eps_queue)]->transitions[(1 << nfa->alphabet_dim)]->head;
+                while (eps_dest)
+                {
+                    if (!reached_states_added[eps_dest->val])
+                    {
+                        enqueue(eps_queue, eps_dest->val);
+                        push(reached_states, eps_dest->val);
+                        reached_states_added[eps_dest->val] = 1;
+                    }
+                    eps_dest = eps_dest->next;
+                }
+            }
+            free_queue(eps_queue);
+        }
+        dest = dest->next;
+    }
+
+    free(reached_states_added);
+    return reached_states;
 }
 
 NFA* NFA_remove_unreachable_states(NFA* nfa)
@@ -2397,7 +2477,7 @@ NFA* NFA_get_div_a(int a)
     return nfa_result;
 }
 
-NFA* NFA_get_sum_xn(int* a, int count)
+NFA* NFA_get_linear_term(int* a, int count)
 {
     if (!a) return nullptr;
     if (count == 0) return NFA_get_only_zeroes();
@@ -2545,6 +2625,8 @@ void NFA_console_app() {
             handle_conversion_to_dfa(input + 8);
         } else if (strncmp(input, "remove_eps $", 12) == 0) {
             handle_remove_epsilon(input + 12);
+        } else if (strncmp(input, "cls", 3) == 0) {
+            handle_cls();
         } else {
                 printf("Unknown command: %s\n", input);
         }
@@ -2556,6 +2638,7 @@ void print_help() {
     cout << "Available commands:\n";
     cout << "exit - Exit the NFA Console Application.\n";
     cout << "help - Display this help message.\n";
+    cout << "cls - Clear console\n";
     cout << "nfa_list - List available automata.\n";
     cout << "def <name> \"<predicate>\" [-m] [-v] [-re] - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
     cout << "eval $automaton_name(num1, num2, ..., numN) - Evaluate an automaton with a given numbers.\n";
@@ -2727,7 +2810,7 @@ NFA* NFA_from_predicate(const char* predicate) {
     return final_nfa;
 }
 
-void    NFA_def(const char* command) {
+void NFA_def(const char* command) {
     char name[256], predicate[1024];
     bool minimize = false, visualize = false, remove_eps = false;
 
@@ -2753,7 +2836,6 @@ void    NFA_def(const char* command) {
             if (minimize) {
                 DFA_minimize_rec(&nfa);
             }
-
             char filename[300];
             sprintf(filename, "../NFA/NFAs/%s.txt", name);
             NFA_to_file(nfa, filename);
@@ -3024,6 +3106,12 @@ void handle_remove_epsilon(const char* automaton_name) {
     } else {
         cout << "Failed to load automaton from file: " << filename << "\n";
     }
+}
+
+void handle_cls()
+{
+    system("cls");
+    cout << "Enter command (type 'exit' to quit):\n";
 }
 
 void remove_spaces(char* str) {

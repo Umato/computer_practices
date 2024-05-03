@@ -6,7 +6,11 @@
 #include "graph.h"
 #include "NFA.h"
 
+
+
 int main() {
+
+
 
     std::random_device rd;
     srand(rd());
@@ -60,7 +64,7 @@ int main() {
 #pragma endregion
 
 #pragma region NFA_rightquo Check
-    /*NFA* nfa_sum = NFA_get_sum3();
+    /*NFA* nfa_sum = NFA_get_sum();
     int fs[] = { 0 };
     int* fsl = &(fs[0]);
     NFA* nfa_zeroes = NFA_init(1, 2, 0, 1, fsl);
@@ -70,7 +74,7 @@ int main() {
     NFA_to_DOT(nfa_zeroes1);
     NFA* nfa2 = NFA_rightquo(nfa_sum, nfa_zeroes1);
     NFA_to_DOT(nfa2);
-    NFA* new_nfa = union_NFA(nfa_sum, nfa2);
+    NFA* new_nfa = NFA_union(nfa_sum, nfa2);
     NFA_to_DOT(new_nfa);*/
 #pragma endregion
 
@@ -99,31 +103,31 @@ int main() {
 #pragma endregion
 
 #pragma region Both Quotients Check
-    //int fs[] = { 0 };
-    //int* fsl = &(fs[0]);
+    /*int fs[] = {0};
+    int* fsl = &(fs[0]);
 
-    //NFA* nfa2 = NFA_init(2, 1, 0, 1, fsl); // (01)* = 01/0101/010101/01010101 - ��������� L2 - ���� �������� ����� ������� ��� ������
-    //NFA_transition_add(nfa2, 0, 1, 0);
-    //NFA_transition_add(nfa2, 1, 0, 1);
+    NFA* nfa2 = NFA_init(2, 1, 0, 1, fsl); // (01)* = 01/0101/010101/01010101 - ��������� L2 - ���� �������� ����� ������� ��� ������
+    NFA_transition_add(nfa2, 0, 1, 0);
+    NFA_transition_add(nfa2, 1, 0, 1);
 
-    //NFA* nfa1 = NFA_init(1, 1, 0, 1, fsl); // {0,1}* - ��������� L1 - ��� ��� ������
-    //NFA_transition_add(nfa1, 0, 0, 0);
-    //NFA_transition_add(nfa1, 0, 0, 1);
-
-
-    //// L2  (01)* = 01/0101/010101/01010101
-    //// L1  {0,1}* - ��������� ��� ��� ������
-
-    //NFA* left = NFA_leftquo(nfa2, nfa1); // ��� ����� �������� S, ��� ���� ����� �� L1 ����� ��� L1+S in L2 
-    //// (spoiler: ��������� 1/01/101/0101/ 10101/ 010101/ 1010101 (01)* )
+    NFA* nfa1 = NFA_init(1, 1, 0, 1, fsl); // {0,1}* - ��������� L1 - ��� ��� ������
+    NFA_transition_add(nfa1, 0, 0, 0);
+    NFA_transition_add(nfa1, 0, 0, 1);
 
 
-    //NFA* right = NFA_rightquo(nfa2, nfa1); // ��� ����� �������� P, ��� ���� ����� �� L1 ����� ��� P+L1 in Ls 
-    //// (spoiler: ��������� 0/01/010/0101/01010 - �� ���� L2 U 0(01)* )
+    // L2  (01)* = 01/0101/010101/01010101
+    // L1  {0,1}* - ��������� ��� ��� ������
+
+    NFA* left = NFA_leftquo(nfa2, nfa1); // ��� ����� �������� S, ��� ���� ����� �� L1 ����� ��� L1+S in L2
+    // (spoiler: ��������� 1/01/101/0101/ 10101/ 010101/ 1010101 (01)* )
 
 
-    //NFA_to_DOT(left);
-    //NFA_to_DOT(right);
+    NFA* right = NFA_rightquo(nfa2, nfa1); // ��� ����� �������� P, ��� ���� ����� �� L1 ����� ��� P+L1 in Ls
+    // (spoiler: ��������� 0/01/010/0101/01010 - �� ���� L2 U 0(01)* )
+
+
+    NFA_to_DOT(left);
+    NFA_to_DOT(right);*/
 #pragma endregion
 
 #pragma region Div2
@@ -301,6 +305,7 @@ int main() {
     NFA_to_DOT(nfa3);
     NFA* nfa = NFA_get_equal_coordinates(nfa3, 1, 2);
     NFA_to_DOT(nfa);*/
+
     /*NFA* nfa1 = NFA_get_div_2_power_m(3);
     NFA* nfa2 = NFA_get_div_a(5);
     printf("Num, div8, div5\n");
@@ -317,15 +322,16 @@ int main() {
 
 #pragma endregion   
 
+    //int a[3];
+
+    /*NFA* div2 = NFA_get_div_a(2);
+    NFA* div3 = NFA_get_div_a(3);
+    NFA* div7 = NFA_get_div_a(7);
+    NFA* nfa = NFA_union(div2, div3);
+    NFA_union_rec(&nfa, div7);
+    NFA_to_DOT(nfa);*/
 
 
-//    linear_expression* le = parse_linear_expression("4russian + 2chinise + 1");
-//    print_linear_expression(le);
-//    NFA* nfa = NFA_from_linear_expression(le);
-//    NFA_to_DOT(nfa);
-//    system("pause");
-//    nfa_console_app();
-    cout << NFA_RPN("A aboba:(( (          ($div2(x) & ~($div3(x) | ~(x | y))))))  &      (((($div3(x))))) E x, y, a:");
 //    NFA_console_app();
 
 //    cout << NFA_RPN("~$div(2x+1) & $aut(faust))))))))))))))))");
