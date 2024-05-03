@@ -326,8 +326,6 @@ int main() {
 
     NFA_console_app();
 
-//    NFA_console_app();
-
     cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac: ~$div(2x+1) & $aut(faust)");
     system("pause");
 
