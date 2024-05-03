@@ -319,10 +319,17 @@ int main() {
 
 
 
-
+//    linear_expression* le = parse_linear_expression("4russian + 2chinise + 1");
+//    print_linear_expression(le);
+//    NFA* nfa = NFA_from_linear_expression(le);
+//    NFA_to_DOT(nfa);
+//    system("pause");
+//    nfa_console_app();
+    cout << NFA_RPN("A aboba:(( (          ($div2(x) & ~($div3(x) | ~(x | y))))))  &      (((($div3(x))))) E x, y, a:");
 //    NFA_console_app();
 
-
+//    cout << NFA_RPN("~$div(2x+1) & $aut(faust))))))))))))))))");
+    system("pause");
 
     big_int_free(6, zero, one, two, e, mod, ex);
     return 0;
