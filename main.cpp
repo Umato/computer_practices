@@ -64,7 +64,7 @@ int main() {
 #pragma endregion
 
 #pragma region NFA_rightquo Check
-    /*NFA* nfa_sum = NFA_get_sum3();
+    /*NFA* nfa_sum = NFA_get_sum();
     int fs[] = { 0 };
     int* fsl = &(fs[0]);
     NFA* nfa_zeroes = NFA_init(1, 2, 0, 1, fsl);
@@ -74,7 +74,7 @@ int main() {
     NFA_to_DOT(nfa_zeroes1);
     NFA* nfa2 = NFA_rightquo(nfa_sum, nfa_zeroes1);
     NFA_to_DOT(nfa2);
-    NFA* new_nfa = union_NFA(nfa_sum, nfa2);
+    NFA* new_nfa = NFA_union(nfa_sum, nfa2);
     NFA_to_DOT(new_nfa);*/
 #pragma endregion
 
@@ -103,31 +103,31 @@ int main() {
 #pragma endregion
 
 #pragma region Both Quotients Check
-    //int fs[] = { 0 };
-    //int* fsl = &(fs[0]);
+    /*int fs[] = {0};
+    int* fsl = &(fs[0]);
 
-    //NFA* nfa2 = NFA_init(2, 1, 0, 1, fsl); // (01)* = 01/0101/010101/01010101 - ��������� L2 - ���� �������� ����� ������� ��� ������
-    //NFA_transition_add(nfa2, 0, 1, 0);
-    //NFA_transition_add(nfa2, 1, 0, 1);
+    NFA* nfa2 = NFA_init(2, 1, 0, 1, fsl); // (01)* = 01/0101/010101/01010101 - ��������� L2 - ���� �������� ����� ������� ��� ������
+    NFA_transition_add(nfa2, 0, 1, 0);
+    NFA_transition_add(nfa2, 1, 0, 1);
 
-    //NFA* nfa1 = NFA_init(1, 1, 0, 1, fsl); // {0,1}* - ��������� L1 - ��� ��� ������
-    //NFA_transition_add(nfa1, 0, 0, 0);
-    //NFA_transition_add(nfa1, 0, 0, 1);
-
-
-    //// L2  (01)* = 01/0101/010101/01010101
-    //// L1  {0,1}* - ��������� ��� ��� ������
-
-    //NFA* left = NFA_leftquo(nfa2, nfa1); // ��� ����� �������� S, ��� ���� ����� �� L1 ����� ��� L1+S in L2 
-    //// (spoiler: ��������� 1/01/101/0101/ 10101/ 010101/ 1010101 (01)* )
+    NFA* nfa1 = NFA_init(1, 1, 0, 1, fsl); // {0,1}* - ��������� L1 - ��� ��� ������
+    NFA_transition_add(nfa1, 0, 0, 0);
+    NFA_transition_add(nfa1, 0, 0, 1);
 
 
-    //NFA* right = NFA_rightquo(nfa2, nfa1); // ��� ����� �������� P, ��� ���� ����� �� L1 ����� ��� P+L1 in Ls 
-    //// (spoiler: ��������� 0/01/010/0101/01010 - �� ���� L2 U 0(01)* )
+    // L2  (01)* = 01/0101/010101/01010101
+    // L1  {0,1}* - ��������� ��� ��� ������
+
+    NFA* left = NFA_leftquo(nfa2, nfa1); // ��� ����� �������� S, ��� ���� ����� �� L1 ����� ��� L1+S in L2 
+    // (spoiler: ��������� 1/01/101/0101/ 10101/ 010101/ 1010101 (01)* )
 
 
-    //NFA_to_DOT(left);
-    //NFA_to_DOT(right);
+    NFA* right = NFA_rightquo(nfa2, nfa1); // ��� ����� �������� P, ��� ���� ����� �� L1 ����� ��� P+L1 in Ls 
+    // (spoiler: ��������� 0/01/010/0101/01010 - �� ���� L2 U 0(01)* )
+
+
+    NFA_to_DOT(left);
+    NFA_to_DOT(right);*/
 #pragma endregion
 
 #pragma region Div2
@@ -323,6 +323,23 @@ int main() {
 #pragma endregion   
 
     //int a[3];
+    
+    /*NFA* div2 = NFA_get_div_a(2);
+    NFA* div3 = NFA_get_div_a(3);
+    NFA* div7 = NFA_get_div_a(7);
+    NFA* nfa = NFA_union(div2, div3);
+    NFA_union_rec(&nfa, div7);
+    NFA_to_DOT(nfa);*/
+
+    NFA* nfa_sum = NFA_get_sum();
+    NFA_to_DOT(nfa_sum);
+    NFA* res1 = NFA_project(nfa_sum, 2);
+    NFA* res2 = NFA_project(nfa_sum, 2, 1);
+    DFA_minimize_rec(&res1);
+    DFA_minimize_rec(&res2);
+    NFA_to_DOT(res1);
+    NFA_to_DOT(res2);
+
 
     NFA_console_app();
 

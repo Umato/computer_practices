@@ -118,12 +118,14 @@ void NFA_rightquo_unioned(NFA** nfa1, NFA* nfa2);
  * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
  */
 NFA* NFA_project(NFA* nfa, unsigned char n);
+NFA* NFA_project(NFA* nfa, unsigned char n, bool with_quotient);
 /**
  * @brief Delete n-th coordinate in transition letters
  *
  * @param n: Number of a coordinate, starting from left with 0 (e.g. "0010" minus 1-st coordinate = "010")
  */
 void NFA_project_rec(NFA** nfa, unsigned char n);
+void NFA_project_rec(NFA** nfa, unsigned char n, bool with_quotient);
 /**
  * @brief Return a pointer to new NFA with added n-th coordinate in transition letters
  *
@@ -172,6 +174,7 @@ void DFA_minimize_rec(NFA** nfa);
 
 void DFA_make_complete(NFA* nfa);
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
+stack* NFA_get_reachable_states(NFA* nfa, int start_state, char letter);
 NFA* NFA_remove_unreachable_states(NFA* nfa);
 void NFA_remove_unreachable_states_rec(NFA* nfa);
 bool NFA_is_empty(NFA* nfa);
@@ -259,6 +262,7 @@ char* extract_name(const char* token);
 void handle_operation(nfa_stack* stack, char op);
 void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
+void handle_cls();
 void handle_command(const std::string& command);
 
 linear_term* parse_linear_term(const char* input);

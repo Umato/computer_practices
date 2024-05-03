@@ -5,7 +5,6 @@
 
 // add epsilon-reached to accept methods and nfa_to_dfa where we search for epsilon-initial states
 // NFA_remove_unreachable_states в minimize и других
-// MINIMIZE 2=2 точка с запятой
 // Убрать эпсилон переходы при НФА-ту-ДФА
 
 
@@ -596,21 +595,15 @@ bool NFA_accept(NFA* nfa, char* num)
     char* new_num = format_string_to_bin(num);
     if (!nfa || !new_num || strlen(new_num) == 0) return 0;
 
-    stack* current_states = create_stack();
+    stack* current_states;
     stack* next_states;
     bool* next_states_added;
 
     char bit;
     size_t total_bits = strlen(new_num);
 
-
+    current_states = NFA_get_reachable_states(nfa, nfa->initial_state->id, (1 << nfa->alphabet_dim));
     push(current_states, nfa->initial_state->id);
-    node* eps_initial = nfa->initial_state->transitions[(1 << nfa->alphabet_dim)]->head;
-    while (eps_initial)
-    {
-        push(current_states, eps_initial->val);
-        eps_initial = eps_initial->next;
-    }
 
     for (int i = 0; i < total_bits; i++)
     {
@@ -708,13 +701,8 @@ bool NFA_accept(NFA* nfa, char** nums, int nums_count)
     bool* next_states_added;
     int total_bits = max_length;
 
+    current_states = NFA_get_reachable_states(nfa, nfa->initial_state->id, (1 << nfa->alphabet_dim));
     push(current_states, nfa->initial_state->id);
-    node* eps_initial = nfa->initial_state->transitions[(1 << nfa->alphabet_dim)]->head;
-    while (eps_initial)
-    {
-        push(current_states, eps_initial->val);
-        eps_initial = eps_initial->next;
-    }
 
     for (int i = 0; i < total_bits; i++)
     {
@@ -1353,6 +1341,34 @@ void NFA_project_rec(NFA** nfa, unsigned char n)
     *nfa = nfa_project;
 }
 
+NFA* NFA_project(NFA* nfa, unsigned char n, bool with_quotient)
+{
+    if (!nfa || n >= nfa->alphabet_dim) return nullptr;
+    NFA* result;
+    if (with_quotient)
+    {
+        NFA* zeroes = NFA_get_only_zeroes(nfa->alphabet_dim - 1);
+        NFA_extend_rec(&zeroes, n);
+        result = NFA_rightquo(nfa, zeroes);
+        NFA_union_rec(&result, nfa);
+        NFA_project_rec(&result, n);
+        NFA_free(zeroes);
+    }
+    else
+    {
+        result = NFA_project(nfa, n);
+    }
+
+    return result;
+}
+
+void NFA_project_rec(NFA** nfa, unsigned char n, bool with_quotient)
+{
+    NFA* nfa_project = NFA_project(*nfa, n, 1);
+    NFA_free(*nfa);
+    *nfa = nfa_project;
+}
+
 NFA* NFA_extend(NFA* nfa, unsigned char n)
 {
     if (!nfa || n > nfa->alphabet_dim) return nullptr;
@@ -1944,6 +1960,46 @@ list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_
     current_group = nullptr;
     list_free(new_group);
     return groups;
+}
+
+stack* NFA_get_reachable_states(NFA* nfa, int start_state, char letter)
+{
+    if (!nfa || start_state < 0 || start_state >= nfa->states_count || letter >(1 << nfa->alphabet_dim)) return nullptr;
+    stack* reached_states = create_stack();
+    bool* reached_states_added = (bool*)calloc(nfa->states_count, sizeof(bool));
+    node* dest = nfa->states[start_state]->transitions[letter]->head;
+    while (dest)
+    {
+        if (!reached_states_added[dest->val]) // if destination_state is not in the next_states
+        {
+            push(reached_states, dest->val); // push it into next_states
+            reached_states_added[dest->val] = 1;
+
+            // we also check all states that are epsilon-reached from this destination_state
+            // and push them in next_states
+            queue* eps_queue = create_queue();
+            enqueue(eps_queue, dest->val);
+            while (!is_queue_empty(eps_queue))
+            {
+                node* eps_dest = nfa->states[dequeue(eps_queue)]->transitions[(1 << nfa->alphabet_dim)]->head;
+                while (eps_dest)
+                {
+                    if (!reached_states_added[eps_dest->val])
+                    {
+                        enqueue(eps_queue, eps_dest->val);
+                        push(reached_states, eps_dest->val);
+                        reached_states_added[eps_dest->val] = 1;
+                    }
+                    eps_dest = eps_dest->next;
+                }
+            }
+            free_queue(eps_queue);
+        }
+        dest = dest->next;
+    }
+
+    free(reached_states_added);
+    return reached_states;
 }
 
 NFA* NFA_remove_unreachable_states(NFA* nfa)
@@ -2652,6 +2708,8 @@ void NFA_console_app() {
             handle_conversion_to_dfa(input + 8);
         } else if (strncmp(input, "remove_eps $", 12) == 0) {
             handle_remove_epsilon(input + 12);
+        } else if (strncmp(input, "cls", 3) == 0) {
+            handle_cls();
         } else {
                 printf("Unknown command: %s\n", input);
         }
@@ -2663,6 +2721,7 @@ void print_help() {
     cout << "Available commands:\n";
     cout << "exit - Exit the NFA Console Application.\n";
     cout << "help - Display this help message.\n";
+    cout << "cls - Clear console\n";
     cout << "nfa_list - List available automata.\n";
     cout << "def <name> \"<predicate>\" [-m] [-v] [-re] - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
     cout << "eval $automaton_name(num1, num2, ..., numN) - Evaluate an automaton with a given numbers.\n";
@@ -2755,7 +2814,7 @@ char* NFA_RPN(const char* formula) {
             }
             c--;
             break;
-        default:
+        default: 
             if (j != 0 && *c == ' ' && rpn[j - 1] != ' ')
                 rpn[j++] = *c;
             else if (*c != ' ')
@@ -3060,7 +3119,7 @@ void handle_operation(nfa_stack* stack, char op) {
         case 'E': {
             // ex x=y+z
             NFA* nfa = pop(stack);
-            NFA_project_rec(&nfa, 0);
+            NFA_project_rec(&nfa, 0, 1);
             DFA_minimize_rec(&nfa);
             push(stack, nfa);
             break;
@@ -3069,7 +3128,7 @@ void handle_operation(nfa_stack* stack, char op) {
             NFA* nfa = pop(stack);
             DFA_minimize_rec(&nfa);
             DFA_complement_rec(&nfa);
-            NFA_project_rec(&nfa, 0);
+            NFA_project_rec(&nfa, 0, 1);
             DFA_minimize_rec(&nfa);
             DFA_complement_rec(&nfa);
             push(stack, nfa);
@@ -3094,6 +3153,12 @@ void handle_remove_epsilon(const char* automaton_name) {
     } else {
         cout << "Failed to load automaton from file: " << filename << "\n";
     }
+}
+
+void handle_cls()
+{
+    system("cls");
+    cout << "Enter command (type 'exit' to quit):\n";
 }
 
 #pragma endregion
