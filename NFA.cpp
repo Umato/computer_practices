@@ -2576,7 +2576,7 @@ NFA* NFA_from_linear_expression(linear_expression* expr)
         coefficients[i] = expr->terms[i - 1].coefficient;
     }
 
-    NFA* result = NFA_get_sum_xn(coefficients, expr->terms_count + 1);
+    NFA* result = NFA_get_linear_term(coefficients, expr->terms_count + 1);
     free(coefficients);
 
     return result;
