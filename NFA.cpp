@@ -7,6 +7,56 @@
 // NFA_remove_unreachable_states в minimize и других
 // Убрать эпсилон переходы при НФА-ту-ДФА
 
+#pragma region NFA_variables
+NFA_variables* NFA_variables_init()
+{
+    NFA_variables* vars = (NFA_variables*)malloc(sizeof(NFA_variables));
+    vars->count = 0;
+    vars->variables = nullptr;
+
+    return vars;
+}
+
+void NFA_variables_free(NFA_variables* vars)
+{
+    if (!vars) return;
+    for (int i = 0; i < vars->count; i++)
+    {
+        free(vars->variables[i]);
+    }
+    free(vars->variables);
+    free(vars);
+}
+
+
+void NFA_variables_add(NFA_variables* vars, const char* new_var)
+{
+    if (!vars || NFA_variables_in(vars, new_var)) return;
+
+    vars->count++;
+    vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
+    vars->variables[vars->count - 1] = (char*)calloc(strlen(new_var) + 1, sizeof(char));
+    strcpy(vars->variables[vars->count - 1], new_var);
+}
+
+int NFA_variables_index(NFA_variables* vars, const char* var)
+{
+    if (!vars) return -1;
+    for (int i = 0; i < vars->count; i++)
+    {
+        char* current_var = vars->variables[i];
+        if ((strlen(var) == strlen(current_var)) && (strncmp(current_var, var, strlen(var)) == 0)) return i;
+    }
+
+    return -1;
+}
+
+bool NFA_variables_in(NFA_variables* vars, const char* var)
+{
+    return NFA_variables_index(vars, var) != -1;
+}
+#pragma endregion
+
 
 #pragma region Others
 
@@ -2172,38 +2222,6 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 #pragma region NFA Examples
 
-NFA* NFA_get_div_2_custom()
-{
-    int* final_states = (int*)malloc(sizeof(int));
-    final_states[0] = 1;
-    NFA* nfa = NFA_init(3, 1, 0, 1, final_states);
-
-    NFA_transition_add(nfa, 0, 1, 0);
-    NFA_transition_add(nfa, 0, 2, 1);
-    NFA_transition_add(nfa, 1, 1, 0);
-    NFA_transition_add(nfa, 1, 1, 1);
-    NFA_transition_add(nfa, 2, 2, 0);
-    NFA_transition_add(nfa, 2, 2, 1);
-
-    return nfa;
-}
-
-NFA* NFA_get_div_3_custom()
-{
-    int* final_states = (int*)malloc(sizeof(int));
-    final_states[0] = 0;
-    NFA* nfa = NFA_init(3, 1, 0, 1, final_states);
-
-    NFA_transition_add(nfa, 0, 0, 0);
-    NFA_transition_add(nfa, 0, 1, 1);
-    NFA_transition_add(nfa, 1, 0, 1);
-    NFA_transition_add(nfa, 1, 2, 0);
-    NFA_transition_add(nfa, 2, 1, 0);
-    NFA_transition_add(nfa, 2, 2, 1);
-
-    return nfa;
-}
-
 NFA* NFA_get_div_power_of_2_custom(int power)
 {
     if (power < 1) return nullptr;
@@ -2663,7 +2681,6 @@ NFA* NFA_with_term(NFA* nfa, NFA* term)
 
     return nfa_copy;
 }
-
 
 #pragma endregion
 

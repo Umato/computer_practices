@@ -25,6 +25,12 @@ typedef struct linear_term {
     int count;
 } linear_term;
 
+typedef struct NFA_variables
+{
+    int count; 
+    char** variables; 
+} NFA_variables ;
+
 typedef struct NFA_state {
     int id;
     bool is_final;
@@ -46,6 +52,12 @@ typedef struct nfa_node {
 typedef struct nfa_stack {
     nfa_node* top;
 } nfa_stack;
+
+NFA_variables* NFA_variables_init();
+void NFA_variables_add(NFA_variables* vars, const char* new_var);
+int NFA_variables_index(NFA_variables* vars, const char* var);
+bool NFA_variables_in(NFA_variables* vars, const char* var);
+void NFA_variables_free(NFA_variables* vars);
 
 list* list_init();
 void list_free(list* tr_list);

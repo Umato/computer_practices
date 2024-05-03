@@ -317,28 +317,28 @@ int main() {
     }*/
 #pragma endregion
 
-#pragma region NFA_get_sum_xn
 
 
-#pragma endregion   
+#pragma region NFA_variables
+    /*NFA_variables* vars = NFA_variables_init();
 
-    //int a[3];
+    NFA_variables_add(vars, "x");
+    NFA_variables_add(vars, "y");
+    NFA_variables_add(vars, "x");
+    NFA_variables_add(vars, "aboba");
+    NFA_variables_add(vars, "abo");
     
-    /*NFA* div2 = NFA_get_div_a(2);
-    NFA* div3 = NFA_get_div_a(3);
-    NFA* div7 = NFA_get_div_a(7);
-    NFA* nfa = NFA_union(div2, div3);
-    NFA_union_rec(&nfa, div7);
-    NFA_to_DOT(nfa);*/
+    NFA_variables_in(vars, "aboba");
+    NFA_variables_in(vars, "abob");
 
-    NFA* nfa_sum = NFA_get_sum();
-    NFA_to_DOT(nfa_sum);
-    NFA* res1 = NFA_project(nfa_sum, 2);
-    NFA* res2 = NFA_project(nfa_sum, 2, 1);
-    DFA_minimize_rec(&res1);
-    DFA_minimize_rec(&res2);
-    NFA_to_DOT(res1);
-    NFA_to_DOT(res2);
+    NFA_variables_index(vars, "aboba");
+    NFA_variables_index(vars, "abob");
+    NFA_variables_index(vars, "x");
+
+    NFA_variables_free(vars);*/
+#pragma endregion
+
+    
 
 
     NFA_console_app();
