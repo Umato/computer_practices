@@ -320,13 +320,11 @@ int main() {
 
 
 #pragma endregion   
-
     
 
 
+    //cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac: ~$div(2x+1) & $aut(faust)");
     NFA_console_app();
-
-    cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac: ~$div(2x+1) & $aut(faust)");
     system("pause");
 
     big_int_free(6, zero, one, two, e, mod, ex);

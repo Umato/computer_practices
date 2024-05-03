@@ -15,6 +15,7 @@
 #include <bit>
 #include <conio.h>
 #include <vector>
+#include <iomanip>
 
 #include "direct.h"
 #include "windows.h"
@@ -252,6 +253,7 @@ NFA* NFA_from_linear_expression(linear_expression* expr);
 
 void NFA_console_app();
 void print_help();
+void print_hElp();
 void NFA_list();
 int nfa_get_priority(char op);
 char* NFA_RPN(const char* formula);
@@ -280,6 +282,8 @@ void handle_operation(nfa_stack* stack, char op);
 void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
 void handle_cls();
+int complete_added_nfa(NFA* added_nfa, NFA_variables* all_vars, NFA_variables* local_vars);
+void remove_spaces(char* str);
 void handle_command(const std::string& command);
 
 
@@ -295,6 +299,5 @@ linear_expression* init_linear_expression();
 void free_linear_expression(linear_expression* expr);
 linear_expression* parse_linear_expression(const char* input);
 void print_linear_expression(linear_expression* expr);
-void remove_spaces(char* str);
 
 #endif //COMPUTER_PRACTICES_NFA_H

@@ -8,6 +8,7 @@
 // Убрать эпсилон переходы при НФА-ту-ДФА
 
 #pragma region NFA_variables
+
 NFA_variables* NFA_variables_init()
 {
     NFA_variables* vars = (NFA_variables*)malloc(sizeof(NFA_variables));
@@ -27,7 +28,6 @@ void NFA_variables_free(NFA_variables* vars)
     free(vars->variables);
     free(vars);
 }
-
 
 void NFA_variables_add(NFA_variables* vars, const char* new_var)
 {
@@ -55,6 +55,7 @@ bool NFA_variables_in(NFA_variables* vars, const char* var)
 {
     return NFA_variables_index(vars, var) != -1;
 }
+
 #pragma endregion
 
 
@@ -2621,11 +2622,11 @@ void NFA_console_app() {
         if (strcmp(input, "exit") == 0) {
             cout << "Exiting NFA Console Application.\n";
             break;
-        }
-        else if (strcmp(input, "help") == 0) {
+        } else if (strcmp(input, "help") == 0) {
             print_help();
-        }
-        else if (strcmp(input, "nfa_list") == 0) {
+        } else if (strcmp(input, "hElp") == 0) {
+            print_hElp();
+        } else if (strcmp(input, "nfa_list") == 0) {
             NFA_list();
         } else if (strncmp(input, "def ", 4) == 0) {
             NFA_def(input);
@@ -2652,20 +2653,46 @@ void NFA_console_app() {
 
 }
 
-void print_help() {
+void print_help()
+{
+    int commandWidth = 55;
+
+    std::cout << std::left;
+
     cout << "Available commands:\n";
-    cout << "exit - Exit the NFA Console Application.\n";
-    cout << "help - Display this help message.\n";
-    cout << "cls - Clear console\n";
-    cout << "nfa_list - List available automata.\n";
-    cout << "def <name> \"<predicate>\" [-m] [-v] [-re] - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
-    cout << "eval $automaton_name(num1, num2, ..., numN) - Evaluate an automaton with a given numbers.\n";
-    cout << "eval2 $automaton_name(binary_num1, binary_num2, ..., binary_numN) - Evaluate an automaton with a binary numbers.\n";
-    cout << "for $automaton_name(start, end, [step]) - Test an automaton with a range of decimal numbers.\n";
-    cout << "visualize $automaton_name - Visualize an NFA as a graphical representation.\n";
-    cout << "minimize $automaton_name - Minimize.\n";
-    cout << "to_dfa $automaton_name - Convert an NFA to DFA.\n";
-    cout << "remove_eps $automaton_name - Remove epsilon transitions from an NFA.\n";
+    cout << std::setw(commandWidth) << " exit" << " - Exit the NFA Console Application.\n";
+    cout << std::setw(commandWidth) << " help" << " - Display this help message.\n";
+    cout << std::setw(commandWidth) << " cls" << " - Clear console\n";
+    cout << std::setw(commandWidth) << " nfa_list" << " - List available automata.\n";
+    cout << std::setw(commandWidth) << " def <name> \"<predicate>\" [-m] [-v] [-re]" << " - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
+    cout << std::setw(commandWidth) << " eval $automaton_name(num1, num2, ..., numN)" << " - Evaluate an automaton with a given numbers.\n";
+    cout << std::setw(commandWidth) << " eval2 $automaton_name(binary_num1, ..., binary_numN)" << " - Evaluate an automaton with a binary numbers.\n";
+    cout << std::setw(commandWidth) << " for $automaton_name(start, end, [step])" << " - Test an automaton with a range of decimal numbers.\n";
+    cout << std::setw(commandWidth) << " visualize $automaton_name" << " - Visualize an NFA as a graphical representation.\n";
+    cout << std::setw(commandWidth) << " minimize $automaton_name" << " - Minimize.\n";
+    cout << std::setw(commandWidth) << " to_dfa $automaton_name" << " - Convert an NFA to DFA.\n";
+    cout << std::setw(commandWidth) << " remove_eps $automaton_name" << " - Remove epsilon transitions from an NFA.\n";
+}
+
+void print_hElp() {
+    int commandWidth = 55;
+    int descWidth = 100;
+
+    std::cout << std::left;
+    
+    cout << "Available commands:\n";
+    cout << std::setw(commandWidth) << " exit" << " - " << std::setw(descWidth) << "Exit the NFA Console Application.\n";
+    cout << std::setw(commandWidth) << " help" << " - " << std::setw(descWidth) << "Display this help message.\n";
+    cout << std::setw(commandWidth) << " cls" << " - " << std::setw(descWidth) << "Clear console\n";
+    cout << std::setw(commandWidth) << " nfa_list" << " - " << std::setw(descWidth) << "List available automata.\n";
+    cout << std::setw(commandWidth) << " def <name> \"<predicate>\" [-m] [-v] [-re]" << " - " << std::setw(descWidth) << "Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), left quotient(\\), exist(E), forall(A).\n";
+    cout << std::setw(commandWidth) << " eval $automaton_name(num1, num2, ..., numN)" << " - " << std::setw(descWidth) << "Evaluate an automaton with a given numbers.\n";
+    cout << std::setw(commandWidth) << " eval2 $automaton_name(binary_num1, ..., binary_numN)" << " - " << std::setw(descWidth) << "Evaluate an automaton with a binary numbers.\n";
+    cout << std::setw(commandWidth) << " for $automaton_name(start, end, [step])" << " - " << std::setw(descWidth) << "Test an automaton with a range of decimal numbers.\n";
+    cout << std::setw(commandWidth) << " visualize $automaton_name" << " - " << std::setw(descWidth) << "Visualize an NFA as a graphical representation.\n";
+    cout << std::setw(commandWidth) << " minimize $automaton_name" << " - " << std::setw(descWidth) << "Minimize.\n";
+    cout << std::setw(commandWidth) << " to_dfa $automaton_name" << " - " << std::setw(descWidth) << "Convert an NFA to DFA.\n";
+    cout << std::setw(commandWidth) << " remove_eps $automaton_name" << " - " << std::setw(descWidth) << "Remove epsilon transitions from an NFA.\n";
 }
 
 void NFA_list() {
@@ -2714,12 +2741,13 @@ char* NFA_RPN(const char* formula) {
     int length = strlen(formula);
     char* rpn = (char*)malloc(length + 1);
     char* exist_forall = (char*)malloc(length + 1);
-    int j = 0, k = 0;
+    int j = 0; //rpn[j]
+    int k = 0; //exist_forall[k]
 
     for (const char *c = formula; *c; c++) {
         switch (*c) {
         case '(' :
-            push(operators, *c  );
+            push(operators, *c);
             break;
         case 'E' :
         case 'A' :
@@ -2728,7 +2756,7 @@ char* NFA_RPN(const char* formula) {
                 c++;
             }
             if (*c == '\0') {
-                cout << "Error: quotes not found\n";
+                cout << "Error: colon not found\n";
                 free(rpn);
                 free(exist_forall);
                 free_stack(operators);
@@ -2784,7 +2812,6 @@ char* NFA_RPN(const char* formula) {
             break;
         }
     }
-
 
     while (!is_stack_empty(operators)) {
         rpn[j++] = ' ';
@@ -3155,6 +3182,46 @@ void handle_cls()
     cout << "Enter command (type 'exit' to quit):\n";
 }
 
+// do not forget to extend main_nfa after this function call
+int complete_added_nfa(NFA* added_nfa, NFA_variables* all_vars, NFA_variables* local_vars)
+{
+    if (!local_vars || !all_vars || !added_nfa || (added_nfa->alphabet_dim != local_vars->count)) return;
+
+    int extend_size = all_vars->count - local_vars->count;
+    // complete full structure
+    for (int i = 0; i < local_vars->count; i++)
+    {
+        NFA_variables_add(all_vars, local_vars->variables[i]);
+    }
+
+    // swap coordinates
+    int k = 0;
+    for (int i = 0; i < all_vars->count; i++)
+    {
+        char* var = all_vars->variables[i];
+        if (NFA_variables_in(local_vars, var))
+        {
+            if (k != NFA_variables_index(local_vars, var))
+            {
+                NFA_swap_rec(&added_nfa, k, NFA_variables_index(local_vars, var));
+            }
+            k++;
+        }
+    }
+
+    // extend added_nfa
+    for (int i = 0; i < all_vars->count; i++)
+    {
+        char* var = all_vars->variables[i];
+        if (NFA_variables_in(local_vars, var))
+        {
+            NFA_extend_rec(&added_nfa, i);
+        }
+    }
+
+    return extend_size;
+}
+
 void remove_spaces(char* str) {
     char* dst = str;
     bool within_parentheses = false;
@@ -3173,7 +3240,6 @@ void remove_spaces(char* str) {
     }
     *dst = '\0';
 }
-
 
 #pragma endregion
 
