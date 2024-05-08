@@ -7,7 +7,11 @@
 // NFA_remove_unreachable_states в minimize и других
 // Убрать эпсилон переходы при НФА-ту-ДФА
 
+// >def test1 "$eq(x,y) & $div2(x) & ~div2(y)" -m -v
+// Где то ошибка
+
 #pragma region NFA_variables
+// TEST ALL !!!
 
 NFA_variables* NFA_variables_init()
 {
@@ -16,6 +20,47 @@ NFA_variables* NFA_variables_init()
     vars->variables = nullptr;
 
     return vars;
+}
+
+NFA_variables* NFA_variables_clone(NFA_variables* vars)
+{
+    NFA_variables* new_vars = NFA_variables_init();
+    new_vars->count = vars->count;
+    new_vars->variables = (char**)malloc(sizeof(char*) * new_vars->count);
+    for (int i = 0; i < new_vars->count; i++)
+    {
+        char* var = vars->variables[i];
+        new_vars->variables[i] = (char*)calloc(strlen(var) + 1, sizeof(char));
+        strcpy(new_vars->variables[i], var);
+        // может быть тут нужен '\0'
+    }
+    return new_vars;
+}
+
+NFA_variables* NFA_vars_from_linear_expr(linear_expression* expr)
+{
+    if (!expr) return nullptr;
+    NFA_variables* vars = NFA_variables_init();
+    for (int i = 0; i < expr->terms_count; i++)
+    {
+        NFA_variables_add(vars, expr->terms[i].variable);
+    }
+
+    return vars;
+}
+
+void NFA_variable_delete(NFA_variables* vars, int index)
+{
+    if (!vars || (index < 0) || index >= vars->count) return;
+
+    free(vars->variables[index]);
+    for (int i = index; i < vars->count - 1; i++)
+    {
+        vars->variables[i] = vars->variables[i + 1];
+    }
+
+    vars->count--;
+    vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
 }
 
 void NFA_variables_free(NFA_variables* vars)
@@ -29,14 +74,9 @@ void NFA_variables_free(NFA_variables* vars)
     free(vars);
 }
 
-void NFA_variables_add(NFA_variables* vars, const char* new_var)
+bool NFA_variables_in(NFA_variables* vars, const char* var)
 {
-    if (!vars || NFA_variables_in(vars, new_var)) return;
-
-    vars->count++;
-    vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
-    vars->variables[vars->count - 1] = (char*)calloc(strlen(new_var) + 1, sizeof(char));
-    strcpy(vars->variables[vars->count - 1], new_var);
+    return NFA_variables_index(vars, var) != -1;
 }
 
 int NFA_variables_index(NFA_variables* vars, const char* var)
@@ -51,9 +91,43 @@ int NFA_variables_index(NFA_variables* vars, const char* var)
     return -1;
 }
 
-bool NFA_variables_in(NFA_variables* vars, const char* var)
+void NFA_variables_add(NFA_variables* vars, const char* new_var)
 {
-    return NFA_variables_index(vars, var) != -1;
+    if (!vars || NFA_variables_in(vars, new_var)) return;
+
+    vars->count++;
+    vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
+    vars->variables[vars->count - 1] = (char*)calloc(strlen(new_var) + 1, sizeof(char));
+    strcpy(vars->variables[vars->count - 1], new_var);
+    // может быть тут нужен '\0'
+}
+
+void NFA_variables_insert(NFA_variables* vars, int index, const char* new_var)
+{
+    if (!vars || index >= vars->count) return;
+
+    vars->count++;
+    vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
+
+
+    for (int i = vars->count - 1; i > index; i--)
+    {
+        vars->variables[i] = vars->variables[i - 1];
+    }
+
+    vars->variables[index] = (char*)calloc(strlen(new_var) + 1, sizeof(char));
+    strcpy(vars->variables[index], new_var);
+    // может быть тут нужен '\0'
+}
+
+void NFA_variables_swap(NFA_variables* vars, int index1, int index2)
+{
+    if (!vars) return;
+
+    char* temp_var = vars->variables[index1];
+    vars->variables[index1] = vars->variables[index2];
+    vars->variables[index2] = temp_var;
+    temp_var = nullptr;
 }
 
 #pragma endregion
@@ -2559,20 +2633,22 @@ NFA* NFA_get_linear_term(int* a, int count)
 
 NFA* NFA_with_term(NFA* nfa, NFA* term)
 {
-    if (nfa->alphabet_dim != 1 || !nfa || !term) return nullptr;
+    if (!nfa || !term || (term->alphabet_dim < nfa->alphabet_dim)) return nullptr;
     NFA* nfa_copy = NFA_clone(nfa);
+    int dim = nfa->alphabet_dim;
 
     while (nfa_copy->alphabet_dim != term->alphabet_dim)
     {
         NFA_extend_rec(&nfa_copy, nfa_copy->alphabet_dim);
     }
 
-
     NFA_intersect_rec(&nfa_copy, term);
     DFA_minimize_rec(&nfa_copy);
 
-    NFA_project_rec(&nfa_copy, 0);
-
+    for (int i = 0; i < dim; i++)
+    {
+        NFA_project_rec(&nfa_copy, 0);
+    }
 
     NFA* zeroes = NFA_get_only_zeroes(nfa_copy->alphabet_dim);
 
@@ -2739,7 +2815,7 @@ int nfa_get_priority(char op) {
 char* NFA_RPN(const char* formula) {
     stack* operators = create_stack();
     int length = strlen(formula);
-    char* rpn = (char*)malloc(length + 1);
+    char* rpn = (char*)malloc(length * 2);
     char* exist_forall = (char*)malloc(length + 1);
     int j = 0; //rpn[j]
     int k = 0; //exist_forall[k]
@@ -2803,7 +2879,7 @@ char* NFA_RPN(const char* formula) {
                 return nullptr;
             } else if (*c == ')') {
                 rpn[j++] = *c;
-                c--;
+                //c--;
             }
             break;
         default:
@@ -2841,8 +2917,10 @@ NFA* NFA_from_predicate(const char* predicate) {
     remove_spaces(rpn);
 
     nfa_stack* nfa_stack = create_nfa_stack();
+    NFA_variables* global_vars = NFA_variables_init();
 
-    char* token = strtok(rpn, " ");
+    char* context_rpn; 
+    char* token = strtok_s(rpn, " ", &context_rpn);
     while (token) {
         if (token[0] == '$') {
             char* name = extract_name(token);
@@ -2853,13 +2931,64 @@ NFA* NFA_from_predicate(const char* predicate) {
                 char* term_end = strchr(term_start, ')');
                 if (term_end) {
                     *term_end = '\0'; // Replace ')' with '\0'
-                    linear_expression* expr = parse_linear_expression(term_start);
-                    NFA* term_nfa = NFA_from_linear_expression(expr);
-                    free_linear_expression(expr);
 
-                    NFA* new_nfa = NFA_with_term(nfa, term_nfa);
+                    // 1. Create list of  linear expressions
+                    int terms_count = nfa->alphabet_dim;
+                    int terms_counter = 0;
+                    linear_expression** terms = (linear_expression**)malloc(sizeof(linear_expression*) * terms_count);
+
+                    char* context_terms;
+                    char* terms_token = strtok_s(term_start, ",", &context_terms);
+                    while (terms_token)
+                    {
+                        if (terms_counter < terms_count)
+                        {
+                            terms[terms_counter] = (linear_expression*)malloc(sizeof(linear_expression));
+                            terms[terms_counter] = parse_linear_expression(terms_token);
+                        }
+                        terms_counter++;
+                        terms_token = strtok_s(nullptr, ",", &context_terms);
+                    }
+                    if (terms_counter != terms_count)
+                    {
+                        cout << "Error: incorrect input - " << name << "(" << term_start 
+                            << ") needs " << terms_count <<" arguments, but gets " << terms_counter << ".\n";
+                        free(rpn);
+                        free_stack(nfa_stack);
+                        //free(token);
+                        NFA_variables_free(global_vars);
+                        free(name);
+                        NFA_free(nfa);
+                        for (int k = 0; k < terms_count; k++)
+                        {
+                            free_linear_expression(terms[k]);
+                        }
+                        
+                        return nullptr;
+                    }
+
+                    // 2. Create mega term using the list
+                    NFA_variables* unioned_term_vars = nullptr;
+                    NFA* unioned_term = union_terms(terms_count, terms, &unioned_term_vars);
+
+                    // 3. Intersect mega term with nfa, update global structure
+                    NFA* new_nfa = NFA_with_term(nfa, unioned_term);
+                    for (int k = 0; k < nfa->alphabet_dim; k++)
+                    {
+                        NFA_variable_delete(unioned_term_vars, 0);
+                    }
+
+                    merge_nfa_and_structure(&new_nfa, global_vars, unioned_term_vars);
+                    
+                    // Free
+                    for (int k = 0; k < terms_count; k++)
+                    {
+                        free_linear_expression(terms[k]);
+                    }
+                    free(terms);
+                    NFA_free(unioned_term);
+                    NFA_variables_free(unioned_term_vars);
                     NFA_free(nfa);
-                    NFA_free(term_nfa);
                     nfa = new_nfa;
                 }
             }
@@ -2867,12 +2996,20 @@ NFA* NFA_from_predicate(const char* predicate) {
             push(nfa_stack, nfa);
             free(name);
         } else {
-            handle_operation(nfa_stack, token[0]);
+            // передавать ссылку
+            if (!handle_operation(nfa_stack, token[0], global_vars))
+            {
+                free(rpn);
+                free_stack(nfa_stack);
+                NFA_variables_free(global_vars);
+                return nullptr;
+            }
         }
-        token = strtok(nullptr, " ");
+        token = strtok_s(nullptr, " ", &context_rpn);
     }
 
     NFA* final_nfa = pop(nfa_stack);
+    NFA_variables_free(global_vars);
     free(rpn);
     free_stack(nfa_stack);
     return final_nfa;
@@ -3089,12 +3226,35 @@ void handle_conversion_to_dfa(const char* automaton_name) {
     }
 }
 
-void handle_operation(nfa_stack* stack, char op) {
+bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure) {
+    // принимать ссылку и работать с переменными для Е,А
+    bool error_occured = false;
     switch (op)
     {
     case '&': {
-        NFA *nfa2 = pop(stack);
-        NFA *nfa1 = pop(stack);
+        NFA* nfa2 = pop(stack);
+        NFA* nfa1 = pop(stack);
+        if (!nfa1 || !nfa2)
+        {
+            cout << "Amount of operations doesn't match number of given automatons.\n";
+            error_occured = true;
+        }
+        else if (nfa1->alphabet_dim > nfa2->alphabet_dim)
+        {
+            cout << "Something went wrong (incorrect alphabet dimension).\n";
+            error_occured = true;
+        }
+        if (error_occured)
+        {
+            NFA_free(nfa1);
+            NFA_free(nfa2);
+            return false;
+        }
+
+        while (nfa1->alphabet_dim != nfa2->alphabet_dim)
+        {
+            NFA_extend_rec(&nfa1, nfa1->alphabet_dim);
+        }
         NFA_intersect_rec(&nfa1, nfa2);
         push(stack, nfa1);
         NFA_free(nfa2);
@@ -3103,6 +3263,27 @@ void handle_operation(nfa_stack* stack, char op) {
     case '|': {
         NFA *nfa2 = pop(stack);
         NFA *nfa1 = pop(stack);
+        if (!nfa1 || !nfa2)
+        {
+            cout << "Amount of operations doesn't match number of given automatons.\n";
+            error_occured = true;
+        }
+        else if (nfa1->alphabet_dim > nfa2->alphabet_dim)
+        {
+            cout << "Something went wrong (incorrect alphabet dimension).\n";
+            error_occured = true;
+        }
+        if (error_occured)
+        {
+            NFA_free(nfa1);
+            NFA_free(nfa2);
+            return false;
+        }
+
+        while (nfa1->alphabet_dim != nfa2->alphabet_dim)
+        {
+            NFA_extend_rec(&nfa1, nfa1->alphabet_dim);
+        }
         NFA_union_rec(&nfa1, nfa2);
         push(stack, nfa1);
         NFA_free(nfa2);
@@ -3110,6 +3291,16 @@ void handle_operation(nfa_stack* stack, char op) {
     }
     case '~': {
         NFA *nfa = pop(stack);
+        if (!nfa)
+        {
+            cout << "Amount of operations doesn't match number of given automatons.\n";
+            error_occured = true;
+        }
+        if (error_occured)
+        {
+            NFA_free(nfa);
+            return false;
+        }
         DFA_complement_rec(&nfa);
         push(stack, nfa);
         break;
@@ -3118,6 +3309,27 @@ void handle_operation(nfa_stack* stack, char op) {
         // Right quotient
         NFA *nfa2 = pop(stack);
         NFA *nfa1 = pop(stack);
+        if (!nfa1 || !nfa2)
+        {
+            cout << "Amount of operations doesn't match number of given automatons.\n";
+            error_occured = true;
+        }
+        else if (nfa1->alphabet_dim > nfa2->alphabet_dim)
+        {
+            cout << "Something went wrong (incorrect alphabet dimension).\n";
+            error_occured = true;
+        }
+        if (error_occured)
+        {
+            NFA_free(nfa1);
+            NFA_free(nfa2);
+            return false;
+        }
+
+        while (nfa1->alphabet_dim != nfa2->alphabet_dim)
+        {
+            NFA_extend_rec(&nfa1, nfa1->alphabet_dim);
+        }
         NFA *result = NFA_rightquo(nfa1, nfa2);
         push(stack, result);
         NFA_free(nfa1);
@@ -3128,6 +3340,27 @@ void handle_operation(nfa_stack* stack, char op) {
         // Left quotient
         NFA *nfa2 = pop(stack);
         NFA *nfa1 = pop(stack);
+        if (!nfa1 || !nfa2)
+        {
+            cout << "Amount of operations doesn't match number of given automatons.\n";
+            error_occured = true;
+        }
+        else if (nfa1->alphabet_dim > nfa2->alphabet_dim)
+        {
+            cout << "Something went wrong (incorrect alphabet dimension).\n";
+            error_occured = true;
+        }
+        if (error_occured)
+        {
+            NFA_free(nfa1);
+            NFA_free(nfa2);
+            return false;
+        }
+
+        while (nfa1->alphabet_dim != nfa2->alphabet_dim)
+        {
+            NFA_extend_rec(&nfa1, nfa1->alphabet_dim);
+        }
         NFA *result = NFA_leftquo(nfa1, nfa2);
         push(stack, result);
         NFA_free(nfa1);
@@ -3136,6 +3369,16 @@ void handle_operation(nfa_stack* stack, char op) {
     }
     case 'E': { // So far, the projection is only based on the first variable
         NFA* nfa = pop(stack);
+        if (!nfa)
+        {
+            cout << "Amount of operations doesn't match number of given automatons.\n";
+            error_occured = true;
+        }
+        if (error_occured)
+        {
+            NFA_free(nfa);
+            return false;
+        }
         NFA_project_rec(&nfa, 0);
         NFA* only_zeros = NFA_get_only_zeroes(nfa->alphabet_dim);
         NFA_rightquo_rec(&nfa, only_zeros);
@@ -3146,6 +3389,17 @@ void handle_operation(nfa_stack* stack, char op) {
     }
     case 'A': {
         NFA* nfa = pop(stack);
+        if (!nfa)
+        {
+            cout << "Amount of operations doesn't match number of given automatons.\n";
+            error_occured = true;
+        }
+        if (error_occured)
+        {
+            NFA_free(nfa);
+            return false;
+        }
+
         DFA_complement_rec(&nfa);
         NFA_project_rec(&nfa, 0);
         NFA* only_zeros = NFA_get_only_zeroes(nfa->alphabet_dim);
@@ -3156,6 +3410,8 @@ void handle_operation(nfa_stack* stack, char op) {
         push(stack, nfa);
         break;
     }}
+
+    return true;
 }
 
 void handle_remove_epsilon(const char* automaton_name) {
@@ -3182,10 +3438,89 @@ void handle_cls()
     cout << "Enter command (type 'exit' to quit):\n";
 }
 
-// do not forget to extend main_nfa after this function call
-int complete_added_nfa(NFA* added_nfa, NFA_variables* all_vars, NFA_variables* local_vars)
+// EDIT both nfas and vars
+void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars, NFA_variables* sub_vars)
 {
-    if (!local_vars || !all_vars || !added_nfa || (added_nfa->alphabet_dim != local_vars->count)) return;
+    if (!(*main_nfa) || !(*sub_nfa) || !main_vars || !sub_vars) return;
+    
+    int common_vars_count = 0;
+    for (int i = 0; i < main_vars->count; i++)
+    {
+        char* var = main_vars->variables[i];
+        if (NFA_variables_in(sub_vars, var))
+        {
+            int index1 = i;
+            int index2 = NFA_variables_index(sub_vars, var);
+            if (common_vars_count != index1)
+            {
+                NFA_swap_rec(main_nfa, common_vars_count, index1);
+                NFA_variables_swap(main_vars, common_vars_count, index1);
+            }
+            if (common_vars_count != index2)
+            {
+                NFA_swap_rec(sub_nfa, common_vars_count, index2);
+                NFA_variables_swap(sub_vars, common_vars_count, index2);
+            }
+            common_vars_count++;
+        }
+    }
+
+    int main_vars_count = main_vars->count;
+    int unique_sub_vars = sub_vars->count - common_vars_count;
+
+    for (int i = 0; i < unique_sub_vars; i++)
+    {
+        NFA_extend_rec(main_nfa, common_vars_count);
+        NFA_variables_insert(main_vars, common_vars_count, sub_vars->variables[common_vars_count + i]);
+    }
+
+    for (int i = 0; i < (main_vars_count - common_vars_count); i++)
+    {
+        NFA_extend_rec(sub_nfa, (*sub_nfa)->alphabet_dim);
+        NFA_variables_add(sub_vars, main_vars->variables[common_vars_count + unique_sub_vars + i]);
+    }
+
+}
+
+NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** unioned_vars)
+{
+    if (!terms || !terms_count) return nullptr;
+    if (*unioned_vars) NFA_variables_free(*unioned_vars);
+
+    NFA* nfa_terms = NFA_from_linear_expression(terms[0]);
+    NFA_variables* terms_vars = NFA_vars_from_linear_expr(terms[0]);
+    NFA_variables_insert(terms_vars, 0, "*");
+
+    for (int i = 1; i < terms_count; i++)
+    {
+        NFA* new_nfa = NFA_from_linear_expression(terms[i]);
+        NFA_variables* new_vars = NFA_vars_from_linear_expr(terms[i]);
+        NFA_variables_insert(new_vars, 0, "*");
+
+        NFA_extend_rec(&nfa_terms, i);
+        NFA_variables_insert(terms_vars, 0, "*");
+
+        for (int j = 0; j < i; j++)
+        {
+            NFA_extend_rec(&new_nfa, 0);
+            NFA_variables_insert(new_vars, 0, "*");
+        }
+
+        sync_nfa_structure(&nfa_terms, &new_nfa, terms_vars, new_vars);
+        NFA_intersect_rec(&nfa_terms, new_nfa);
+        NFA_free(new_nfa);
+        NFA_variables_free(new_vars);
+    }
+
+    (*unioned_vars) = terms_vars;
+    return nfa_terms;
+}
+
+// do not forget to extend main_nfa after this function call
+// Complete glob_struct, reorder local_vars, extend added_nfa
+int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars)
+{
+    if (!local_vars || !all_vars || !(*added_nfa) || ((*added_nfa)->alphabet_dim != local_vars->count)) return 0;
 
     int extend_size = all_vars->count - local_vars->count;
     // complete full structure
@@ -3203,7 +3538,7 @@ int complete_added_nfa(NFA* added_nfa, NFA_variables* all_vars, NFA_variables* l
         {
             if (k != NFA_variables_index(local_vars, var))
             {
-                NFA_swap_rec(&added_nfa, k, NFA_variables_index(local_vars, var));
+                NFA_swap_rec(added_nfa, k, NFA_variables_index(local_vars, var));
             }
             k++;
         }
@@ -3213,9 +3548,9 @@ int complete_added_nfa(NFA* added_nfa, NFA_variables* all_vars, NFA_variables* l
     for (int i = 0; i < all_vars->count; i++)
     {
         char* var = all_vars->variables[i];
-        if (NFA_variables_in(local_vars, var))
+        if (!NFA_variables_in(local_vars, var))
         {
-            NFA_extend_rec(&added_nfa, i);
+            NFA_extend_rec(added_nfa, i);
         }
     }
 

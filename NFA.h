@@ -5,20 +5,19 @@
 #ifndef COMPUTER_PRACTICES_NFA_H
 #define COMPUTER_PRACTICES_NFA_H
 
+#include "Algorithm.h"
+#include "big_integer.h"
+#include <conio.h>
+#include "direct.h"
+#include "windows.h"
+
 #include <fstream>
 #include <cstdlib>
 #include <cstdio>
-
-#include "Algorithm.h"
-#include "big_integer.h"
 #include "graph.h"
 #include <bit>
-#include <conio.h>
 #include <vector>
 #include <iomanip>
-
-#include "direct.h"
-#include "windows.h"
 
 typedef struct term {
     int coefficient;
@@ -278,14 +277,16 @@ void handle_minimization(const char* automaton_name);
 void handle_conversion_to_dfa(const char* automaton_name);
 char* extract_name(const char* token);
 
-void handle_operation(nfa_stack* stack, char op);
+bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure);
 void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
 void handle_cls();
-int complete_added_nfa(NFA* added_nfa, NFA_variables* all_vars, NFA_variables* local_vars);
 void remove_spaces(char* str);
 void handle_command(const std::string& command);
 
+int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars);
+NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** unioned_vars);
+void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars, NFA_variables* sub_vars);
 
 NFA* NFA_get_only_zeroes(int dim);
 void handle_operation(nfa_stack* stack, char op, int variable_index);
