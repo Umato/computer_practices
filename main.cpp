@@ -332,9 +332,14 @@ int main() {
     NFA_to_DOT(nfa);*/
 
 
-//    NFA_console_app();
+    NFA_console_app();
+//    NFA_to_DOT(NFA_get_num_without_zeroes(1));
+//    cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac: ~$div & $aut(faust)");
+//    cout << regex_to_rpn("(1(00|11))?(010.|1.*1)+..0111") << endl; // Correct: abc|*&d+&.&a&
 
-    cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac ~$div(2x+1) & $aut(faust)");
+//    NFA* nfa1 = NFA_kleene_star(nfa);
+//    NFA_plus_rec(&nfa);
+//    NFA_to_DOT(nfa);
     system("pause");
 
     big_int_free(6, zero, one, two, e, mod, ex);
