@@ -104,7 +104,7 @@ void NFA_variables_add(NFA_variables* vars, const char* new_var)
 
 void NFA_variables_insert(NFA_variables* vars, int index, const char* new_var)
 {
-    if (!vars || index >= vars->count) return;
+    if (!vars || index > vars->count) return;
 
     vars->count++;
     vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
@@ -2264,7 +2264,7 @@ NFA* NFA_get_div_3()
     return nfa;
 }
 
-NFA* NFA_get_equal_num(int num)
+NFA* NFA_get_num(int num)
 {
     int* final_states = (int*)malloc(sizeof(int));
     NFA* nfa;
@@ -2364,10 +2364,10 @@ NFA* NFA_get_equal()
 
 NFA* NFA_get_random()
 {
-    int states_count = get_random_num(5, 6);
-    //int states_count = get_random_num(2, 6);
-    int alphabet_dim = 3;
-    //int alphabet_dim = get_random_num(1,3);
+    //int states_count = get_random_num(5, 6);
+    int states_count = get_random_num(2, 6);
+    //int alphabet_dim = 3;
+    int alphabet_dim = get_random_num(1,3);
     int initial_state = 0;
     int final_states_count = get_random_num(1, states_count);
     int* final_states = (int*)calloc(final_states_count, sizeof(int));
@@ -2515,7 +2515,7 @@ NFA* NFA_get_a_y(int num)
 {
     if (!num)  //num = 0
     {
-        return NFA_get_equal_num(0);
+        return NFA_get_num(0);
     }
     num = abs(num);
 
@@ -2610,7 +2610,7 @@ NFA* NFA_get_linear_term(int* a, int count)
 
     NFA_extend_rec(&nfa_result, 0);
     NFA_extend_rec(&nfa_result, 0); // [-, -, y, x1, x2, ..., xn-1]
-    NFA* nfa_a0 = NFA_get_equal_num(a[0]); // [a0]
+    NFA* nfa_a0 = NFA_get_num(a[0]); // [a0]
     NFA_extend_rec(&nfa_a0, 0); // [-, a0]
     NFA_extend_rec(&nfa_a0, 2); // [-, a0, -]
 
@@ -3444,22 +3444,27 @@ void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars,
     if (!(*main_nfa) || !(*sub_nfa) || !main_vars || !sub_vars) return;
     
     int common_vars_count = 0;
+    // swap common variables
     for (int i = 0; i < main_vars->count; i++)
     {
         char* var = main_vars->variables[i];
         if (NFA_variables_in(sub_vars, var))
         {
-            int index1 = i;
-            int index2 = NFA_variables_index(sub_vars, var);
-            if (common_vars_count != index1)
+            if (var[0] != '*')
             {
-                NFA_swap_rec(main_nfa, common_vars_count, index1);
-                NFA_variables_swap(main_vars, common_vars_count, index1);
-            }
-            if (common_vars_count != index2)
-            {
-                NFA_swap_rec(sub_nfa, common_vars_count, index2);
-                NFA_variables_swap(sub_vars, common_vars_count, index2);
+                int index1 = i;
+                if (common_vars_count != index1)
+                {
+                    NFA_swap_rec(main_nfa, common_vars_count, index1);
+                    NFA_variables_swap(main_vars, common_vars_count, index1);
+                }
+
+                if (sub_vars->variables[common_vars_count] != var)
+                {
+                    int index2 = NFA_variables_index(sub_vars, var);
+                    NFA_swap_rec(sub_nfa, common_vars_count, index2);
+                    NFA_variables_swap(sub_vars, common_vars_count, index2);
+                }
             }
             common_vars_count++;
         }
@@ -3468,20 +3473,24 @@ void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars,
     int main_vars_count = main_vars->count;
     int unique_sub_vars = sub_vars->count - common_vars_count;
 
-    for (int i = 0; i < unique_sub_vars; i++)
+    int sub_vars_count = sub_vars->count;
+    int unique_main_vars = main_vars->count - common_vars_count;
+
+    for (int i = 0; i < unique_main_vars; i++)
     {
-        NFA_extend_rec(main_nfa, common_vars_count);
-        NFA_variables_insert(main_vars, common_vars_count, sub_vars->variables[common_vars_count + i]);
+        NFA_extend_rec(sub_nfa, common_vars_count);
+        NFA_variables_insert(sub_vars, common_vars_count, main_vars->variables[main_vars_count - 1 - i]);
     }
 
-    for (int i = 0; i < (main_vars_count - common_vars_count); i++)
+    for (int i = 0; i < unique_sub_vars; i++)
     {
-        NFA_extend_rec(sub_nfa, (*sub_nfa)->alphabet_dim);
-        NFA_variables_add(sub_vars, main_vars->variables[common_vars_count + unique_sub_vars + i]);
+        NFA_extend_rec(main_nfa, (*main_nfa)->alphabet_dim);
+        NFA_variables_add(main_vars, sub_vars->variables[common_vars_count + unique_main_vars + i]);
     }
 
 }
 
+// final nfa have as many "y" as number of terms in given list
 NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** unioned_vars)
 {
     if (!terms || !terms_count) return nullptr;
@@ -3498,7 +3507,7 @@ NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** uni
         NFA_variables_insert(new_vars, 0, "*");
 
         NFA_extend_rec(&nfa_terms, i);
-        NFA_variables_insert(terms_vars, 0, "*");
+        NFA_variables_insert(terms_vars, i, "*");
 
         for (int j = 0; j < i; j++)
         {
@@ -3516,8 +3525,7 @@ NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** uni
     return nfa_terms;
 }
 
-// do not forget to extend main_nfa after this function call
-// Complete glob_struct, reorder local_vars, extend added_nfa
+// Complete global_struct, reorder local_vars, extend added_nfa
 int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars)
 {
     if (!local_vars || !all_vars || !(*added_nfa) || ((*added_nfa)->alphabet_dim != local_vars->count)) return 0;

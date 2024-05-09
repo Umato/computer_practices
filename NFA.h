@@ -240,7 +240,7 @@ NFA* NFA_get_only_zeroes();
 NFA* NFA_get_trivial();
 NFA* NFA_get_equal_coordinates(NFA* nfa, int n1, int n2);
 void NFA_get_equal_coordinates_rec(NFA** nfa, int n1, int n2);
-NFA* NFA_get_equal_num(int num);
+NFA* NFA_get_num(int num);
 NFA* NFA_get_div_2();
 NFA* NFA_get_div_3();
 NFA* NFA_get_2_power_m_y(int power);
