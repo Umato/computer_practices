@@ -4104,56 +4104,7 @@ void print_linear_expression(linear_expression* expr)
 #pragma endregion;
 
 
-#pragma region NFA Variables
-
-NFA_variables* NFA_variables_init()
-{
-    NFA_variables* vars = (NFA_variables*)malloc(sizeof(NFA_variables));
-    vars->count = 0;
-    vars->variables = nullptr;
-
-    return vars;
-}
-
-void NFA_variables_free(NFA_variables* vars)
-{
-    if (!vars) return;
-    for (int i = 0; i < vars->count; i++)
-    {
-        free(vars->variables[i]);
-    }
-    free(vars->variables);
-    free(vars);
-}
-
-void NFA_variables_add(NFA_variables* vars, const char* new_var)
-{
-    if (!vars || NFA_variables_in(vars, new_var)) return;
-
-    vars->count++;
-    vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
-    vars->variables[vars->count - 1] = (char*)calloc(strlen(new_var) + 1, sizeof(char));
-    strcpy(vars->variables[vars->count - 1], new_var);
-}
-
-int NFA_variables_index(NFA_variables* vars, const char* var)
-{
-    if (!vars) return -1;
-    for (int i = 0; i < vars->count; i++)
-    {
-        char* current_var = vars->variables[i];
-        if ((strlen(var) == strlen(current_var)) && (strncmp(current_var, var, strlen(var)) == 0)) return i;
-    }
-
-    return -1;
-}
-
-bool NFA_variables_in(NFA_variables* vars, const char* var)
-{
-    return NFA_variables_index(vars, var) != -1;
-}
-
-#pragma endregion
+#pragma region Regex
 
 int precedence(char op) {
     switch(op) {
@@ -4230,3 +4181,5 @@ char* explicit_concatenation(const char* regex)
     result[j] = '\0';
     return result;
 }
+
+#pragma endregion
