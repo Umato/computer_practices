@@ -3305,13 +3305,17 @@ void NFA_eval_command(const char* command)
     else if (sscanf(command, "eval \"%[^\"]\"", predicate) == 1) {
 
         NFA* nfa = NFA_from_predicate(predicate);
-        if (nfa != nullptr) {
+        if (!nfa) {
+            cout << "Failed to create NFA from predicate.\n";
+        }
+        else if (nfa->alphabet_dim != 0) {
+            NFA_free(nfa);
+            cout << "There are undefined variables in given predicate.\n";
+        }
+        else {
             bool result = NFA_accept(nfa, (char*)nullptr);
             cout << (result ? "True" : "False") << endl;
             NFA_free(nfa);
-        }
-        else {
-            cout << "Failed to create NFA from predicate.\n";
         }
     }
     else  {
@@ -3867,110 +3871,6 @@ void remove_spaces(char* str) {
     *dst = '\0';
 }
 
-void handle_regex(const char* input)
-{
-    char name[256], regex[256];
-    bool visualize = false, minimize = false;
-
-    if (sscanf(input, "%s \"%[^\"]\"", name, regex) == 2) {
-
-        if (strstr(input, "-m") != nullptr) minimize = true;
-        if (strstr(input, "-v") != nullptr) visualize = true;
-
-        NFA *nfa = NFA_from_regex(regex);
-        if (nfa != nullptr) {
-
-            if (minimize) {
-                DFA_minimize_rec(&nfa);
-            }
-
-            char filename[300];
-            sprintf(filename, "../NFA/NFAs/%s.txt", name);
-            NFA_to_file(nfa, filename);
-
-            if (visualize) {
-                NFA_to_DOT(nfa);
-            }
-            NFA_free(nfa);
-        } else {
-            cout << "Failed to create NFA from predicate.\n";
-        }
-    } else {
-        cout << "Invalid command format. Use regex <name> \"<regular expression>\" [-m] [-v]\n";
-    }
-}
-
-NFA* NFA_from_regex(const char* regex) {
-    char* rpn = regex_to_rpn(regex);
-
-    nfa_stack* nfa_stack = create_nfa_stack();
-
-   for (const char* c = rpn; *c; c++) {
-        if (isdigit(*c)) {
-            NFA* operand_nfa = NFA_get_num_without_zeroes((int) (*c - '0'));
-            push(nfa_stack, operand_nfa);
-        } else if (*c == '.'){
-           NFA* nfa = NFA_get_zero_or_one();
-           push(nfa_stack, nfa);
-        } else {
-            handle_operation_regex(nfa_stack, *c);
-        }
-    }
-
-    NFA* result = pop(nfa_stack);
-    free_stack(nfa_stack);
-    return result;
-}
-
-void handle_operation_regex(nfa_stack* stack, char op) {
-    switch (op) {
-        case '&':{
-            NFA *nfa2 = pop(stack);
-            NFA *nfa1 = pop(stack);
-            NFA_concatenate_rec(&nfa1, nfa2);
-            NFA_free(nfa2);
-            push(stack, nfa1);
-            break;
-        }
-        case '|': {
-            NFA *nfa2 = pop(stack);
-            NFA *nfa1 = pop(stack);
-            NFA_union_rec(&nfa1, nfa2);
-            push(stack, nfa1);
-            NFA_free(nfa2);
-            break;
-        }
-        case '*': {
-            NFA *nfa = pop(stack);
-            NFA_kleene_star_rec(&nfa);
-            push(stack, nfa);
-            break;
-        }
-        case '+': {
-            NFA *nfa = pop(stack);
-            NFA_plus_rec(&nfa);
-            push(stack, nfa);
-            break;
-        }
-        case '/': {
-            // Right quotient
-            NFA *nfa2 = pop(stack);
-            NFA *nfa1 = pop(stack);
-            NFA *result = NFA_rightquo(nfa1, nfa2);
-            push(stack, result);
-            NFA_free(nfa1);
-            NFA_free(nfa2);
-            break;
-        }
-        case '?': {
-            NFA *nfa = pop(stack);
-            NFA_with_empty_string_rec(&nfa);
-            push(stack, nfa);
-            break;
-        }
-    }
-}
-
 #pragma endregion
 
 
@@ -4105,6 +4005,114 @@ void print_linear_expression(linear_expression* expr)
 
 
 #pragma region Regex
+
+void handle_regex(const char* input)
+{
+    char name[256], regex[256];
+    bool visualize = false, minimize = false;
+
+    if (sscanf(input, "%s \"%[^\"]\"", name, regex) == 2) {
+
+        if (strstr(input, "-m") != nullptr) minimize = true;
+        if (strstr(input, "-v") != nullptr) visualize = true;
+
+        NFA* nfa = NFA_from_regex(regex);
+        if (nfa != nullptr) {
+
+            if (minimize) {
+                DFA_minimize_rec(&nfa);
+            }
+
+            char filename[300];
+            sprintf(filename, "../NFA/NFAs/%s.txt", name);
+            NFA_to_file(nfa, filename);
+
+            if (visualize) {
+                NFA_to_DOT(nfa);
+            }
+            NFA_free(nfa);
+        }
+        else {
+            cout << "Failed to create NFA from predicate.\n";
+        }
+    }
+    else {
+        cout << "Invalid command format. Use regex <name> \"<regular expression>\" [-m] [-v]\n";
+    }
+}
+
+NFA* NFA_from_regex(const char* regex) {
+    char* rpn = regex_to_rpn(regex);
+
+    nfa_stack* nfa_stack = create_nfa_stack();
+
+    for (const char* c = rpn; *c; c++) {
+        if (isdigit(*c)) {
+            NFA* operand_nfa = NFA_get_num_without_zeroes((int)(*c - '0'));
+            push(nfa_stack, operand_nfa);
+        }
+        else if (*c == '.') {
+            NFA* nfa = NFA_get_zero_or_one();
+            push(nfa_stack, nfa);
+        }
+        else {
+            handle_operation_regex(nfa_stack, *c);
+        }
+    }
+
+    NFA* result = pop(nfa_stack);
+    free_stack(nfa_stack);
+    return result;
+}
+
+void handle_operation_regex(nfa_stack* stack, char op) {
+    switch (op) {
+    case '&': {
+        NFA* nfa2 = pop(stack);
+        NFA* nfa1 = pop(stack);
+        NFA_concatenate_rec(&nfa1, nfa2);
+        NFA_free(nfa2);
+        push(stack, nfa1);
+        break;
+    }
+    case '|': {
+        NFA* nfa2 = pop(stack);
+        NFA* nfa1 = pop(stack);
+        NFA_union_rec(&nfa1, nfa2);
+        push(stack, nfa1);
+        NFA_free(nfa2);
+        break;
+    }
+    case '*': {
+        NFA* nfa = pop(stack);
+        NFA_kleene_star_rec(&nfa);
+        push(stack, nfa);
+        break;
+    }
+    case '+': {
+        NFA* nfa = pop(stack);
+        NFA_plus_rec(&nfa);
+        push(stack, nfa);
+        break;
+    }
+    case '/': {
+        // Right quotient
+        NFA* nfa2 = pop(stack);
+        NFA* nfa1 = pop(stack);
+        NFA* result = NFA_rightquo(nfa1, nfa2);
+        push(stack, result);
+        NFA_free(nfa1);
+        NFA_free(nfa2);
+        break;
+    }
+    case '?': {
+        NFA* nfa = pop(stack);
+        NFA_with_empty_string_rec(&nfa);
+        push(stack, nfa);
+        break;
+    }
+    }
+}
 
 int precedence(char op) {
     switch(op) {
