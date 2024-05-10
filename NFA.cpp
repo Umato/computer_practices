@@ -1874,6 +1874,128 @@ void DFA_minimize_rec(NFA** nfa)
     *nfa = new_nfa;
 }
 
+NFA* NFA_concatenate(NFA* nfa1, NFA* nfa2)
+{
+    if (!nfa1 || !nfa2 || nfa1->alphabet_dim != nfa2->alphabet_dim) return nullptr;
+
+    int total_states = nfa1->states_count + nfa2->states_count;
+
+    NFA* new_nfa = NFA_init(total_states, nfa1->alphabet_dim, nfa1->initial_state->id, 0, nullptr);
+
+    for (int i = 0; i < nfa1->states_count; i++) {
+        for (int letter = 0; letter <= (1 << nfa1->alphabet_dim); letter++){
+            list* transition_list = nfa1->states[i]->transitions[letter];
+            node* current = transition_list->head;
+            while (current) {
+                NFA_transition_add(new_nfa, i, current->val, letter);
+                current = current->next;
+            }
+        }
+    }
+
+    int shift = nfa1->states_count;
+    for (int i = 0; i < nfa2->states_count; i++) {
+        for (int letter = 0; letter <= (1 << nfa2->alphabet_dim); letter++){
+            list* transition_list = nfa2->states[i]->transitions[letter];
+            node* current = transition_list->head;
+            while (current) {
+                NFA_transition_add(new_nfa, i + shift, current->val + shift, letter);
+                current = current->next;
+            }
+        }
+        if (nfa2->states[i]->is_final) new_nfa->states[i + shift]->is_final = true;
+    }
+
+    for (int i = 0; i < nfa1->states_count; i++) {
+        if (nfa1->states[i]->is_final){
+            NFA_transition_add(new_nfa, i, nfa2->initial_state->id + shift, (1 << nfa1->alphabet_dim));
+        }
+    }
+
+    return new_nfa;
+}
+
+void NFA_concatenate_rec(NFA** nfa1, NFA* nfa2)
+{
+    NFA* nfa_concatenated = NFA_concatenate(*nfa1, nfa2);
+    NFA_free(*nfa1);
+    *nfa1 = nfa_concatenated;
+}
+
+NFA* NFA_kleene_star(NFA* nfa)
+{
+    if (!nfa) return nullptr;
+
+    int new_states_count = nfa->states_count + 1;
+
+    int new_initial_state = new_states_count - 1; // = nfa.states_count
+    NFA* new_nfa = NFA_init(new_states_count, nfa->alphabet_dim, new_initial_state, 0, nullptr);
+
+    for (int i = 0; i < nfa->states_count; i++){
+        for (int letter = 0; letter <= (1 << nfa->alphabet_dim); letter++) {
+            list* transition_list = nfa->states[i]->transitions[letter];
+            node* current = transition_list->head;
+            while (current){
+                NFA_transition_add(new_nfa, i, current->val, letter);
+                current = current->next;
+            }
+        }
+        if (nfa->states[i]->is_final){
+            NFA_transition_add(new_nfa, i, new_initial_state, (1 << nfa->alphabet_dim));
+            new_nfa->states[i]->is_final = true;
+        }
+    }
+
+    new_nfa->states[new_initial_state]->is_final = true;
+
+    NFA_transition_add(new_nfa, new_initial_state, nfa->initial_state->id, (1 << nfa->alphabet_dim));
+
+    return new_nfa;
+}
+
+void NFA_kleene_star_rec(NFA** nfa){
+    NFA* new_nfa = NFA_kleene_star(*nfa);
+    NFA_free(*nfa);
+    *nfa = new_nfa;
+}
+
+NFA* NFA_plus(NFA* nfa) {
+    if (!nfa) return nullptr;
+
+    NFA* new_nfa = NFA_clone(nfa);
+
+    for (int i = 0; i < new_nfa->states_count; i++){
+        if (new_nfa->states[i]->is_final){
+            NFA_transition_add(new_nfa, i, new_nfa->initial_state->id, (1 << new_nfa->alphabet_dim));
+        }
+    }
+
+    return new_nfa;
+}
+
+void NFA_plus_rec(NFA** nfa)
+{
+    NFA* new_nfa = NFA_plus(*nfa);
+    NFA_free(*nfa);
+    *nfa = new_nfa;
+}
+
+NFA* NFA_with_empty_string(NFA* nfa_original)
+{
+    NFA* nfa = NFA_clone(nfa_original);
+    NFA* empty_string = NFA_get_empty_string();
+    NFA_union_rec(&nfa, empty_string);
+    NFA_free(empty_string);
+    return nfa;
+}
+
+void NFA_with_empty_string_rec(NFA** nfa)
+{
+    NFA* new_nfa = NFA_with_empty_string(*nfa);
+    NFA_free(*nfa);
+    *nfa = new_nfa;
+}
+
 #pragma endregion
 
 
@@ -2195,6 +2317,45 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 
 #pragma region NFA Examples
 
+NFA* NFA_get_empty_string()
+{
+    NFA* nfa = NFA_init(1, 1, 0, 0, nullptr);
+    nfa->states[0]->is_final = true;
+    return nfa;
+}
+
+NFA* NFA_get_div_2_custom()
+{
+    int* final_states = (int*)malloc(sizeof(int));
+    final_states[0] = 1;
+    NFA* nfa = NFA_init(3, 1, 0, 1, final_states);
+
+    NFA_transition_add(nfa, 0, 1, 0);
+    NFA_transition_add(nfa, 0, 2, 1);
+    NFA_transition_add(nfa, 1, 1, 0);
+    NFA_transition_add(nfa, 1, 1, 1);
+    NFA_transition_add(nfa, 2, 2, 0);
+    NFA_transition_add(nfa, 2, 2, 1);
+
+    return nfa;
+}
+
+NFA* NFA_get_div_3_custom()
+{
+    int* final_states = (int*)malloc(sizeof(int));
+    final_states[0] = 0;
+    NFA* nfa = NFA_init(3, 1, 0, 1, final_states);
+
+    NFA_transition_add(nfa, 0, 0, 0);
+    NFA_transition_add(nfa, 0, 1, 1);
+    NFA_transition_add(nfa, 1, 0, 1);
+    NFA_transition_add(nfa, 1, 2, 0);
+    NFA_transition_add(nfa, 2, 1, 0);
+    NFA_transition_add(nfa, 2, 2, 1);
+
+    return nfa;
+}
+
 NFA* NFA_get_div_power_of_2_custom(int power)
 {
     if (power < 1) return nullptr;
@@ -2287,6 +2448,42 @@ NFA* NFA_get_num(int num)
     NFA_transition_add(nfa, nfa->states_count - 1, nfa->states_count - 1, 0);
 
     return nfa;
+}
+
+NFA* NFA_get_num_without_zeroes(int num)
+{
+    int* final_states = (int*)malloc(sizeof(int));
+    NFA* nfa;
+    if (!num)
+    {
+        final_states[0] = 1;
+        nfa = NFA_init(2, 1, 0, 1, final_states);
+        NFA_transition_add(nfa, 0, 1, 0);
+    }
+    else
+    {
+        int states_count = (int)floor(log2(num)) + 2;
+        final_states[0] = states_count - 1;
+        nfa = NFA_init(states_count, 1, 0, 1, final_states);
+
+        for (int i = 0; i < states_count - 1; i++)
+        {
+            unsigned char letter = num & 1;
+            num >>= 1;
+            NFA_transition_add(nfa, i, i + 1, letter);
+        }
+    }
+
+
+    return nfa;
+}
+
+NFA* NFA_get_zero_or_one() {
+    NFA *nfa1 = NFA_get_num_without_zeroes(0);
+    NFA *nfa2 = NFA_get_num_without_zeroes(1);
+    NFA_union_rec(&nfa1, nfa2);
+    NFA_free(nfa2);
+    return nfa1;
 }
 
 NFA* NFA_get_2_power_m_y(int power)
@@ -2717,6 +2914,8 @@ void NFA_console_app() {
             handle_remove_epsilon(input + 12);
         } else if (strncmp(input, "cls", 3) == 0) {
             handle_cls();
+        } else if (strncmp(input, "regex ", 6) == 0) {
+            handle_regex(input + 6);
         } else {
                 printf("Unknown command: %s\n", input);
         }
@@ -3668,6 +3867,110 @@ void remove_spaces(char* str) {
     *dst = '\0';
 }
 
+void handle_regex(const char* input)
+{
+    char name[256], regex[256];
+    bool visualize = false, minimize = false;
+
+    if (sscanf(input, "%s \"%[^\"]\"", name, regex) == 2) {
+
+        if (strstr(input, "-m") != nullptr) minimize = true;
+        if (strstr(input, "-v") != nullptr) visualize = true;
+
+        NFA *nfa = NFA_from_regex(regex);
+        if (nfa != nullptr) {
+
+            if (minimize) {
+                DFA_minimize_rec(&nfa);
+            }
+
+            char filename[300];
+            sprintf(filename, "../NFA/NFAs/%s.txt", name);
+            NFA_to_file(nfa, filename);
+
+            if (visualize) {
+                NFA_to_DOT(nfa);
+            }
+            NFA_free(nfa);
+        } else {
+            cout << "Failed to create NFA from predicate.\n";
+        }
+    } else {
+        cout << "Invalid command format. Use regex <name> \"<regular expression>\" [-m] [-v]\n";
+    }
+}
+
+NFA* NFA_from_regex(const char* regex) {
+    char* rpn = regex_to_rpn(regex);
+
+    nfa_stack* nfa_stack = create_nfa_stack();
+
+   for (const char* c = rpn; *c; c++) {
+        if (isdigit(*c)) {
+            NFA* operand_nfa = NFA_get_num_without_zeroes((int) (*c - '0'));
+            push(nfa_stack, operand_nfa);
+        } else if (*c == '.'){
+           NFA* nfa = NFA_get_zero_or_one();
+           push(nfa_stack, nfa);
+        } else {
+            handle_operation_regex(nfa_stack, *c);
+        }
+    }
+
+    NFA* result = pop(nfa_stack);
+    free_stack(nfa_stack);
+    return result;
+}
+
+void handle_operation_regex(nfa_stack* stack, char op) {
+    switch (op) {
+        case '&':{
+            NFA *nfa2 = pop(stack);
+            NFA *nfa1 = pop(stack);
+            NFA_concatenate_rec(&nfa1, nfa2);
+            NFA_free(nfa2);
+            push(stack, nfa1);
+            break;
+        }
+        case '|': {
+            NFA *nfa2 = pop(stack);
+            NFA *nfa1 = pop(stack);
+            NFA_union_rec(&nfa1, nfa2);
+            push(stack, nfa1);
+            NFA_free(nfa2);
+            break;
+        }
+        case '*': {
+            NFA *nfa = pop(stack);
+            NFA_kleene_star_rec(&nfa);
+            push(stack, nfa);
+            break;
+        }
+        case '+': {
+            NFA *nfa = pop(stack);
+            NFA_plus_rec(&nfa);
+            push(stack, nfa);
+            break;
+        }
+        case '/': {
+            // Right quotient
+            NFA *nfa2 = pop(stack);
+            NFA *nfa1 = pop(stack);
+            NFA *result = NFA_rightquo(nfa1, nfa2);
+            push(stack, result);
+            NFA_free(nfa1);
+            NFA_free(nfa2);
+            break;
+        }
+        case '?': {
+            NFA *nfa = pop(stack);
+            NFA_with_empty_string_rec(&nfa);
+            push(stack, nfa);
+            break;
+        }
+    }
+}
+
 #pragma endregion
 
 
@@ -3713,7 +4016,7 @@ void free_stack(nfa_stack* s)
 #pragma endregion
 
 
-#pragma region Linear Term parser
+#pragma region Linear Term Parser
 
 void add_term(linear_expression* expr, int coefficient, const char* variable)
 {
@@ -3799,3 +4102,131 @@ void print_linear_expression(linear_expression* expr)
 }
 
 #pragma endregion;
+
+
+#pragma region NFA Variables
+
+NFA_variables* NFA_variables_init()
+{
+    NFA_variables* vars = (NFA_variables*)malloc(sizeof(NFA_variables));
+    vars->count = 0;
+    vars->variables = nullptr;
+
+    return vars;
+}
+
+void NFA_variables_free(NFA_variables* vars)
+{
+    if (!vars) return;
+    for (int i = 0; i < vars->count; i++)
+    {
+        free(vars->variables[i]);
+    }
+    free(vars->variables);
+    free(vars);
+}
+
+void NFA_variables_add(NFA_variables* vars, const char* new_var)
+{
+    if (!vars || NFA_variables_in(vars, new_var)) return;
+
+    vars->count++;
+    vars->variables = (char**)realloc(vars->variables, sizeof(char*) * (vars->count));
+    vars->variables[vars->count - 1] = (char*)calloc(strlen(new_var) + 1, sizeof(char));
+    strcpy(vars->variables[vars->count - 1], new_var);
+}
+
+int NFA_variables_index(NFA_variables* vars, const char* var)
+{
+    if (!vars) return -1;
+    for (int i = 0; i < vars->count; i++)
+    {
+        char* current_var = vars->variables[i];
+        if ((strlen(var) == strlen(current_var)) && (strncmp(current_var, var, strlen(var)) == 0)) return i;
+    }
+
+    return -1;
+}
+
+bool NFA_variables_in(NFA_variables* vars, const char* var)
+{
+    return NFA_variables_index(vars, var) != -1;
+}
+
+#pragma endregion
+
+int precedence(char op) {
+    switch(op) {
+        case '|': return 1;
+        case '&': return 2;
+        case '*':
+        case '+':
+        case '?': return 3;
+        default: return 0;
+    }
+}
+
+char* regex_to_rpn(const char* regex)
+{
+    stack* operators = create_stack();
+    size_t length = strlen(regex);
+    char* rpn = (char*)malloc(length + 1);
+    const char* reg = explicit_concatenation(regex);
+    int j = 0; // rpn[j]
+
+    for (const char *c = reg; *c; c++) {
+        switch (*c){
+            case '(':
+                push(operators, *c);
+                break;
+            case ')':
+                while (!is_stack_empty(operators) && stack_top(operators) != '(')
+                {
+                    rpn[j++] = (char)pop(operators);
+                }
+                pop(operators); // delete '(' from stack
+                break;
+            case '*':
+            case '+':
+            case '?':
+            case '|':
+            case '&':
+                while (!is_stack_empty(operators) && precedence(*c) <= precedence((char)stack_top(operators))) {
+                    rpn[j++] = (char)pop(operators);
+                }
+                push(operators, *c);
+                break;
+            default:
+                rpn[j++] = *c;
+        }
+    }
+
+    while (!is_stack_empty(operators)){
+        rpn[j++] = (char)pop(operators);
+    }
+    rpn[j] = '\0';
+
+    free_stack(operators);
+    return rpn;
+}
+
+char* explicit_concatenation(const char* regex)
+{
+    size_t length = strlen(regex);
+    char* result = (char*)malloc(sizeof(char) * (length + 1));
+    int j = 0; // result[j];
+
+    for (const char* c = regex; *c; c++){
+        result[j++] = *c;
+        if (*c != '(' && *c != '|' && *(c+1)) {
+            char next_char = *(c+1);
+            if (next_char != '*' && next_char != '+' && next_char != '?' &&
+                next_char != '|' && next_char != ')' && !isspace(next_char)) {
+                result[j++] = '&';
+            }
+        }
+    }
+
+    result[j] = '\0';
+    return result;
+}

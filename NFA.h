@@ -188,6 +188,18 @@ NFA* DFA_minimize(NFA* nfa_original);
  */
 void DFA_minimize_rec(NFA** nfa);
 
+NFA* NFA_concatenate(NFA* nfa1, NFA* nfa2);
+void NFA_concatenate_rec(NFA** nfa1, NFA* nfa2);
+
+NFA* NFA_kleene_star(NFA* nfa);
+void NFA_kleene_star_rec(NFA** nfa);
+
+NFA* NFA_plus(NFA* nfa);
+void NFA_plus_rec(NFA** nfa);
+
+NFA* NFA_with_empty_string(NFA* nfa_original);
+void NFA_with_empty_string_rec(NFA** nfa);
+
 NFA* DFA_make_complete(NFA* nfa);
 void DFA_make_complete_rec(NFA** nfa);
 list** divide_into_groups(NFA* nfa, list* group, int** state_group, int* groups_count);
@@ -202,7 +214,7 @@ void copy_transitions(NFA* nfa, int from_state, int to_state);
 void find_epsilon_closure(NFA* nfa, int state_id, bool* epsilon_closure);
 void NFA_remove_epsilon_transitions(NFA* nfa);
 
-
+NFA* NFA_get_empty_string();
 /**
  * @brief Creates new NFA that checks: 2|n
  */
@@ -249,6 +261,8 @@ NFA* NFA_get_a_y(int num);
 NFA* NFA_get_div_a(int a);
 NFA* NFA_get_linear_term(int* a, int count);
 NFA* NFA_from_linear_expression(linear_expression* expr);
+NFA* NFA_get_num_without_zeroes(int num);
+NFA* NFA_get_zero_or_one();
 
 void NFA_console_app();
 void print_help();
@@ -300,5 +314,15 @@ linear_expression* init_linear_expression();
 void free_linear_expression(linear_expression* expr);
 linear_expression* parse_linear_expression(const char* input);
 void print_linear_expression(linear_expression* expr);
+
+
+int precedence(char op);
+char* explicit_concatenation(const char* regex);
+// a|b <-> 'a' or 'b', a* <-> '', 'a', 'aa', ...; a+ <-> 'a', 'aa', 'aaa', ...;
+// a? <-> '', 'a'; . <-> char != \n
+char* regex_to_rpn(const char* regex);
+void handle_regex(const char* input);
+NFA* NFA_from_regex(const char* regex);
+void handle_operation_regex(nfa_stack* stack, char op);
 
 #endif //COMPUTER_PRACTICES_NFA_H
