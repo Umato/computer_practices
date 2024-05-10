@@ -277,7 +277,7 @@ void handle_minimization(const char* automaton_name);
 void handle_conversion_to_dfa(const char* automaton_name);
 char* extract_name(const char* token);
 
-bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure);
+bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_structure);
 void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
 void handle_cls();

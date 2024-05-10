@@ -9,9 +9,6 @@
 
 
 int main() {
-
-
-
     std::random_device rd;
     srand(rd());
 

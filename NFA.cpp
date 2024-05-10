@@ -49,7 +49,7 @@ NFA_variables* NFA_vars_from_linear_expr(linear_expression* expr)
     return vars;
 }
 
-void NFA_variable_delete(NFA_variables* vars, int index)
+void NFA_variables_delete(NFA_variables* vars, int index)
 {
     if (!vars || (index < 0) || index >= vars->count) return;
 
@@ -195,9 +195,11 @@ int get_random_num(int start, int end)
 
 char* format_string_to_bin(const char* string)
 {
-    char* new_string = (char*)malloc(sizeof(char) * (strlen(string) + 1));
+    int len = 0;
+    if (string) len = strlen(string);
+    char* new_string = (char*)malloc(sizeof(char) * (len + 1));
     int new_length = 0;
-    for (int i = 0; i < strlen(string); i++)
+    for (int i = 0; i < len; i++)
     {
         if (string[i] == '0' || string[i] == '1')
         {
@@ -609,8 +611,8 @@ void NFA_free(NFA* nfa)
 
 bool NFA_accept(NFA* nfa, char* num)
 {
+    if (!nfa) return 0;
     char* new_num = format_string_to_bin(num);
-    if (!nfa || !new_num || strlen(new_num) == 0) return 0;
 
     stack* current_states;
     stack* next_states;
@@ -788,7 +790,7 @@ bool NFA_accept(NFA* nfa, char** nums, int nums_count)
 
 bool NFA_accept(NFA* nfa, big_int* num)
 {
-    if (!nfa || !num) return 0;
+    if (!nfa) return 0;
     char* num_string = big_int_to_string(num);
     bool result = NFA_accept(nfa, num_string);
     free(num_string);
@@ -1361,19 +1363,12 @@ void NFA_project_rec(NFA** nfa, unsigned char n)
 NFA* NFA_project(NFA* nfa, unsigned char n, bool with_quotient)
 {
     if (!nfa || n >= nfa->alphabet_dim) return nullptr;
-    NFA* result;
+    NFA* result = NFA_project(nfa, n);
     if (with_quotient)
     {
-        NFA* zeroes = NFA_get_only_zeroes(nfa->alphabet_dim - 1);
-        NFA_extend_rec(&zeroes, n);
-        result = NFA_rightquo(nfa, zeroes);
-        NFA_union_rec(&result, nfa);
-        NFA_project_rec(&result, n);
+        NFA* zeroes = NFA_get_only_zeroes(result->alphabet_dim);
+        NFA_rightquo_rec(&result, zeroes);
         NFA_free(zeroes);
-    }
-    else
-    {
-        result = NFA_project(nfa, n);
     }
 
     return result;
@@ -2903,7 +2898,21 @@ char* NFA_RPN(const char* formula) {
     char* result = (char*)malloc(strlen(rpn) + strlen(exist_forall) + 2);
     strcpy(result, rpn);
     strcat(result, " ");
-    strcat(result, exist_forall);
+
+    // exist_forall reversing
+    char* tokens[10];
+    int tokens_count = 0;
+    char* context;
+    char* token = strtok_s(exist_forall, " ", &context);
+    while (token != NULL) {
+        tokens[tokens_count++] = strdup(token); 
+        token = strtok_s(NULL, " ", &context);
+    }
+    for (int i = tokens_count - 1; i >= 0; i--) {
+        strcat(result, tokens[i]);
+        strcat(result, " ");
+        free(tokens[i]);
+    }
 
     free(rpn);
     free(exist_forall);
@@ -2913,7 +2922,8 @@ char* NFA_RPN(const char* formula) {
 
 NFA* NFA_from_predicate(const char* predicate) {
     char* rpn = NFA_RPN(predicate);
-
+    if (!rpn) return nullptr;
+ 
     remove_spaces(rpn);
 
     nfa_stack* nfa_stack = create_nfa_stack();
@@ -2975,7 +2985,7 @@ NFA* NFA_from_predicate(const char* predicate) {
                     NFA* new_nfa = NFA_with_term(nfa, unioned_term);
                     for (int k = 0; k < nfa->alphabet_dim; k++)
                     {
-                        NFA_variable_delete(unioned_term_vars, 0);
+                        NFA_variables_delete(unioned_term_vars, 0);
                     }
 
                     merge_nfa_and_structure(&new_nfa, global_vars, unioned_term_vars);
@@ -2997,7 +3007,7 @@ NFA* NFA_from_predicate(const char* predicate) {
             free(name);
         } else {
             // передавать ссылку
-            if (!handle_operation(nfa_stack, token[0], global_vars))
+            if (!handle_operation(nfa_stack, token, global_vars))
             {
                 free(rpn);
                 free_stack(nfa_stack);
@@ -3059,8 +3069,7 @@ void NFA_def(const char* command) {
 
 void NFA_eval_command(const char* command)
 {
-    char automaton_name[256];
-    char number_string[1024];
+    char automaton_name[256], number_string[1024], predicate[1024];
     int nums[100]; // max = 100
     int num_count = 0;
 
@@ -3093,8 +3102,21 @@ void NFA_eval_command(const char* command)
 
         NFA_free(nfa);
         big_int_list_free(bigint_list);
-    } else  {
-        cout << "Invalid command format. Use eval \"$automaton_name(num1, num2, ... numN)\"" << endl;
+    } 
+    else if (sscanf(command, "eval \"%[^\"]\"", predicate) == 1) {
+
+        NFA* nfa = NFA_from_predicate(predicate);
+        if (nfa != nullptr) {
+            bool result = NFA_accept(nfa, (char*)nullptr);
+            cout << (result ? "True" : "False") << endl;
+            NFA_free(nfa);
+        }
+        else {
+            cout << "Failed to create NFA from predicate.\n";
+        }
+    }
+    else  {
+        cout << "Invalid command format. Use eval \"$<automaton_name>(num1, ... numN)\" or eval \"<predicate>\"." << endl;
     }
 }
 
@@ -3226,8 +3248,9 @@ void handle_conversion_to_dfa(const char* automaton_name) {
     }
 }
 
-bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure) {
+bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_structure) {
     // принимать ссылку и работать с переменными для Е,А
+    char op = operation[0];
     bool error_occured = false;
     switch (op)
     {
@@ -3248,7 +3271,7 @@ bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure
         {
             NFA_free(nfa1);
             NFA_free(nfa2);
-            return false;
+            break;
         }
 
         while (nfa1->alphabet_dim != nfa2->alphabet_dim)
@@ -3277,7 +3300,7 @@ bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure
         {
             NFA_free(nfa1);
             NFA_free(nfa2);
-            return false;
+            break;
         }
 
         while (nfa1->alphabet_dim != nfa2->alphabet_dim)
@@ -3299,8 +3322,9 @@ bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure
         if (error_occured)
         {
             NFA_free(nfa);
-            return false;
+            break;
         }
+
         DFA_complement_rec(&nfa);
         push(stack, nfa);
         break;
@@ -3323,7 +3347,7 @@ bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure
         {
             NFA_free(nfa1);
             NFA_free(nfa2);
-            return false;
+            break;
         }
 
         while (nfa1->alphabet_dim != nfa2->alphabet_dim)
@@ -3354,7 +3378,7 @@ bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure
         {
             NFA_free(nfa1);
             NFA_free(nfa2);
-            return false;
+            break;
         }
 
         while (nfa1->alphabet_dim != nfa2->alphabet_dim)
@@ -3374,17 +3398,46 @@ bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure
             cout << "Amount of operations doesn't match number of given automatons.\n";
             error_occured = true;
         }
+        else
+        {
+            char* op_end = strchr(operation, ':');
+            if (op_end)
+            {
+                *op_end = '\0';
+                char* context_E;
+                char* var = strtok_s(operation + 1, ",", &context_E);
+                while (var)
+                {
+                    if (NFA_variables_in(global_structure, var))
+                    {
+                        int var_index = NFA_variables_index(global_structure, var);
+                        NFA_project_rec(&nfa, var_index, true);
+                        NFA_variables_delete(global_structure, var_index);
+                    }
+                    else
+                    {
+                        cout << "Incorrect format of \"E\" quantifier. Variable \"" << var << "\" doesn\'t exist.\n";
+                        error_occured = true;
+                        break;
+                    }
+
+                    var = strtok_s(nullptr, ",", &context_E);
+                }
+
+                DFA_minimize_rec(&nfa);
+                push(stack, nfa);
+            }
+            else
+            {
+                cout << "Incorrect format of \"E\" quantifier. Symbol \":\" was missed.\n";
+                error_occured = true;
+            }
+        }
+
         if (error_occured)
         {
             NFA_free(nfa);
-            return false;
         }
-        NFA_project_rec(&nfa, 0);
-        NFA* only_zeros = NFA_get_only_zeroes(nfa->alphabet_dim);
-        NFA_rightquo_rec(&nfa, only_zeros);
-        NFA_free(only_zeros);
-        DFA_minimize_rec(&nfa);
-        push(stack, nfa);
         break;
     }
     case 'A': {
@@ -3394,24 +3447,55 @@ bool handle_operation(nfa_stack* stack, char op, NFA_variables* global_structure
             cout << "Amount of operations doesn't match number of given automatons.\n";
             error_occured = true;
         }
+        else
+        {
+            char* op_end = strchr(operation, ':');
+            if (op_end)
+            {
+                *op_end = '\0';
+                char* context_E;
+                char* var = strtok_s(operation + 1, ",", &context_E);
+                NFA* only_zeros = NFA_get_only_zeroes(nfa->alphabet_dim);
+                while (var)
+                {
+                    if (NFA_variables_in(global_structure, var))
+                    {
+                        int var_index = NFA_variables_index(global_structure, var);
+                        DFA_complement_rec(&nfa);
+                        // может быть нужен right quotient?
+                        NFA_project_rec(&nfa, var_index, true);
+                        DFA_complement_rec(&nfa);
+                        NFA_variables_delete(global_structure, var_index);
+                    }
+                    else
+                    {
+                        cout << "Incorrect format of \"A\" quantifier. Variable \"" << var << "\" doesn\'t exist.\n";
+                        error_occured = true;
+                        break;
+                    }
+
+                    var = strtok_s(nullptr, ",", &context_E);
+                }
+
+                NFA_free(only_zeros);
+                DFA_minimize_rec(&nfa);
+                push(stack, nfa);
+            }
+            else
+            {
+                cout << "Incorrect format of \"A\" quantifier. Symbol \":\" was missed.\n";
+                error_occured = true;
+            }
+        }
+
         if (error_occured)
         {
             NFA_free(nfa);
-            return false;
         }
-
-        DFA_complement_rec(&nfa);
-        NFA_project_rec(&nfa, 0);
-        NFA* only_zeros = NFA_get_only_zeroes(nfa->alphabet_dim);
-        NFA_rightquo_rec(&nfa, only_zeros);
-        NFA_free(only_zeros);
-        DFA_complement_rec(&nfa);
-        DFA_minimize_rec(&nfa);
-        push(stack, nfa);
         break;
     }}
 
-    return true;
+    return !error_occured;
 }
 
 void handle_remove_epsilon(const char* automaton_name) {
@@ -3534,7 +3618,7 @@ int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variab
     // complete full structure
     for (int i = 0; i < local_vars->count; i++)
     {
-        NFA_variables_add(all_vars, local_vars->variables[i]);
+        NFA_variables_add(all_vars, local_vars->variables[i]); // "IN" check is inside
     }
 
     // swap coordinates
