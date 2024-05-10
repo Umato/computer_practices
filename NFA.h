@@ -307,7 +307,7 @@ void handle_operation(nfa_stack* stack, char op, int variable_index);
 void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2);
 void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
 
-NFA* NFA_with_term(NFA* nfa, NFA* term);
+NFA* NFA_with_term(NFA* nfa, NFA* term, bool need_quotient = 0);
 
 void add_term(linear_expression* expr, int coefficient, const char* variable);
 linear_expression* init_linear_expression();

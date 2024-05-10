@@ -7,7 +7,8 @@
 // NFA_remove_unreachable_states в minimize и других
 // Убрать эпсилон переходы при НФА-ту-ДФА
 
-// >def test1 "$eq(x,y) & $div2(x) & ~div2(y)" -m -v
+
+// def test6 "Ex: $test6(y)"
 // Где то ошибка
 
 #pragma region NFA_variables
@@ -2800,31 +2801,35 @@ NFA* NFA_get_linear_term(int* a, int count)
         NFA_free(nfa_a);
     }
 
-    NFA_extend_rec(&nfa_result, 0);
-    NFA_extend_rec(&nfa_result, 0); // [-, -, y, x1, x2, ..., xn-1]
-    NFA* nfa_a0 = NFA_get_num(a[0]); // [a0]
-    NFA_extend_rec(&nfa_a0, 0); // [-, a0]
-    NFA_extend_rec(&nfa_a0, 2); // [-, a0, -]
-
-    for (int i = 0; i < count - 1; i++)
+    if (a[0])
     {
-        NFA_extend_rec(&nfa_a0, nfa_a0->alphabet_dim); // [-, a0, -, -, ...]
-    }
+        NFA_extend_rec(&nfa_result, 0);
+        NFA_extend_rec(&nfa_result, 0); // [-, -, y, x1, x2, ..., xn-1]
+        NFA* nfa_a0 = NFA_get_num(a[0]); // [a0]
+        NFA_extend_rec(&nfa_a0, 0); // [-, a0]
+        NFA_extend_rec(&nfa_a0, 2); // [-, a0, -]
 
-    NFA_intersect_rec(&nfa_result, nfa_a0); // [-, a0, y, x1, x2, ..., xn-1]
-    NFA_intersect_rec(&nfa_result, nfa_sum); // [new_y, a0, y, x1, x2, ..., xn-1]
-    NFA_project_rec(&nfa_result, 1);
-    NFA_project_rec(&nfa_result, 1);
+        for (int i = 0; i < count - 1; i++)
+        {
+            NFA_extend_rec(&nfa_a0, nfa_a0->alphabet_dim); // [-, a0, -, -, ...]
+        }
+
+        NFA_intersect_rec(&nfa_result, nfa_a0); // [-, a0, y, x1, x2, ..., xn-1]
+        NFA_intersect_rec(&nfa_result, nfa_sum); // [new_y, a0, y, x1, x2, ..., xn-1]
+        NFA_project_rec(&nfa_result, 1);
+        NFA_project_rec(&nfa_result, 1);
+        NFA_free(nfa_a0);
+    }
     DFA_minimize_rec(&nfa_result); // [new_y, x1, x2, ..., xn-1]
 
     NFA_free(nfa_sum);
-    NFA_free(nfa_a0);
 
     return nfa_result;
 }
 
-NFA* NFA_with_term(NFA* nfa, NFA* term)
+NFA* NFA_with_term(NFA* nfa, NFA* term, bool need_quotient)
 {
+    need_quotient = 1;
     if (!nfa || !term || (term->alphabet_dim < nfa->alphabet_dim)) return nullptr;
     NFA* nfa_copy = NFA_clone(nfa);
     int dim = nfa->alphabet_dim;
@@ -2842,10 +2847,12 @@ NFA* NFA_with_term(NFA* nfa, NFA* term)
         NFA_project_rec(&nfa_copy, 0);
     }
 
-    NFA* zeroes = NFA_get_only_zeroes(nfa_copy->alphabet_dim);
-
-    NFA_rightquo_rec(&nfa_copy, zeroes);
-    NFA_free(zeroes);
+    if (need_quotient)
+    {
+        NFA* zeroes = NFA_get_only_zeroes(nfa_copy->alphabet_dim);
+        NFA_rightquo_rec(&nfa_copy, zeroes);
+        NFA_free(zeroes);
+    }
 
     DFA_minimize_rec(&nfa_copy);
 
@@ -2930,18 +2937,19 @@ void print_help()
     std::cout << std::left;
 
     cout << "Available commands:\n";
-    cout << std::setw(commandWidth) << " exit" << " - Exit the NFA Console Application.\n";
-    cout << std::setw(commandWidth) << " help" << " - Display this help message.\n";
-    cout << std::setw(commandWidth) << " cls" << " - Clear console\n";
-    cout << std::setw(commandWidth) << " nfa_list" << " - List available automata.\n";
-    cout << std::setw(commandWidth) << " def <name> \"<predicate>\" [-m] [-v] [-re]" << " - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
-    cout << std::setw(commandWidth) << " eval $automaton_name(num1, num2, ..., numN)" << " - Evaluate an automaton with a given numbers.\n";
-    cout << std::setw(commandWidth) << " eval2 $automaton_name(binary_num1, ..., binary_numN)" << " - Evaluate an automaton with a binary numbers.\n";
-    cout << std::setw(commandWidth) << " for $automaton_name(start, end, [step])" << " - Test an automaton with a range of decimal numbers.\n";
-    cout << std::setw(commandWidth) << " visualize $automaton_name" << " - Visualize an NFA as a graphical representation.\n";
-    cout << std::setw(commandWidth) << " minimize $automaton_name" << " - Minimize.\n";
-    cout << std::setw(commandWidth) << " to_dfa $automaton_name" << " - Convert an NFA to DFA.\n";
-    cout << std::setw(commandWidth) << " remove_eps $automaton_name" << " - Remove epsilon transitions from an NFA.\n";
+    cout << std::setw(commandWidth) << "\texit" << " - Exit the NFA Console Application.\n";
+    cout << std::setw(commandWidth) << "\thelp" << " - Display this help message.\n";
+    cout << std::setw(commandWidth) << "\tcls" << " - Clear console\n";
+    cout << std::setw(commandWidth) << "\tnfa_list" << " - List available automata.\n";
+    cout << std::setw(commandWidth) << "\tdef <name> \"<predicate>\" [-m] [-v] [-re]" << " - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
+    cout << std::setw(commandWidth) << "\tregex <name> \"<regular expression>\" [-m] [-v] [-re]" << " - Define a new NFA from a regular expression and save it. Supports 0, 1, or (|), concatenation (&), any symbol or empty (?), any symbol (.), any symbols (+), any symbols or empty (*).\n";
+    cout << std::setw(commandWidth) << "\teval $automaton_name(num1, num2, ..., numN)" << " - Evaluate an automaton with a given numbers.\n";
+    cout << std::setw(commandWidth) << "\teval2 $automaton_name(binary_num1, ..., binary_numN)" << " - Evaluate an automaton with a binary numbers.\n";
+    cout << std::setw(commandWidth) << "\tfor $automaton_name(start, end, [step])" << " - Test an automaton with a range of decimal numbers.\n";
+    cout << std::setw(commandWidth) << "\tvisualize $automaton_name" << " - Visualize an NFA as a graphical representation.\n";
+    cout << std::setw(commandWidth) << "\tminimize $automaton_name" << " - Minimize.\n";
+    cout << std::setw(commandWidth) << "\tto_dfa $automaton_name" << " - Convert an NFA to DFA.\n";
+    cout << std::setw(commandWidth) << "\tremove_eps $automaton_name" << " - Remove epsilon transitions from an NFA.\n";
 }
 
 void print_hElp() {
@@ -2956,6 +2964,7 @@ void print_hElp() {
     cout << std::setw(commandWidth) << " cls" << " - " << std::setw(descWidth) << "Clear console\n";
     cout << std::setw(commandWidth) << " nfa_list" << " - " << std::setw(descWidth) << "List available automata.\n";
     cout << std::setw(commandWidth) << " def <name> \"<predicate>\" [-m] [-v] [-re]" << " - " << std::setw(descWidth) << "Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), left quotient(\\), exist(E), forall(A).\n";
+    cout << std::setw(commandWidth) << " regex <name> \"<regular expression>\" [-m] [-v] [-re]" << " - " << std::setw(descWidth) << "Define a new NFA from a regular expression and save it. Supports 0, 1, or (|), concatenation (&), any symbol or empty (?), any symbol (.), any symbols (+), any symbols or empty (*).\n";
     cout << std::setw(commandWidth) << " eval $automaton_name(num1, num2, ..., numN)" << " - " << std::setw(descWidth) << "Evaluate an automaton with a given numbers.\n";
     cout << std::setw(commandWidth) << " eval2 $automaton_name(binary_num1, ..., binary_numN)" << " - " << std::setw(descWidth) << "Evaluate an automaton with a binary numbers.\n";
     cout << std::setw(commandWidth) << " for $automaton_name(start, end, [step])" << " - " << std::setw(descWidth) << "Test an automaton with a range of decimal numbers.\n";
@@ -3833,7 +3842,9 @@ int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variab
         {
             if (k != NFA_variables_index(local_vars, var))
             {
-                NFA_swap_rec(added_nfa, k, NFA_variables_index(local_vars, var));
+                int var_index = NFA_variables_index(local_vars, var);
+                NFA_swap_rec(added_nfa, k, var_index);
+                NFA_variables_swap(local_vars, k, var_index);
             }
             k++;
         }
@@ -3846,6 +3857,7 @@ int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variab
         if (!NFA_variables_in(local_vars, var))
         {
             NFA_extend_rec(added_nfa, i);
+            NFA_variables_add(local_vars, var);
         }
     }
 
