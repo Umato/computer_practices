@@ -9,6 +9,7 @@
 
 
 // def test6 "Ex: $test6(y)"
+// def test1 "Ey,z: $eq(x,2y+z) & $hr_lang(y) & $hr_lang(z)"
 // Где то ошибка
 
 #pragma region NFA_variables
@@ -793,8 +794,13 @@ bool NFA_accept(NFA* nfa, big_int* num)
 {
     if (!nfa) return 0;
     char* num_string = big_int_to_string(num);
-    bool result = NFA_accept(nfa, num_string);
+
+    NFA* nfa_zeroes = NFA_get_only_zeroes();
+    NFA* nfa_copy = NFA_rightquo(nfa, nfa_zeroes);
+    bool result = NFA_accept(nfa_copy, num_string);
     free(num_string);
+    NFA_free(nfa_copy);
+    NFA_free(nfa_zeroes);
     return result;
 }
 
@@ -3212,6 +3218,7 @@ NFA* NFA_from_predicate(const char* predicate) {
             }
 
             push(nfa_stack, nfa);
+            //NFA_to_DOT(nfa);
             free(name);
         } else {
             // передавать ссылку
