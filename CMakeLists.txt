@@ -14,5 +14,13 @@ add_executable(computer_practices main.cpp
         NFA.h
         test.cpp
         test.h
+        NFA_console_app.cpp
+        NFA_console_app.h
+        NFA_variables.cpp
+        NFA_variables.h
+        NFA_stack.cpp
+        NFA_stack.h
+        linear_term.cpp
+        linear_term.h
 )
 
