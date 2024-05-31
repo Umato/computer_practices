@@ -323,7 +323,7 @@ int main() {
     //NFA_to_file(nfa_sum, "../NFA/NFAs/sum.txt");
     //cout << NFA_RPN("E x, y, z: $div2(x) | A aboba, mamac: ~$div(2x+1) & $aut(faust)");
 
-
+    
     NFA_console_app();
     system("pause");
 

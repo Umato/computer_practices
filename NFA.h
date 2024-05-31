@@ -19,6 +19,7 @@
 #include <vector>
 #include <iomanip>
 
+
 typedef struct term {
     int coefficient;
     char variable[100];
@@ -296,17 +297,34 @@ void to_lower_case(char *str);
 void handle_remove_epsilon(const char* automaton_name);
 void handle_cls();
 void remove_spaces(char* str);
-void handle_command(const std::string& command);
 
+/**
+ * @brief Complete global_struct, reorder local_vars, extend added_nfa
+ *
+ * @return: extend_size (how many times added_nfa was extended)
+ */
 int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars);
+/**
+ * @brief Union terms in one nfa so it will have as many "y" as number of terms in given list
+ *
+ */
 NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** unioned_vars);
+/**
+ * @brief Sync structures of nfas (swap coordinates, add new coordinates to nfas). Edit both NFAs and vars
+ *
+ */
 void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars, NFA_variables* sub_vars);
 
 NFA* NFA_get_only_zeroes(int dim);
 void handle_operation(nfa_stack* stack, char op, int variable_index);
 void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2);
 void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
-
+/**
+ * @brief
+ *
+ * @param n:
+ * @return:
+ */
 NFA* NFA_with_term(NFA* nfa, NFA* term, bool need_quotient = 0);
 
 void add_term(linear_expression* expr, int coefficient, const char* variable);

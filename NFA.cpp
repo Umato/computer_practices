@@ -3612,6 +3612,7 @@ bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_s
     }
     case 'E': { // So far, the projection is only based on the first variable
         NFA* nfa = pop(stack);
+
         if (!nfa)
         {
             cout << "Amount of operations doesn't match number of given automatons.\n";
@@ -3642,9 +3643,12 @@ bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_s
 
                     var = strtok_s(nullptr, ",", &context_E);
                 }
-
-                DFA_minimize_rec(&nfa);
-                push(stack, nfa);
+                
+                if (!error_occured) 
+                {
+                    DFA_minimize_rec(&nfa);
+                    push(stack, nfa);
+                }
             }
             else
             {
@@ -3741,7 +3745,6 @@ void handle_cls()
     cout << "Enter command (type 'exit' to quit):\n";
 }
 
-// EDIT both nfas and vars
 void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars, NFA_variables* sub_vars)
 {
     if (!(*main_nfa) || !(*sub_nfa) || !main_vars || !sub_vars) return;
@@ -3793,7 +3796,6 @@ void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars,
 
 }
 
-// final nfa have as many "y" as number of terms in given list
 NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** unioned_vars)
 {
     if (!terms || !terms_count) return nullptr;
@@ -3828,7 +3830,6 @@ NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** uni
     return nfa_terms;
 }
 
-// Complete global_struct, reorder local_vars, extend added_nfa
 int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars)
 {
     if (!local_vars || !all_vars || !(*added_nfa) || ((*added_nfa)->alphabet_dim != local_vars->count)) return 0;
