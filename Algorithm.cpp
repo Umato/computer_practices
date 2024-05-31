@@ -348,14 +348,6 @@ int RPNCalculator(const char *expression) {
     }
     return result;
 
-//    if (st.size() == 1 && typeid(st.top()) == typeid(int)) {
-//        int result = st.top();
-//        st.pop();
-//        return result;
-//    } else {
-//        std::cout << "Error: Invalid expression\n";
-//        exit(1);
-//    }
 }
 
 short getPriority(char op) {

@@ -5,11 +5,14 @@
 #ifndef COMPUTER_PRACTICES_NFA_H
 #define COMPUTER_PRACTICES_NFA_H
 
-#include "Algorithm.h"
 #include "big_integer.h"
 #include <conio.h>
 #include "direct.h"
 #include "windows.h"
+#include "NFA_variables.h"
+#include "linear_term.h"
+#include "NFA_stack.h"
+#include "NFA_console_app.h"
 
 #include <fstream>
 #include <cstdlib>
@@ -18,24 +21,6 @@
 #include <bit>
 #include <vector>
 #include <iomanip>
-
-
-typedef struct term {
-    int coefficient;
-    char variable[100];
-} term;
-
-typedef struct linear_expression {
-    term *terms;
-    int terms_count;
-    int constant;
-} linear_expression;
-
-typedef struct NFA_variables
-{
-    int count; 
-    char** variables; 
-} NFA_variables ;
 
 typedef struct NFA_state {
     int id;
@@ -55,15 +40,6 @@ typedef struct nfa_node {
     struct nfa_node* next;
 } nfa_node;
 
-typedef struct nfa_stack {
-    nfa_node* top;
-} nfa_stack;
-
-NFA_variables* NFA_variables_init();
-void NFA_variables_add(NFA_variables* vars, const char* new_var);
-int NFA_variables_index(NFA_variables* vars, const char* var);
-bool NFA_variables_in(NFA_variables* vars, const char* var);
-void NFA_variables_free(NFA_variables* vars);
 
 list* list_init();
 void list_free(list* tr_list);
@@ -217,20 +193,6 @@ void NFA_remove_epsilon_transitions(NFA* nfa);
 
 NFA* NFA_get_empty_string();
 /**
- * @brief Creates new NFA that checks: 2|n
- */
-NFA* NFA_get_div_2_custom();
-/**
- * @brief Creates new NFA that checks: 3|n
- */
-NFA* NFA_get_div_3_custom();
-/**
- * @brief Creates new NFA that checks: 2^power|n
- *
- * @param power: power of two
- */
-NFA* NFA_get_div_power_of_2_custom(int power);
-/**
  * @brief Creates new NFA that checks: x+y=z
  */
 NFA* NFA_get_sum();
@@ -243,10 +205,6 @@ NFA* NFA_get_equal();
  */
 NFA* NFA_get_random();
 /**
- * @brief Creates custom NFA
- */
-NFA* NFA_get_automaton_1();
-/**
  * @brief Creates NFA that accepts only zero-strings 
  */
 NFA* NFA_get_only_zeroes();
@@ -254,8 +212,6 @@ NFA* NFA_get_trivial();
 NFA* NFA_get_equal_coordinates(NFA* nfa, int n1, int n2);
 void NFA_get_equal_coordinates_rec(NFA** nfa, int n1, int n2);
 NFA* NFA_get_num(int num);
-NFA* NFA_get_div_2();
-NFA* NFA_get_div_3();
 NFA* NFA_get_2_power_m_y(int power);
 NFA* NFA_get_div_2_power_m(int power);
 NFA* NFA_get_a_y(int num);
@@ -265,58 +221,19 @@ NFA* NFA_from_linear_expression(linear_expression* expr);
 NFA* NFA_get_num_without_zeroes(int num);
 NFA* NFA_get_zero_or_one();
 
-void NFA_console_app();
-void print_help();
-void print_hElp();
-void NFA_list();
 int nfa_get_priority(char op);
-char* NFA_RPN(const char* formula);
 NFA* load_NFA_from_file(const char* filename);
-NFA* predicate_to_NFA(const char* predicate);
 
 
-nfa_stack* create_nfa_stack();
-void push(nfa_stack* s, NFA* nfa);
-NFA* pop(nfa_stack* s);
-bool is_stack_empty(nfa_stack* s);
-void free_stack(nfa_stack* s);
-NFA* NFA_from_predicate(const char* predicate);
-
-void NFA_def(const char* command);
-void NFA_eval_command(const char* command);
-void NFA_for_command(const char* command);
-void NFA_eval2_command(const char* command);
 void DFA_complement_rec(NFA** nfa);
-void NFA_visualize_command(const char* command);
-void handle_minimization(const char* automaton_name);
-void handle_conversion_to_dfa(const char* automaton_name);
+
 char* extract_name(const char* token);
 
-bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_structure);
 void to_lower_case(char *str);
-void handle_remove_epsilon(const char* automaton_name);
-void handle_cls();
-void remove_spaces(char* str);
+void handle_command(const std::string& command);
 
-/**
- * @brief Complete global_struct, reorder local_vars, extend added_nfa
- *
- * @return: extend_size (how many times added_nfa was extended)
- */
-int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars);
-/**
- * @brief Union terms in one nfa so it will have as many "y" as number of terms in given list
- *
- */
-NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** unioned_vars);
-/**
- * @brief Sync structures of nfas (swap coordinates, add new coordinates to nfas). Edit both NFAs and vars
- *
- */
-void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars, NFA_variables* sub_vars);
 
 NFA* NFA_get_only_zeroes(int dim);
-void handle_operation(nfa_stack* stack, char op, int variable_index);
 void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2);
 void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
 /**
@@ -327,20 +244,5 @@ void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
  */
 NFA* NFA_with_term(NFA* nfa, NFA* term, bool need_quotient = 0);
 
-void add_term(linear_expression* expr, int coefficient, const char* variable);
-linear_expression* init_linear_expression();
-void free_linear_expression(linear_expression* expr);
-linear_expression* parse_linear_expression(const char* input);
-void print_linear_expression(linear_expression* expr);
-
-
-int precedence(char op);
-char* explicit_concatenation(const char* regex);
-// a|b <-> 'a' or 'b', a* <-> '', 'a', 'aa', ...; a+ <-> 'a', 'aa', 'aaa', ...;
-// a? <-> '', 'a'; . <-> char != \n
-char* regex_to_rpn(const char* regex);
-void handle_regex(const char* input);
-NFA* NFA_from_regex(const char* regex);
-void handle_operation_regex(nfa_stack* stack, char op);
 
 #endif //COMPUTER_PRACTICES_NFA_H
