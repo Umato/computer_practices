@@ -862,7 +862,6 @@ void handle_cls()
     cout << "Enter command (type 'exit' to quit):\n";
 }
 
-// EDIT both nfas and vars
 void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars, NFA_variables* sub_vars)
 {
     if (!(*main_nfa) || !(*sub_nfa) || !main_vars || !sub_vars) return;

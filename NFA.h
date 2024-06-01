@@ -218,12 +218,6 @@ void handle_command(const std::string& command);
 NFA* NFA_get_only_zeroes(int dim);
 void NFA_leftquo_rec(NFA** nfa1, NFA* nfa2);
 void NFA_rightquo_rec(NFA** nfa1, NFA* nfa2);
-/**
- * @brief
- *
- * @param n:
- * @return:
- */
 NFA* NFA_with_term(NFA* nfa, NFA* term, bool need_quotient = 0);
 
 
