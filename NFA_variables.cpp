@@ -1,8 +1,10 @@
 //
-// Created by Umato on 31.05.2024.
+// Coded by Zelendzu & Umato on 31.05.2024.
 //
 
+
 #include "NFA_variables.h"
+
 
 NFA_variables* NFA_variables_init()
 {

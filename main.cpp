@@ -1,10 +1,11 @@
+//
+// Coded by Zelendzu & Umato on 31.05.2024.
+//
+
+
 #include <random>
 #include "big_integer.h"
-#include "Algorithm.h"
-#include "test.h"
-#include "graph.h"
-#include "NFA.h"
-
+#include "NFA_console_app.h"
 
 
 int main() {

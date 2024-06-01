@@ -1,10 +1,12 @@
 //
-// Created by Umato on 31.05.2024.
+// Coded by Zelendzu & Umato on 31.05.2024.
 //
 
-#ifndef COMPUTER_PRACTICES_LINEAR_TERM_H
 
-#include "NFA.h"
+#ifndef COMPUTER_PRACTICES_LINEAR_TERM_H
+#define COMPUTER_PRACTICES_LINEAR_TERM_H
+
+#include "basic_functions.h"
 
 typedef struct term {
     int coefficient;
@@ -23,6 +25,5 @@ void free_linear_expression(linear_expression* expr);
 linear_expression* parse_linear_expression(const char* input);
 void print_linear_expression(linear_expression* expr);
 
-#define COMPUTER_PRACTICES_LINEAR_TERM_H
 
 #endif //COMPUTER_PRACTICES_LINEAR_TERM_H

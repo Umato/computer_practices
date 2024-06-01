@@ -1,26 +1,12 @@
 //
-// Coded by Zelendzu & Umato on 29.02.2024.
+// Coded by Zelendzu & Umato on 31.05.2024.
 //
 
 #ifndef COMPUTER_PRACTICES_NFA_H
 #define COMPUTER_PRACTICES_NFA_H
 
-#include "big_integer.h"
-#include <conio.h>
-#include "direct.h"
-#include "windows.h"
-#include "NFA_variables.h"
+#include "basic_functions.h"
 #include "linear_term.h"
-#include "NFA_stack.h"
-#include "NFA_console_app.h"
-
-#include <fstream>
-#include <cstdlib>
-#include <cstdio>
-#include "graph.h"
-#include <bit>
-#include <vector>
-#include <iomanip>
 
 typedef struct NFA_state {
     int id;
@@ -155,12 +141,10 @@ NFA* NFA_to_DFA(NFA* nfa_original);
  */
 void NFA_to_DFA_rec(NFA** nfa);
 /**
- * @brief IMPORTANT! Removes unreachable states from initial automaton
  * Return a pointer to a new minimized DFA 
  */
 NFA* DFA_minimize(NFA* nfa_original);
 /**
- * @brief IMPORTANT! Removes unreachable states from initial automaton
  * Minimize given DFA
  */
 void DFA_minimize_rec(NFA** nfa);
@@ -226,9 +210,7 @@ NFA* load_NFA_from_file(const char* filename);
 
 
 void DFA_complement_rec(NFA** nfa);
-
 char* extract_name(const char* token);
-
 void to_lower_case(char *str);
 void handle_command(const std::string& command);
 

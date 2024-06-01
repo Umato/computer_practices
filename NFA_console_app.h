@@ -1,9 +1,16 @@
 //
-// Created by Umato on 31.05.2024.
+// Coded by Zelendzu & Umato on 31.05.2024.
 //
 
-#ifndef COMPUTER_PRACTICES_NFA_CONSOLE_APP_H
 
+#ifndef COMPUTER_PRACTICES_NFA_CONSOLE_APP_H
+#define COMPUTER_PRACTICES_NFA_CONSOLE_APP_H
+
+#include "basic_functions.h"
+
+#include "NFA_variables.h"
+#include "linear_term.h"
+#include "NFA_stack.h"
 #include "NFA.h"
 
 void NFA_console_app();
@@ -36,6 +43,5 @@ void handle_regex(const char* input);
 NFA* NFA_from_regex(const char* regex);
 void handle_operation_regex(nfa_stack* stack, char op);
 
-#define COMPUTER_PRACTICES_NFA_CONSOLE_APP_H
 
 #endif //COMPUTER_PRACTICES_NFA_CONSOLE_APP_H

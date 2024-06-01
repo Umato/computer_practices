@@ -1,9 +1,10 @@
 //
-// Created by Umato on 31.05.2024.
+// Coded by Zelendzu & Umato on 31.05.2024.
 //
 
-#include "linear_term.h"
 
+
+#include "linear_term.h"
 
 void add_term(linear_expression* expr, int coefficient, const char* variable)
 {

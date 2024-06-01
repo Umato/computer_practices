@@ -1,8 +1,10 @@
 //
-// Created by Umato on 31.05.2024.
+// Coded by Zelendzu & Umato on 31.05.2024.
 //
 
+
 #include "NFA_console_app.h"
+
 
 void NFA_console_app() {
     char input[256];
@@ -67,12 +69,14 @@ void print_help()
     cout << std::setw(commandWidth) << "\tdef <name> \"<predicate>\" [-m] [-v] [-re]" << " - Define a new NFA from a logical predicate and save it. Supports union(|), intersection(&), complement(~), right quotient(/), and left quotient(\\).\n";
     cout << std::setw(commandWidth) << "\tregex <name> \"<regular expression>\" [-m] [-v] [-re]" << " - Define a new NFA from a regular expression and save it. Supports 0, 1, or (|), concatenation (&), any symbol or empty (?), any symbol (.), any symbols (+), any symbols or empty (*).\n";
     cout << std::setw(commandWidth) << "\teval $automaton_name(num1, num2, ..., numN)" << " - Evaluate an automaton with a given numbers.\n";
+    cout << std::setw(commandWidth) << "\teval \"<predicate>\" [-m] [-v] [-re]" << " - Evaluate an automaton, defined from a logical predicate, and returns True/False. Predicate must have no unquantified variables.\n";
     cout << std::setw(commandWidth) << "\teval2 $automaton_name(binary_num1, ..., binary_numN)" << " - Evaluate an automaton with a binary numbers.\n";
     cout << std::setw(commandWidth) << "\tfor $automaton_name(start, end, [step])" << " - Test an automaton with a range of decimal numbers.\n";
     cout << std::setw(commandWidth) << "\tvisualize $automaton_name" << " - Visualize an NFA as a graphical representation.\n";
     cout << std::setw(commandWidth) << "\tminimize $automaton_name" << " - Minimize.\n";
     cout << std::setw(commandWidth) << "\tto_dfa $automaton_name" << " - Convert an NFA to DFA.\n";
     cout << std::setw(commandWidth) << "\tremove_eps $automaton_name" << " - Remove epsilon transitions from an NFA.\n";
+    cout << std::setw(commandWidth) << "\n\tPredicate example: \"Ax,y: Et: $sum(2x+1,2y,t) & ~$div2(t)\"\n";
 }
 
 void print_hElp() {
@@ -271,7 +275,6 @@ NFA* NFA_from_predicate(const char* predicate) {
         if (token[0] == '$') {
             char* name = extract_name(token);
             NFA* nfa = load_NFA_from_file(name);
-            NFA_to_DOT(nfa);
             if (*(token + strlen(name) + 1) == '(') {
                 char* term_start = token + strlen(name) + 2; // Move pointer past the character '('
                 char* term_end = strchr(term_start, ')');

@@ -1,8 +1,8 @@
-#include "NFA.h"
 //
-// Coded by Zelendzu & Umato on 29.02.2024.
+// Coded by Zelendzu & Umato on 31.05.2024.
 //
 
+#include "NFA.h"
 
 #pragma region Others
 
