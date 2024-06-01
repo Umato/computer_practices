@@ -3,7 +3,6 @@
 //
 
 
-
 #include "NFA_stack.h"
 
 nfa_stack* create_nfa_stack() {

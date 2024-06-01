@@ -17,9 +17,5 @@ int main() {
 
     big_int_free(6, zero, one, two, e, mod, ex);
     return 0;
+    
 }
-
-
-
-
-

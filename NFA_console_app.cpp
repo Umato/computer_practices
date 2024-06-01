@@ -5,7 +5,6 @@
 
 #include "NFA_console_app.h"
 
-
 void NFA_console_app() {
     char input[256];
     cout << "Enter command (type 'exit' to quit):\n";
@@ -23,31 +22,31 @@ void NFA_console_app() {
             cout << "Exiting NFA Console Application.\n";
             break;
         } else if (strcmp(input, "help") == 0) {
-            print_help();
+            print_help_command();
         } else if (strcmp(input, "hElp") == 0) {
-            print_hElp();
+            print_hElp_command();
         } else if (strcmp(input, "nfa_list") == 0) {
-            NFA_list();
+            nfa_list_command();
         } else if (strncmp(input, "def ", 4) == 0) {
-            NFA_def(input);
+            def_command(input);
         } else if (strncmp(input, "eval ", 5) == 0) {
-            NFA_eval_command(input);
+            eval_command(input);
         } else if (strncmp(input, "for  ", 4) == 0) {
-            NFA_for_command(input);
+            for_command(input);
         } else if (strncmp(input, "eval2 ", 6) == 0) {
-            NFA_eval2_command(input);
+            eval2_command(input);
         } else if (strncmp(input, "visualize ", 10) == 0) {
-            NFA_visualize_command(input);
+            visualize_command(input);
         } else if (strncmp(input, "minimize $", 10) == 0) {
-            handle_minimization(input + 10);
+            minimization_command(input + 10);
         } else if (strncmp(input, "to_dfa $", 8) == 0) {
-            handle_conversion_to_dfa(input + 8);
+            convert_to_dfa_command(input + 8);
         } else if (strncmp(input, "remove_eps $", 12) == 0) {
-            handle_remove_epsilon(input + 12);
+            remove_epsilon_command(input + 12);
         } else if (strncmp(input, "cls", 3) == 0) {
-            handle_cls();
+            cls_command();
         } else if (strncmp(input, "regex ", 6) == 0) {
-            handle_regex(input + 6);
+            regex_command(input + 6);
         } else {
                 printf("Unknown command: %s\n", input);
         }
@@ -55,7 +54,10 @@ void NFA_console_app() {
 
 }
 
-void print_help()
+
+#pragma region Commands
+
+void print_help_command()
 {
     int commandWidth = 55;
 
@@ -79,7 +81,7 @@ void print_help()
     cout << std::setw(commandWidth) << "\n\tPredicate example: \"Ax,y: Et: $sum(2x+1,2y,t) & ~$div2(t)\"\n";
 }
 
-void print_hElp() {
+void print_hElp_command() {
     int commandWidth = 55;
     int descWidth = 100;
 
@@ -101,7 +103,13 @@ void print_hElp() {
     cout << std::setw(commandWidth) << " remove_eps $automaton_name" << " - " << std::setw(descWidth) << "Remove epsilon transitions from an NFA.\n";
 }
 
-void NFA_list() {
+void cls_command()
+{
+    system("cls");
+    cout << "Enter command (type 'exit' to quit):\n";
+}
+
+void nfa_list_command() {
     const char* directory = "../NFA/NFAs/*"; // Путь к директории с маской для поиска всех файлов
     WIN32_FIND_DATA ffd;
     HANDLE hFind = FindFirstFile(directory, &ffd);
@@ -126,243 +134,7 @@ void NFA_list() {
     FindClose(hFind);
 }
 
-int nfa_get_priority(char op) {
-    switch (op) {
-    case '(': return -1;
-    case '~': return 5;
-    case 'E':
-    case 'A': return 4;
-    case '&': return 3;
-    case '|':
-    case '/':
-    case '\\': return 2;
-    case '$': return 1;
-    default:
-        return -1;
-    }
-}
-
-char* NFA_RPN(const char* formula) {
-    stack* operators = create_stack();
-    int length = strlen(formula);
-    char* rpn = (char*)malloc(length * 2);
-    char* exist_forall = (char*)malloc(length + 1);
-    int j = 0; //rpn[j]
-    int k = 0; //exist_forall[k]
-
-    for (const char *c = formula; *c; c++) {
-        switch (*c) {
-        case '(' :
-            push(operators, *c);
-            break;
-        case 'E' :
-        case 'A' :
-            while (*c != ':' && *c != '\0'){
-                if (*c == ' ') {
-                    c++;
-                    continue;
-                }
-                exist_forall[k++] = *c;
-                c++;
-            }
-            if (*c == '\0') {
-                cout << "Error: colon not found\n";
-                free(rpn);
-                free(exist_forall);
-                free_stack(operators);
-                return nullptr;
-            }
-
-            exist_forall[k++] = ':';
-            exist_forall[k++] = ' ';
-            break;
-        case '&' :
-        case '|' :
-        case '~' :
-        case '/' :
-        case '\\':
-            while (!is_stack_empty(operators) && nfa_get_priority(*c) <= nfa_get_priority(stack_top(operators))) {
-                rpn[j++] = pop(operators);
-                rpn[j++] = ' ';
-            }
-            push(operators, *c);
-            break;
-        case ')' :
-            while (!is_stack_empty(operators) && stack_top(operators) != '(') {
-                rpn[j++] = ' ';
-                rpn[j++] = (char)pop(operators);
-            }
-            pop(operators); // Remove '(' from stack
-            break;
-        case '$' :
-            rpn[j++] = *(c++);
-            while (*c && *c != ')'){
-                if (strchr("&|~/\\$", *c)){
-                    fprintf(stderr, "Error: Invalid character '%c' in the expression\n", *c);
-                    free(rpn);
-                    free(exist_forall);
-                    free_stack(operators);
-                    return nullptr;
-                }
-                rpn[j++] = *(c++);
-            }
-            if (*c == '\0') {
-                cout << "Error: closing parenthesis not found\n";
-                free(rpn);
-                free(exist_forall);
-                free_stack(operators);
-                return nullptr;
-            } else if (*c == ')') {
-                rpn[j++] = *c;
-                //c--;
-            }
-            break;
-        default:
-            if (*c != ' ' || (j != 0 && rpn[j - 1] != ' '))
-                rpn[j++] = *c;
-            break;
-        }
-    }
-
-    while (!is_stack_empty(operators)) {
-        rpn[j++] = ' ';
-        rpn[j++] = (char)pop(operators);
-    }
-
-    if (j > 0 && rpn[j - 1] == ' ') {
-        j--; // Remove trailing space if it exists
-    }
-
-    rpn[j] = '\0';
-    exist_forall[k] = '\0';
-    char* result = (char*)malloc(strlen(rpn) + strlen(exist_forall) + 2);
-    strcpy(result, rpn);
-    strcat(result, " ");
-
-    // exist_forall reversing
-    char* tokens[10];
-    int tokens_count = 0;
-    char* context;
-    char* token = strtok_s(exist_forall, " ", &context);
-    while (token != nullptr) {
-        tokens[tokens_count++] = strdup(token);
-        token = strtok_s(nullptr, " ", &context);
-    }
-    for (int i = tokens_count - 1; i >= 0; i--) {
-        strcat(result, tokens[i]);
-        strcat(result, " ");
-        free(tokens[i]);
-    }
-
-    free(rpn);
-    free(exist_forall);
-    free_stack(operators);
-    return result;
-}
-
-NFA* NFA_from_predicate(const char* predicate) {
-    char* rpn = NFA_RPN(predicate);
-    if (!rpn) return nullptr;
-
-    remove_spaces(rpn);
-
-    nfa_stack* nfa_stack = create_nfa_stack();
-    NFA_variables* global_vars = NFA_variables_init();
-
-    char* context_rpn;
-    char* token = strtok_s(rpn, " ", &context_rpn);
-    while (token) {
-        if (token[0] == '$') {
-            char* name = extract_name(token);
-            NFA* nfa = load_NFA_from_file(name);
-            if (*(token + strlen(name) + 1) == '(') {
-                char* term_start = token + strlen(name) + 2; // Move pointer past the character '('
-                char* term_end = strchr(term_start, ')');
-                if (term_end) {
-                    *term_end = '\0'; // Replace ')' with '\0'
-
-                    // 1. Create list of  linear expressions
-                    int terms_count = nfa->alphabet_dim;
-                    int terms_counter = 0;
-                    linear_expression** terms = (linear_expression**)malloc(sizeof(linear_expression*) * terms_count);
-
-                    char* context_terms;
-                    char* terms_token = strtok_s(term_start, ",", &context_terms);
-                    while (terms_token)
-                    {
-                        if (terms_counter < terms_count)
-                        {
-                            terms[terms_counter] = (linear_expression*)malloc(sizeof(linear_expression));
-                            terms[terms_counter] = parse_linear_expression(terms_token);
-                        }
-                        terms_counter++;
-                        terms_token = strtok_s(nullptr, ",", &context_terms);
-                    }
-                    if (terms_counter != terms_count)
-                    {
-                        cout << "Error: incorrect input - " << name << "(" << term_start
-                            << ") needs " << terms_count <<" arguments, but gets " << terms_counter << ".\n";
-                        free(rpn);
-                        free_stack(nfa_stack);
-                        NFA_variables_free(global_vars);
-                        free(name);
-                        NFA_free(nfa);
-                        for (int k = 0; k < terms_count; k++)
-                        {
-                            free_linear_expression(terms[k]);
-                        }
-
-                        return nullptr;
-                    }
-
-                    // 2. Create mega term using the list
-                    NFA_variables* unioned_term_vars = nullptr;
-                    NFA* unioned_term = union_terms(terms_count, terms, &unioned_term_vars);
-
-                    // 3. Intersect mega term with nfa, update global structure
-                    NFA* new_nfa = NFA_with_term(nfa, unioned_term);
-                    for (int k = 0; k < nfa->alphabet_dim; k++)
-                    {
-                        NFA_variables_delete(unioned_term_vars, 0);
-                    }
-
-                    merge_nfa_and_structure(&new_nfa, global_vars, unioned_term_vars);
-
-                    // Free
-                    for (int k = 0; k < terms_count; k++)
-                    {
-                        free_linear_expression(terms[k]);
-                    }
-                    free(terms);
-                    NFA_free(unioned_term);
-                    NFA_variables_free(unioned_term_vars);
-                    NFA_free(nfa);
-                    nfa = new_nfa;
-                }
-            }
-
-            push(nfa_stack, nfa);
-            free(name);
-        } else {
-            if (!handle_operation(nfa_stack, token, global_vars))
-            {
-                free(rpn);
-                free_stack(nfa_stack);
-                NFA_variables_free(global_vars);
-                return nullptr;
-            }
-        }
-        token = strtok_s(nullptr, " ", &context_rpn);
-    }
-
-    NFA* final_nfa = pop(nfa_stack);
-    NFA_variables_free(global_vars);
-    free(rpn);
-    free_stack(nfa_stack);
-    return final_nfa;
-}
-
-void NFA_def(const char* command) {
+void def_command(const char* command) {
     char name[256], predicate[1024];
     bool minimize = false, visualize = false, remove_eps = false;
 
@@ -404,7 +176,42 @@ void NFA_def(const char* command) {
     }
 }
 
-void NFA_eval_command(const char* command)
+void regex_command(const char* input)
+{
+    char name[256], regex[256];
+    bool visualize = false, minimize = false;
+
+    if (sscanf(input, "%s \"%[^\"]\"", name, regex) == 2) {
+
+        if (strstr(input, "-m") != nullptr) minimize = true;
+        if (strstr(input, "-v") != nullptr) visualize = true;
+
+        NFA* nfa = NFA_from_regex(regex);
+        if (nfa != nullptr) {
+
+            if (minimize) {
+                DFA_minimize_rec(&nfa);
+            }
+
+            char filename[300];
+            sprintf(filename, "../NFA/NFAs/%s.txt", name);
+            NFA_to_file(nfa, filename);
+
+            if (visualize) {
+                NFA_to_DOT(nfa);
+            }
+            NFA_free(nfa);
+        }
+        else {
+            cout << "Failed to create NFA from predicate.\n";
+        }
+    }
+    else {
+        cout << "Invalid command format. Use regex <name> \"<regular expression>\" [-m] [-v]\n";
+    }
+}
+
+void eval_command(const char* command)
 {
     char automaton_name[256], number_string[1024], predicate[1024];
     int nums[100]; // max = 100
@@ -461,32 +268,7 @@ void NFA_eval_command(const char* command)
     }
 }
 
-void NFA_for_command(const char* command) {
-    char automaton_name[256];
-    int start, end;
-    int step = 1;  // Default
-
-    if (sscanf(command, "for $%[^(](%d, %d, %d)", automaton_name, &start, &end, &step) >= 2) {
-        NFA* nfa = load_NFA_from_file(automaton_name);
-        if (!nfa) {
-            cout << "Failed to load NFA: " << automaton_name << endl;
-            return;
-        }
-
-        for (int num = start; num <= end; num += step) {
-            big_int* bg = big_int_get(num);
-            bool result = NFA_accept(nfa, bg);
-            big_int_free(bg);
-            cout << num << " - " << (result ? "True" : "False") << endl;
-        }
-
-        NFA_free(nfa);
-    } else {
-        cout << "Invalid command format. Use for \"$automaton_name(start, end, [step])\"" << endl;
-    }
-}
-
-void NFA_eval2_command(const char* command)
+void eval2_command(const char* command)
 {
     char automaton_name[256];
     char binary_numbers[1024];
@@ -528,7 +310,32 @@ void NFA_eval2_command(const char* command)
     }
 }
 
-void NFA_visualize_command(const char* command)
+void for_command(const char* command) {
+    char automaton_name[256];
+    int start, end;
+    int step = 1;  // Default
+
+    if (sscanf(command, "for $%[^(](%d, %d, %d)", automaton_name, &start, &end, &step) >= 2) {
+        NFA* nfa = load_NFA_from_file(automaton_name);
+        if (!nfa) {
+            cout << "Failed to load NFA: " << automaton_name << endl;
+            return;
+        }
+
+        for (int num = start; num <= end; num += step) {
+            big_int* bg = big_int_get(num);
+            bool result = NFA_accept(nfa, bg);
+            big_int_free(bg);
+            cout << num << " - " << (result ? "True" : "False") << endl;
+        }
+
+        NFA_free(nfa);
+    } else {
+        cout << "Invalid command format. Use for \"$automaton_name(start, end, [step])\"" << endl;
+    }
+}
+
+void visualize_command(const char* command)
 {
     char automaton_name[256];
 
@@ -551,7 +358,7 @@ void NFA_visualize_command(const char* command)
 
 }
 
-void handle_minimization(const char* automaton_name) {
+void minimization_command(const char* automaton_name) {
     char filename[300];
     sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
     NFA* nfa = NFA_from_file(filename);
@@ -570,7 +377,7 @@ void handle_minimization(const char* automaton_name) {
     }
 }
 
-void handle_conversion_to_dfa(const char* automaton_name) {
+void convert_to_dfa_command(const char* automaton_name) {
     char filename[300];
     sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
     NFA* nfa = NFA_from_file(filename);
@@ -586,6 +393,65 @@ void handle_conversion_to_dfa(const char* automaton_name) {
         NFA_free(nfa);
     } else {
         cout << "Failed to load automaton from file: " << filename << "\n";
+    }
+}
+
+void remove_epsilon_command(const char* automaton_name) {
+    char filename[300];
+    sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
+    NFA* nfa = NFA_from_file(filename);
+    if (nfa) {
+        NFA_remove_epsilon_transitions(nfa);
+        if (nfa) {        NFA_to_file(nfa, filename);
+        NFA_free(nfa);
+        cout << "Epsilon transitions removed and NFA saved to " << filename << ".\n";
+        } else {
+            cout << "Failed to remove epsilon transitions\n";
+        }
+
+    } else {
+        cout << "Failed to load automaton from file: " << filename << "\n";
+    }
+}
+
+#pragma endregion
+
+
+#pragma region Support Functions
+
+void remove_spaces(char* str) {
+    char* dst = str;
+    bool within_parentheses = false;
+    bool within_exist_forall = false;
+
+    while (*str != '\0') {
+        if (*str == '(') {
+            within_parentheses = true;
+            *dst++ = *str;
+        } else if (*str == ')') {
+            within_parentheses = false;
+            *dst++ = *str;
+        } else if ((!within_parentheses && !within_exist_forall) || (*str != ' ' && *str != '\t')) {
+            *dst++ = *str;
+        }
+        str++;
+    }
+    *dst = '\0';
+}
+
+int nfa_get_priority(char op) {
+    switch (op) {
+    case '(': return -1;
+    case '~': return 5;
+    case 'E':
+    case 'A': return 4;
+    case '&': return 3;
+    case '|':
+    case '/':
+    case '\\': return 2;
+    case '$': return 1;
+    default:
+        return -1;
     }
 }
 
@@ -838,28 +704,224 @@ bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_s
     return !error_occured;
 }
 
-void handle_remove_epsilon(const char* automaton_name) {
-    char filename[300];
-    sprintf(filename, "../NFA/NFAs/%s.txt", automaton_name);
-    NFA* nfa = NFA_from_file(filename);
-    if (nfa) {
-        NFA_remove_epsilon_transitions(nfa);
-        if (nfa) {        NFA_to_file(nfa, filename);
-        NFA_free(nfa);
-        cout << "Epsilon transitions removed and NFA saved to " << filename << ".\n";
-        } else {
-            cout << "Failed to remove epsilon transitions\n";
-        }
+char* NFA_RPN(const char* formula) {
+    stack* operators = create_stack();
+    int length = strlen(formula);
+    char* rpn = (char*)malloc(length * 2);
+    char* exist_forall = (char*)malloc(length + 1);
+    int j = 0; //rpn[j]
+    int k = 0; //exist_forall[k]
 
-    } else {
-        cout << "Failed to load automaton from file: " << filename << "\n";
+    for (const char *c = formula; *c; c++) {
+        switch (*c) {
+        case '(' :
+            push(operators, *c);
+            break;
+        case 'E' :
+        case 'A' :
+            while (*c != ':' && *c != '\0'){
+                if (*c == ' ') {
+                    c++;
+                    continue;
+                }
+                exist_forall[k++] = *c;
+                c++;
+            }
+            if (*c == '\0') {
+                cout << "Error: colon not found\n";
+                free(rpn);
+                free(exist_forall);
+                free_stack(operators);
+                return nullptr;
+            }
+
+            exist_forall[k++] = ':';
+            exist_forall[k++] = ' ';
+            break;
+        case '&' :
+        case '|' :
+        case '~' :
+        case '/' :
+        case '\\':
+            while (!is_stack_empty(operators) && nfa_get_priority(*c) <= nfa_get_priority(stack_top(operators))) {
+                rpn[j++] = pop(operators);
+                rpn[j++] = ' ';
+            }
+            push(operators, *c);
+            break;
+        case ')' :
+            while (!is_stack_empty(operators) && stack_top(operators) != '(') {
+                rpn[j++] = ' ';
+                rpn[j++] = (char)pop(operators);
+            }
+            pop(operators); // Remove '(' from stack
+            break;
+        case '$' :
+            rpn[j++] = *(c++);
+            while (*c && *c != ')'){
+                if (strchr("&|~/\\$", *c)){
+                    fprintf(stderr, "Error: Invalid character '%c' in the expression\n", *c);
+                    free(rpn);
+                    free(exist_forall);
+                    free_stack(operators);
+                    return nullptr;
+                }
+                rpn[j++] = *(c++);
+            }
+            if (*c == '\0') {
+                cout << "Error: closing parenthesis not found\n";
+                free(rpn);
+                free(exist_forall);
+                free_stack(operators);
+                return nullptr;
+            } else if (*c == ')') {
+                rpn[j++] = *c;
+                //c--;
+            }
+            break;
+        default:
+            if (*c != ' ' || (j != 0 && rpn[j - 1] != ' '))
+                rpn[j++] = *c;
+            break;
+        }
     }
+
+    while (!is_stack_empty(operators)) {
+        rpn[j++] = ' ';
+        rpn[j++] = (char)pop(operators);
+    }
+
+    if (j > 0 && rpn[j - 1] == ' ') {
+        j--; // Remove trailing space if it exists
+    }
+
+    rpn[j] = '\0';
+    exist_forall[k] = '\0';
+    char* result = (char*)malloc(strlen(rpn) + strlen(exist_forall) + 2);
+    strcpy(result, rpn);
+    strcat(result, " ");
+
+    // exist_forall reversing
+    char* tokens[10];
+    int tokens_count = 0;
+    char* context;
+    char* token = strtok_s(exist_forall, " ", &context);
+    while (token != nullptr) {
+        tokens[tokens_count++] = strdup(token);
+        token = strtok_s(nullptr, " ", &context);
+    }
+    for (int i = tokens_count - 1; i >= 0; i--) {
+        strcat(result, tokens[i]);
+        strcat(result, " ");
+        free(tokens[i]);
+    }
+
+    free(rpn);
+    free(exist_forall);
+    free_stack(operators);
+    return result;
 }
 
-void handle_cls()
-{
-    system("cls");
-    cout << "Enter command (type 'exit' to quit):\n";
+NFA* NFA_from_predicate(const char* predicate) {
+    char* rpn = NFA_RPN(predicate);
+    if (!rpn) return nullptr;
+
+    remove_spaces(rpn);
+
+    nfa_stack* nfa_stack = create_nfa_stack();
+    NFA_variables* global_vars = NFA_variables_init();
+
+    char* context_rpn;
+    char* token = strtok_s(rpn, " ", &context_rpn);
+    while (token) {
+        if (token[0] == '$') {
+            char* name = extract_name(token);
+            NFA* nfa = load_NFA_from_file(name);
+            if (*(token + strlen(name) + 1) == '(') {
+                char* term_start = token + strlen(name) + 2; // Move pointer past the character '('
+                char* term_end = strchr(term_start, ')');
+                if (term_end) {
+                    *term_end = '\0'; // Replace ')' with '\0'
+
+                    // 1. Create list of  linear expressions
+                    int terms_count = nfa->alphabet_dim;
+                    int terms_counter = 0;
+                    linear_expression** terms = (linear_expression**)malloc(sizeof(linear_expression*) * terms_count);
+
+                    char* context_terms;
+                    char* terms_token = strtok_s(term_start, ",", &context_terms);
+                    while (terms_token)
+                    {
+                        if (terms_counter < terms_count)
+                        {
+                            terms[terms_counter] = (linear_expression*)malloc(sizeof(linear_expression));
+                            terms[terms_counter] = parse_linear_expression(terms_token);
+                        }
+                        terms_counter++;
+                        terms_token = strtok_s(nullptr, ",", &context_terms);
+                    }
+                    if (terms_counter != terms_count)
+                    {
+                        cout << "Error: incorrect input - " << name << "(" << term_start
+                            << ") needs " << terms_count <<" arguments, but gets " << terms_counter << ".\n";
+                        free(rpn);
+                        free_stack(nfa_stack);
+                        NFA_variables_free(global_vars);
+                        free(name);
+                        NFA_free(nfa);
+                        for (int k = 0; k < terms_count; k++)
+                        {
+                            free_linear_expression(terms[k]);
+                        }
+
+                        return nullptr;
+                    }
+
+                    // 2. Create mega term using the list
+                    NFA_variables* unioned_term_vars = nullptr;
+                    NFA* unioned_term = union_terms(terms_count, terms, &unioned_term_vars);
+
+                    // 3. Intersect mega term with nfa, update global structure
+                    NFA* new_nfa = NFA_with_term(nfa, unioned_term);
+                    for (int k = 0; k < nfa->alphabet_dim; k++)
+                    {
+                        NFA_variables_delete(unioned_term_vars, 0);
+                    }
+
+                    merge_nfa_and_structure(&new_nfa, global_vars, unioned_term_vars);
+
+                    // Free
+                    for (int k = 0; k < terms_count; k++)
+                    {
+                        free_linear_expression(terms[k]);
+                    }
+                    free(terms);
+                    NFA_free(unioned_term);
+                    NFA_variables_free(unioned_term_vars);
+                    NFA_free(nfa);
+                    nfa = new_nfa;
+                }
+            }
+
+            push(nfa_stack, nfa);
+            free(name);
+        } else {
+            if (!handle_operation(nfa_stack, token, global_vars))
+            {
+                free(rpn);
+                free_stack(nfa_stack);
+                NFA_variables_free(global_vars);
+                return nullptr;
+            }
+        }
+        token = strtok_s(nullptr, " ", &context_rpn);
+    }
+
+    NFA* final_nfa = pop(nfa_stack);
+    NFA_variables_free(global_vars);
+    free(rpn);
+    free_stack(nfa_stack);
+    return final_nfa;
 }
 
 void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars, NFA_variables* sub_vars)
@@ -913,7 +975,6 @@ void sync_nfa_structure(NFA** main_nfa, NFA** sub_nfa, NFA_variables* main_vars,
 
 }
 
-// final nfa have as many "y" as number of terms in given list
 NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** unioned_vars)
 {
     if (!terms || !terms_count) return nullptr;
@@ -948,7 +1009,6 @@ NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** uni
     return nfa_terms;
 }
 
-// Complete global_struct, reorder local_vars, extend added_nfa
 int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars)
 {
     if (!local_vars || !all_vars || !(*added_nfa) || ((*added_nfa)->alphabet_dim != local_vars->count)) return 0;
@@ -991,62 +1051,10 @@ int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variab
     return extend_size;
 }
 
-void remove_spaces(char* str) {
-    char* dst = str;
-    bool within_parentheses = false;
-    bool within_exist_forall = false;
+#pragma endregion
 
-    while (*str != '\0') {
-        if (*str == '(') {
-            within_parentheses = true;
-            *dst++ = *str;
-        } else if (*str == ')') {
-            within_parentheses = false;
-            *dst++ = *str;
-        } else if ((!within_parentheses && !within_exist_forall) || (*str != ' ' && *str != '\t')) {
-            *dst++ = *str;
-        }
-        str++;
-    }
-    *dst = '\0';
-}
 
 #pragma region Regex
-
-void handle_regex(const char* input)
-{
-    char name[256], regex[256];
-    bool visualize = false, minimize = false;
-
-    if (sscanf(input, "%s \"%[^\"]\"", name, regex) == 2) {
-
-        if (strstr(input, "-m") != nullptr) minimize = true;
-        if (strstr(input, "-v") != nullptr) visualize = true;
-
-        NFA* nfa = NFA_from_regex(regex);
-        if (nfa != nullptr) {
-
-            if (minimize) {
-                DFA_minimize_rec(&nfa);
-            }
-
-            char filename[300];
-            sprintf(filename, "../NFA/NFAs/%s.txt", name);
-            NFA_to_file(nfa, filename);
-
-            if (visualize) {
-                NFA_to_DOT(nfa);
-            }
-            NFA_free(nfa);
-        }
-        else {
-            cout << "Failed to create NFA from predicate.\n";
-        }
-    }
-    else {
-        cout << "Invalid command format. Use regex <name> \"<regular expression>\" [-m] [-v]\n";
-    }
-}
 
 NFA* NFA_from_regex(const char* regex) {
     char* rpn = regex_to_rpn(regex);

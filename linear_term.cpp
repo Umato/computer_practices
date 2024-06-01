@@ -3,7 +3,6 @@
 //
 
 
-
 #include "linear_term.h"
 
 void add_term(linear_expression* expr, int coefficient, const char* variable)

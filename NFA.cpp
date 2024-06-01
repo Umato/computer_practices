@@ -130,7 +130,7 @@ char* extract_name(const char* token) {
 #pragma endregion
 
 
-#pragma region NFA Main
+#pragma region Main
 
 NFA_state* NFA_state_init(int id, bool is_final, int letters_count)
 {
@@ -697,7 +697,7 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
 #pragma endregion
 
 
-#pragma region NFA Input/Output
+#pragma region Input/Output
 
 void NFA_print(NFA* nfa) {
     if (nfa == nullptr) {
@@ -1074,7 +1074,7 @@ NFA* load_NFA_from_file(const char* filename)
 #pragma endregion
 
 
-#pragma region NFA Operations
+#pragma region Operations
 
 NFA* NFA_intersect(NFA* nfa1, NFA* nfa2)
 {
@@ -1875,7 +1875,7 @@ void NFA_with_empty_string_rec(NFA** nfa)
 #pragma endregion
 
 
-#pragma region NFA Support Functions
+#pragma region Support Functions
 
 NFA* DFA_make_complete(NFA* nfa_original)
 {
@@ -2191,7 +2191,7 @@ void NFA_remove_epsilon_transitions(NFA* nfa) {
 #pragma endregion
 
 
-#pragma region NFA Examples
+#pragma region Examples
 
 NFA* NFA_get_empty_string()
 {

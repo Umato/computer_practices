@@ -14,21 +14,26 @@
 #include "NFA.h"
 
 void NFA_console_app();
-void print_help();
-void print_hElp();
-void NFA_list();
+
+void print_help_command();
+void print_hElp_command();
+void cls_command();
+void nfa_list_command();
+void def_command(const char* command);
+void regex_command(const char* input);
+void eval_command(const char* command);
+void eval2_command(const char* command);
+void for_command(const char* command);
+void visualize_command(const char* command);
+void minimization_command(const char* automaton_name);
+void convert_to_dfa_command(const char* automaton_name);
+void remove_epsilon_command(const char* automaton_name);
+
+void remove_spaces(char* str);
+int nfa_get_priority(char op);
+bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_structure);
 char* NFA_RPN(const char* formula);
 NFA* NFA_from_predicate(const char* predicate);
-void NFA_def(const char* command);
-void NFA_eval_command(const char* command);
-void NFA_for_command(const char* command);
-void NFA_eval2_command(const char* command);
-void NFA_visualize_command(const char* command);
-void handle_minimization(const char* automaton_name);
-void handle_conversion_to_dfa(const char* automaton_name);
-bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_structure);
-void handle_remove_epsilon(const char* automaton_name);
-void handle_cls();
 /**
  * @brief Sync structures of nfas (swap coordinates, add new coordinates to nfas). Edit both NFAs and vars
  * Common variables order is based on main_vars order
@@ -44,16 +49,14 @@ NFA* union_terms(int terms_count, linear_expression** terms, NFA_variables** uni
  * @return: extend_size (how many coordinates were added to added_nfa)
  */
 int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variables* local_vars);
-void remove_spaces(char* str);
 
+NFA* NFA_from_regex(const char* regex);
+void handle_operation_regex(nfa_stack* stack, char op);
 int precedence(char op);
-char* explicit_concatenation(const char* regex);
 // a|b <-> 'a' or 'b', a* <-> '', 'a', 'aa', ...; a+ <-> 'a', 'aa', 'aaa', ...;
 // a? <-> '', 'a'; . <-> char != \n
 char* regex_to_rpn(const char* regex);
-void handle_regex(const char* input);
-NFA* NFA_from_regex(const char* regex);
-void handle_operation_regex(nfa_stack* stack, char op);
+char* explicit_concatenation(const char* regex);
 
 
 #endif //COMPUTER_PRACTICES_NFA_CONSOLE_APP_H
