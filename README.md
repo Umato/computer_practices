@@ -7,6 +7,7 @@ This repository is dedicated to practicing computer science problems, specifical
 - [Project Overview](#project-overview)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Acknowledgements](#acknowledgements)
 
 ## Project Overview
 
@@ -24,4 +25,11 @@ git clone https://github.com/Umato/computer_practices.git
 cd computer_practices
 
 # Compile the project
-# (Add specific compilation steps if necessary)
+g++ -o main main.cpp
+./main
+
+# In the console application, type:
+help```
+
+**## Acknowledgements**
+This project was developed under the guidance of Mikhail Romanovich Starchak during the second term of the Applied Mathematics, Computer Science and Artificial Intelligence program at SPbU by students Zelenskaya E.G. and Vasilev E.S.
