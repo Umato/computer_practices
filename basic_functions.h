@@ -12,5 +12,8 @@
 #include <cstdio>
 #include <bit>
 #include <iomanip>
+#include <cstring>
+#include <cmath>
+#include <ctime>
 
 #endif //COMPUTER_PRACTICES_BASIC_FUNCTIONS_H
