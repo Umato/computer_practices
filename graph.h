@@ -71,9 +71,6 @@ CNF2 *GetCNF2(char *str);
 void PrintCNF2(CNF2* cnf);
 void FreeCNF2(CNF2* cnf);
 graph *createImplicationGraph(CNF2 *cnf);
-//int *Solve2SAT(scc_list *sccs, int num_variables);
 int* Solve2sat(CNF2* cnf);
-//bool Solve2sat(CNF2 *cnf, int* result);
-int *TwoSAT(char *cnf_str);
 
 #endif //COMPUTER_PRACTICE_GRAPH_H

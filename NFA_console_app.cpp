@@ -54,7 +54,6 @@ void NFA_console_app() {
 
 }
 
-
 #pragma region Commands
 
 void print_help_command()
@@ -455,7 +454,7 @@ int nfa_get_priority(char op) {
     }
 }
 
-bool handle_operation(nfa_stack* stack, char* operation, NFA_variables* global_structure) {
+bool handle_operation(NFA_stack* stack, char* operation, NFA_variables* global_structure) {
     char op = operation[0];
     bool error_occured = false;
     switch (op)
@@ -828,7 +827,7 @@ NFA* NFA_from_predicate(const char* predicate) {
 
     remove_spaces(rpn);
 
-    nfa_stack* nfa_stack = create_nfa_stack();
+    NFA_stack* nfa_stack = create_nfa_stack();
     NFA_variables* global_vars = NFA_variables_init();
 
     char* context_rpn;
@@ -1059,7 +1058,7 @@ int merge_nfa_and_structure(NFA** added_nfa, NFA_variables* all_vars, NFA_variab
 NFA* NFA_from_regex(const char* regex) {
     char* rpn = regex_to_rpn(regex);
 
-    nfa_stack* nfa_stack = create_nfa_stack();
+    NFA_stack* nfa_stack = create_nfa_stack();
 
     for (const char* c = rpn; *c; c++) {
         if (isdigit(*c)) {
@@ -1080,7 +1079,7 @@ NFA* NFA_from_regex(const char* regex) {
     return result;
 }
 
-void handle_operation_regex(nfa_stack* stack, char op) {
+void handle_operation_regex(NFA_stack* stack, char op) {
     switch (op) {
     case '&': {
         NFA* nfa2 = pop(stack);

@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <bit>
-#include <vector>
 #include <iomanip>
 
 #endif //COMPUTER_PRACTICES_BASIC_FUNCTIONS_H

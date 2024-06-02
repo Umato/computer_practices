@@ -8,23 +8,24 @@
 #include "basic_functions.h"
 #include "linear_term.h"
 
+/**
+ * @brief Structure representing a state in the NFA.
+ */
 typedef struct NFA_state {
-    int id;
-    bool is_final;
-    list** transitions;
+    int id;                  /**< Unique identifier for the state. */
+    bool is_final;           /**< Indicates whether the state is a final (accepting) state. */
+    list** transitions;      /**< Array of lists, each representing transitions for a given symbol. */
 } NFA_state;
 
+/**
+ * @brief Structure representing a non-deterministic finite automaton (NFA).
+ */
 typedef struct NFA {
-    int states_count;
-    int alphabet_dim;
-    NFA_state** states;
-    NFA_state* initial_state;
+    int states_count;        /**< Number of states in the NFA. */
+    int alphabet_dim;        /**< Dimension of the alphabet (number of possible input symbols). */
+    NFA_state** states;      /**< Array of pointers to the states in the NFA. */
+    NFA_state* initial_state;/**< Pointer to the initial state of the NFA. */
 } NFA;
-
-typedef struct nfa_node {
-    NFA* nfa;
-    struct nfa_node* next;
-} nfa_node;
 
 #pragma region Others
 /**

@@ -12,16 +12,16 @@ using stack = struct stack {
     struct node *top;
 };
 
+typedef struct queue {
+    node *front;
+    node *rear;
+} queue;
+
 using ull = unsigned long long;
 using ll = long long;
 
 using std::swap;
 using std::abs;
-
-/**
- * @defgroup Euclid
- * @brief Functions related to the Euclidean algorithm for finding the greatest common divisor (GCD).
- */
 
 /**
  * @ingroup Euclid
@@ -201,11 +201,6 @@ int pop(stack *s);
 bool is_stack_empty(stack *s);
 int stack_top(stack *top);
 void free_stack(stack *s);
-
-typedef struct queue {
-    node *front;
-    node *rear;
-} queue;
 
 queue* create_queue();
 void enqueue(queue* q, int value);

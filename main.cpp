@@ -2,7 +2,6 @@
 // Coded by Zelendzu & Umato on 31.05.2024.
 //
 
-
 #include <random>
 #include "big_integer.h"
 #include "NFA_console_app.h"
