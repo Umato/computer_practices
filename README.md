@@ -7,10 +7,6 @@ This repository is dedicated to practicing computer science problems, specifical
 - [Project Overview](#project-overview)
 - [Installation](#installation)
 - [Usage](#usage)
-- [File Descriptions](#file-descriptions)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
 
 ## Project Overview
 
