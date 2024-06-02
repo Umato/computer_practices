@@ -29,7 +29,8 @@ g++ -o main main.cpp
 ./main
 
 # In the console application, type:
-help```
+help
+```bash
 
-**## Acknowledgements**
+## Acknowledgements
 This project was developed under the guidance of Mikhail Romanovich Starchak during the second term of the Applied Mathematics, Computer Science and Artificial Intelligence program at SPbU by students Zelenskaya E.G. and Vasilev E.S.
