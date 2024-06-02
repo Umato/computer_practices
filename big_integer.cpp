@@ -5,8 +5,93 @@
 #include <sstream>
 #include "big_integer.h"
 
-#pragma region Memory Management
+#pragma region Big_int_list
+big_int_list* big_int_list_init(size_t count, const int* nums)
+{
+    big_int_list* bigint_list = (big_int_list*)malloc(sizeof(big_int_list));
+    bigint_list->count = count;
+    bigint_list->big_ints = (big_int**)malloc(sizeof(big_int*) * count);
+    for (int i = 0; i < count; i++)
+    {
+        bigint_list->big_ints[i] = big_int_get(nums[i]);
+    }
+    return bigint_list;
+}
 
+big_int_list* big_int_list_init(size_t count, int bytes_count)
+{
+    big_int_list* bigint_list = (big_int_list*)malloc(sizeof(big_int_list));
+    bigint_list->count = count;
+    bigint_list->big_ints = (big_int**)malloc(sizeof(big_int*) * count);
+    for (int i = 0; i < count; i++)
+    {
+        bigint_list->big_ints[i] = big_int_init_zeroes(bytes_count);
+    }
+    return bigint_list;
+}
+
+void big_int_list_add_num(big_int_list* list, big_int* num)
+{
+    list->count++;
+    list->big_ints = (big_int**)realloc(list->big_ints, sizeof(big_int*) * list->count);
+    list->big_ints[list->count - 1] = num;
+}
+
+void big_int_list_free(big_int_list* bigint_list)
+{
+    for (int i = 0; i < bigint_list->count; i++)
+    {
+        big_int_free(bigint_list->big_ints[i]);
+    }
+    free(bigint_list->big_ints);
+    free(bigint_list);
+}
+
+// NEED TO BE TESTED
+void big_int_list_add_bit(big_int_list* list, int big_int_index, int bit_index)
+{
+    if (!list || big_int_index >= list->count || bit_index >= (list->big_ints[big_int_index]->length << 3)) return;
+
+    list->big_ints[big_int_index]->number[bit_index >> 3] |= 1 << (bit_index & 7);
+}
+
+// NEED TO BE TESTED
+int big_int_list_get_bit(big_int_list* list, int big_int_index, int bit_index)
+{
+    if (!list || big_int_index >= list->count || bit_index >= (list->big_ints[big_int_index]->length << 3)) return -1;
+    return (list->big_ints[big_int_index]->number[bit_index >> 3] & (1 << (bit_index & 7))) != 0;
+}
+#pragma endregion
+
+#pragma region Support Functions For NFA
+// NEED TO BE TESTED
+void big_int_add_bit(big_int* num, int bit_index)
+{
+    if (!num || bit_index >= (num->length << 3)) return;
+
+    num->number[bit_index >> 3] |= 1 << (bit_index & 7);
+}
+
+// NEED TO BE TESTED
+int big_int_get_bit(big_int* num, int bit_index)
+{
+    if (!num || bit_index >= (num->length << 3)) return -1;
+    return (num->number[bit_index >> 3] & (1 << (bit_index & 7))) != 0;
+}
+
+// NEED TO BE TESTED
+big_int* big_int_init_zeroes(int bytes_count)
+{
+    big_int* num = (big_int*)malloc(sizeof(big_int));
+    num->length = bytes_count;
+    num->sign = false;
+    num->number = (unsigned char*)calloc(bytes_count, sizeof(unsigned char));
+
+    return num;
+}
+#pragma endregion
+
+#pragma region Memory Management
 big_int *big_int_get(const int x) {
     big_int *num = (big_int *) malloc(sizeof(big_int));
 
@@ -299,8 +384,13 @@ void big_int_remove_zeroes(big_int *num) {
     }
 }
 
-const char* big_int_to_string(const big_int *num) {
-    if (!num || num->length == 0) return "";
+char* big_int_to_string(const big_int *num) {
+    if (!num || num->length == 0)
+    {
+        char* empty_string = (char*)malloc(sizeof(char));
+        empty_string[0] = '\0';
+        return empty_string;
+    }
 
     const size_t total_bits = num->length << 3;
 

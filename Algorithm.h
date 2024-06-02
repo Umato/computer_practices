@@ -12,16 +12,16 @@ using stack = struct stack {
     struct node *top;
 };
 
+typedef struct queue {
+    node *front;
+    node *rear;
+} queue;
+
 using ull = unsigned long long;
 using ll = long long;
 
 using std::swap;
 using std::abs;
-
-/**
- * @defgroup Euclid
- * @brief Functions related to the Euclidean algorithm for finding the greatest common divisor (GCD).
- */
 
 /**
  * @ingroup Euclid
@@ -187,8 +187,6 @@ bool is_prime(const ll num);
  */
 ll lcm(ll x, ll y);
 
-#pragma endregion
-
 int performOperation(int operand1, int operand2, char operation);
 
 int RPNCalculator(const char* expression);
@@ -203,5 +201,13 @@ int pop(stack *s);
 bool is_stack_empty(stack *s);
 int stack_top(stack *top);
 void free_stack(stack *s);
+
+queue* create_queue();
+void enqueue(queue* q, int value);
+int dequeue(queue* q);
+int peek(queue* q);
+bool is_queue_empty(queue* q);
+void free_queue(queue* q);
+
 
 #endif //COMPUTER_PRACTICE_ALGORITHM_H

@@ -42,6 +42,18 @@ using big_int = struct big_int {
 };
 
 /**
+ * @brief Defines a structure for list of big integers.
+ *
+ * This structure represents a list of big_int pointers, consisted of a double pointer to an array of 
+ * big integers and their total amount.
+ */
+typedef struct big_int_list
+{
+    big_int** big_ints;
+    size_t count;
+} big_int_list;
+
+/**
  * @brief Represents an RSA key structure.
  *
  * This structure holds the modulus and exponent used in RSA encryption.
@@ -51,8 +63,78 @@ using rsa_key = struct {
     big_int *exp;
 };
 
-#pragma region Memory Management
+#pragma region Big_int_list
+/**
+ * @brief Creates new list of big_int pointers and fill it with given numbers
+ *
+ * @param count Amount of given numbers.
+ * @param nums Given numbers.
+ * @return Pointer to the newly created big_int_list object.
+ */
+big_int_list* big_int_list_init(size_t count, const int* nums);
 
+/**
+ * @brief Creates new list of big_int pointers with fixed bytes counts
+ *
+ * @param count Amount of big integers in list
+ * @param bytes_count Count of bytes in each big integer
+ * @return Pointer to the newly created big_int_list object.
+ */
+big_int_list* big_int_list_init(size_t count, int bytes_count);
+
+/**
+ * @brief Frees memory allocated for list of big_int pointers.
+ *
+ * @param bigint_list List of big_int pointers to be freed.
+ */
+void big_int_list_free(big_int_list* bigint_list);
+
+/**
+ * @brief Set bit = 1 in big_int with index "list_num"
+ *
+ * @param bit_index: index of an edited bit (starting from right (least significant  bit) with 0)
+ */
+void big_int_list_add_bit(big_int_list* list, int big_int_index, int bit_index);
+
+/**
+ * @brief Get bit from big_int with index "list_num"
+ *
+ * @param bit_index: index of a returned bit (starting from right (least significant  bit) with 0)
+ */
+int big_int_list_get_bit(big_int_list* list, int big_int_index, int bit_index);
+
+/**
+ * @brief Adds new big_int to the end of the list
+ */
+void big_int_list_add_num(big_int_list* list, big_int* num);
+#pragma endregion
+
+#pragma region Support Functions for NFA
+/**
+ * @brief Set bit = 1 in big_int
+ *
+ * @param bit_index: index of an edited bit (starting from right (least significant bit) with 0)
+ */
+void big_int_add_bit(big_int* num, int bit_index);
+
+/**
+ * @brief Get bit from big_int
+ *
+ * @param bit_index: index of a returned bit (starting from right (least significant bit) with 0)
+ */
+int big_int_get_bit(big_int* num, int bit_index);
+
+/**
+ * @brief Creates big integer with given bytes count and fills it with zeroes
+ *
+ * @param bytes_count: amount of bytes in big integer
+ * @return pointer to the newly created big_int object.
+ */
+big_int* big_int_init_zeroes(int bytes_count);
+#pragma endregion
+
+
+#pragma region Memory Management
 /**
  * @brief Reads an integer in binary format and creates a big_int object from it.
  *
@@ -165,7 +247,7 @@ void big_int_remove_zeroes(big_int *num);
  * @param num A pointer to the big_int number structure.
  * @return A string representation of the big_int number, or an empty string if the input is null.
  */
-const char* big_int_to_string(const big_int *num);
+char* big_int_to_string(const big_int *num);
 
 #pragma endregion
 
