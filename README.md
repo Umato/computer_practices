@@ -30,7 +30,7 @@ g++ -o main main.cpp
 
 # In the console application, type:
 help
-```bash
+```
 
 ## Acknowledgements
 This project was developed under the guidance of Mikhail Romanovich Starchak during the second term of the Applied Mathematics, Computer Science and Artificial Intelligence program at SPbU by students Zelenskaya E.G. and Vasilev E.S.
