@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstdio>
+#include <cstring>
 
 typedef struct TarjanInfo {
     int *index;
