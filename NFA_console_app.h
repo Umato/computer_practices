@@ -16,6 +16,8 @@
 #include "NFA_stack.h"
 #include "NFA.h"
 
+#define strtok_s strtok_r
+
 /**
  * @brief Starts the NFA console application.
  */
