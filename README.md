@@ -6,7 +6,7 @@ This repository is dedicated to practicing computer science problems, specifical
 
 - [Project Overview](#project-overview)
 - [Installation](#installation)
-- [Usage](#usage)
+- [File Descriptions](#file-descriptions)
 - [Acknowledgements](#acknowledgements)
 
 ## Project Overview
@@ -31,6 +31,18 @@ g++ -o main main.cpp
 # In the console application, type:
 help
 ```
+
+## File Descriptions
+
+- **NFA.cpp / NFA.h**: Core implementation and definitions for working with Non-deterministic Finite Automata.
+- **NFA_console_app.cpp / NFA_console_app.h**: Functions and definitions for the console application interface.
+- **NFA_stack.cpp / NFA_stack.h**: Implementation of stack operations used within the NFA.
+- **NFA_variables.cpp / NFA_variables.h**: Structure for variable linking management.
+- **basic_functions.h**: Basic libraries importing.
+- **big_integer.cpp / big_integer.h**: Implementation for handling large integer operations.
+- **graph.cpp / graph.h**: Graph structure implementation.
+- **linear_term.cpp / linear_term.h**: Handling and operations for linear terms.
+- **main.cpp**: Main entry point for the project.
 
 ## Acknowledgements
 This project was developed under the guidance of Mikhail R. Starchak during the second term of the Applied Mathematics, Computer Science and Artificial Intelligence program at SPbU by students Zelenskaya E. and Vasilev E.
