@@ -6,6 +6,8 @@
 #define COMPUTER_PRACTICE_ALGORITHM_H
 
 #include <iostream>
+#include <climits>
+#include <cmath>
 #include "graph.h"
 
 using stack = struct stack {
