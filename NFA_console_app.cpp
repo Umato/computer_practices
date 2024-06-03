@@ -5,6 +5,43 @@
 
 #include "NFA_console_app.h"
 
+
+#pragma region FunCout
+bool godBlessThisMess = false;
+
+// Функция для добавления случайных табуляций
+void addRandomTabs() {
+    if (godBlessThisMess) {
+        int numTabs = rand() % 4; // случайное число от 0 до 3
+        for (int i = 0; i < numTabs; ++i) {
+            std::cout << "\t";
+        }
+    }
+}
+
+// Обертка для std::cout
+class MyCoutWrapper {
+public:
+    template <typename T>
+    MyCoutWrapper& operator<<(const T& value) {
+        std::cout << value;
+        addRandomTabs();
+        return *this;
+    }
+
+    MyCoutWrapper& operator<<(std::ostream& (*manip)(std::ostream&)) {
+        std::cout << manip;
+        return *this;
+    }
+};
+
+// Глобальный объект для замены std::cout
+MyCoutWrapper myCout;
+
+#define cout myCout
+#pragma endregion
+
+
 void NFA_console_app() {
     char input[256];
     cout << "Enter command (type 'exit' to quit):\n";
@@ -48,11 +85,13 @@ void NFA_console_app() {
         } else if (strncmp(input, "regex ", 6) == 0) {
             regex_command(input + 6);
         } else {
-                printf("Unknown command: %s\n", input);
+            cout << "";
+            printf("Unknown command: %s\n", input);
         }
     }
 
 }
+
 
 #pragma region Commands
 
@@ -60,7 +99,7 @@ void print_help_command()
 {
     int commandWidth = 55;
 
-    std::cout << std::left;
+    cout << std::left;
 
     cout << "Available commands:\n";
     cout << std::setw(commandWidth) << "\texit" << " - Exit the NFA Console Application.\n";
@@ -81,10 +120,29 @@ void print_help_command()
 }
 
 void print_hElp_command() {
+    godBlessThisMess = !godBlessThisMess;
+    if (godBlessThisMess)
+    {
+        system("cls");
+        Sleep(3000);
+        cout << "God Bless This Mess!" << endl;
+        Sleep(5000);
+        system("cls");
+        Sleep(3000);
+    }
+    else
+    {
+        system("cls");
+        Sleep(3000);
+        cout << "Now you\'re safe. For a while..." << endl;
+        Sleep(5000);
+        cls_command();
+        return;
+    }
     int commandWidth = 55;
     int descWidth = 100;
 
-    std::cout << std::left;
+    cout << std::left;
 
     cout << "Available commands:\n";
     cout << std::setw(commandWidth) << " exit" << " - " << std::setw(descWidth) << "Exit the NFA Console Application.\n";
@@ -126,6 +184,7 @@ void nfa_list_command() {
                 *dot = '\0';
             }
 
+            cout << "";
             printf("%d) %s\n", ++count, ffd.cFileName);
         }
     } while (FindNextFile(hFind, &ffd) != 0);

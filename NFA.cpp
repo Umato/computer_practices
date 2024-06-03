@@ -701,20 +701,20 @@ bool NFA_accept(NFA* nfa, big_int_list* bigint_list)
 
 void NFA_print(NFA* nfa) {
     if (nfa == nullptr) {
-        std::cout << "nfa is nullptr." << std::endl;
+        cout << "nfa is nullptr." << std::endl;
         return;
     }
 
-    std::cout << "NFA: States Count = " << nfa->states_count
+    cout << "NFA: States Count = " << nfa->states_count
         << ", Alphabet Size = " << nfa->alphabet_dim << std::endl;
-    std::cout << "Initial State: " << nfa->initial_state->id << std::endl;
-    std::cout << "States:" << std::endl;
+    cout << "Initial State: " << nfa->initial_state->id << std::endl;
+    cout << "States:" << std::endl;
 
     for (size_t i = 0; i < nfa->states_count; i++) {
         NFA_state* state = nfa->states[i];
         if (state == nullptr) continue;
 
-        std::cout << " State " << state->id << (state->is_final ? " [final]" : "") << std::endl;
+        cout << " State " << state->id << (state->is_final ? " [final]" : "") << std::endl;
 
         for (size_t letter = 0; letter <= (1 << nfa->alphabet_dim); letter++) {
             list* transition_list = state->transitions[letter];
@@ -722,18 +722,18 @@ void NFA_print(NFA* nfa) {
                 continue;
             }
 
-            std::cout << "  On '";
+            cout << "  On '";
             if (letter < (1 << nfa->alphabet_dim))
                 print_bin(letter, nfa->alphabet_dim);
             else
                 printf("E");
-            std::cout << "': ";
+            cout << "': ";
             node* current = transition_list->head;
             while (current != nullptr) {
-                std::cout << current->val << " ";
+                cout << current->val << " ";
                 current = current->next;
             }
-            std::cout << std::endl;
+            cout << std::endl;
         }
     }
 }
