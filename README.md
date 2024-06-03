@@ -25,8 +25,7 @@ git clone https://github.com/Umato/computer_practices.git
 cd computer_practices
 
 # Compile the project
-g++ -o main main.cpp NFA.cpp NFA_console_app.cpp NFA_stack.cpp NFA_variables.cpp big_integer.cpp graph.cpp linear_term.cpp Algorithm.cpp
-main
+init
 
 # In the console application, type:
 help
